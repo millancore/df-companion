@@ -152,11 +152,11 @@ window.DF_WORKSHOPS = {
   art: `<path d="M11 7h10l5 6-10 13L6 13z"/><path d="M6 13h20"/>
         <path d="M11 7l5 6M21 7l-5 6M16 13v13"/>` },
 
-"Craftsdwarf's Workshop": { kind: 'workshop', box: '7.6 3.9 16.8 25.5', sw: 1.35,
+/* The odd one out: supplied already drawn on a 256 grid and filled rather than
+   stroked, so it keeps its own viewBox and paints itself. `sw` goes unused. */
+"Craftsdwarf's Workshop": { kind: 'workshop', box: '0 0 256 256', sw: 1.35,
   note: 'Crafts, rock pots, jugs, bone bolts, quires — and adamantine strand extraction.',
-  art: `<path d="M9 28h14v-3H9z"/><path d="M16 25V14"/><circle cx="16" cy="9.5" r="4.2"/>
-        <path d="M16 19l-6-4.5M16 19l6-4.5"/>
-        <circle cx="16" cy="21.5" r="1.2" class="ac"/>` },
+  art: `<path fill="currentColor" stroke="none" d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Zm-12.69,88L136,60.69V48h12.69L208,107.32V120ZM136,83.31,172.69,120H136Zm72,1.38L171.31,48H208ZM120,48v72H48V48ZM107.31,208,48,148.69V136H60.69L120,195.31V208ZM120,172.69,83.31,136H120Zm-72-1.38L84.69,208H48ZM208,208H136V136h72v72Z"/>` },
 
 /* ── Wood & paper ── */
 
@@ -167,10 +167,16 @@ window.DF_WORKSHOPS = {
         <path d="M8 11l2.4 2.8 2.4-2.8 2.4 2.8 2.4-2.8 2.4 2.8"/>
         <path d="M20 5h3a3 3 0 0 1 0 6h-3z" class="ac"/>` },
 
-"Bowyer's Workshop": { kind: 'workshop', box: '6.3 3.6 21.1 24.8', sw: 1.32,
+/* Drawn on a 24 grid rather than 32, but stroked like the rest of the set. The
+   grid it came on used a stroke of 2; scaled against the 24-unit box that reads
+   heavier than the rest, so it is measured back to the set's line weight. */
+"Bowyer's Workshop": { kind: 'workshop', box: '0 0 24 24', sw: 1.5,
   note: 'Wooden bows and crossbows for the militia.',
-  art: `<path d="M13 5a14 14 0 0 0 0 22"/><path d="M13 5v22"/>
-        <path d="M11 16h15"/><path d="M22 12l4 4-4 4" class="ac"/>` },
+  art: `<path d="M17 3h4v4"/>
+        <path d="M18.575 11.082a13 13 0 0 1 1.048 9.027 1.17 1.17 0 0 1-1.914.597L14 17"/>
+        <path d="M7 10 3.29 6.29a1.17 1.17 0 0 1 .6-1.91 13 13 0 0 1 9.03 1.05"/>
+        <path d="M7 14a1.7 1.7 0 0 0-1.207.5l-2.646 2.646A.5.5 0 0 0 3.5 18H5a1 1 0 0 1 1 1v1.5a.5.5 0 0 0 .854.354L9.5 18.207A1.7 1.7 0 0 0 10 17v-2a1 1 0 0 0-1-1z"/>
+        <path d="M9.707 14.293 21 3"/>` },
 
 'Library': { kind: 'place', box: '3.6 5.6 24.8 20.8', sw: 1.32,
   note: 'Where scribes fill quires and scholars argue. Attracts visitors, some of whom are not what they claim.',
@@ -184,10 +190,14 @@ window.DF_WORKSHOPS = {
   art: `<circle cx="12" cy="13" r="6.5"/><path d="M12 19.5V26"/><path d="M4 26h24"/>
         <path d="M22 26v-4"/><path d="M22 22l-2.6-1.6M22 22l2.6-1.6" class="ac"/>` },
 
-'Underground': { kind: 'place', box: '1.6 4.6 28.8 24.8', sw: 1.53,
+/* Like the Bowyer: drawn on a 24 grid rather than 32 and stroked at 2 there,
+   measured back to the set's line weight against the 24-unit box. */
+'Underground': { kind: 'place', box: '0 0 24 24', sw: 1.5,
   note: 'Mining. Roughly a quarter of dug tiles drop a boulder, and everything else on this site depends on it.',
-  art: `<path d="M3 12c8-8 18-8 26 0-8-4.5-18-4.5-26 0z"/>
-        <path d="M16 10v18"/><path d="M12.5 28h7" class="ac"/>` },
+  art: `<path d="m14 13-8.381 8.38a1 1 0 0 1-3.001-3L11 9.999"/>
+        <path d="M15.973 4.027A13 13 0 0 0 5.902 2.373c-1.398.342-1.092 2.158.277 2.601a19.9 19.9 0 0 1 5.822 3.024"/>
+        <path d="M16.001 11.999a19.9 19.9 0 0 1 3.024 5.824c.444 1.369 2.26 1.676 2.603.278A13 13 0 0 0 20 8.069"/>
+        <path d="M18.352 3.352a1.205 1.205 0 0 0-1.704 0l-5.296 5.296a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l5.296-5.296a1.205 1.205 0 0 0 0-1.704z"/>` },
 
 'Sandy soil': { kind: 'place', box: '2.6 8.4 26.8 19', sw: 1.42,
   note: 'Collect sand into an empty bag. The tile never runs out, which makes glass infinitely renewable.',

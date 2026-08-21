@@ -73,9 +73,10 @@ window.DF_ICONS = {
         <path d="M16 19v6"/><path d="M10.5 27h11"/>
         <path d="M9.6 9.6h12.8"/>` },
 
-'flame':    { box: '6.6 6.6 18.8 22.8', sw: 1.21,
-  art: `<path d="M16 28c-5 0-8-3.2-8-7.5 0-5 4-7 5.5-12.5 3 2 4.5 5 4.5 7.5
-                 1-.8 1.8-2.2 2-3.8 2.6 2.4 4 5.6 4 8.8 0 4.3-3 7.5-8 7.5z"/>` },
+/* Like `fuel`: supplied already drawn on a 256 grid and filled rather than
+   stroked, so it keeps its own viewBox and paints itself. `sw` goes unused. */
+'flame':    { box: '0 0 256 256', sw: 1.7,
+  art: `<path fill="currentColor" stroke="none" d="M183.89,153.34a57.6,57.6,0,0,1-46.56,46.55A8.75,8.75,0,0,1,136,200a8,8,0,0,1-1.32-15.89c16.57-2.79,30.63-16.85,33.44-33.45a8,8,0,0,1,15.78,2.68ZM216,144a88,88,0,0,1-176,0c0-27.92,11-56.47,32.66-84.85a8,8,0,0,1,11.93-.89l24.12,23.41,22-60.41a8,8,0,0,1,12.63-3.41C165.21,36,216,84.55,216,144Zm-16,0c0-46.09-35.79-85.92-58.21-106.33L119.52,98.74a8,8,0,0,1-13.09,3L80.06,76.16C64.09,99.21,56,122,56,144a72,72,0,0,0,144,0Z"/>` },
 
 'flux':     { box: '4.29 2.6 23.41 27.5', sw: 1.46,
   art: `<path d="M13 4v8L6 25a2.5 2.5 0 0 0 2.2 3.7h15.6A2.5 2.5 0 0 0 26 25l-7-13V4z"/>
@@ -91,9 +92,15 @@ window.DF_ICONS = {
   art: `<path d="M10 5h12c2 5 2 17 0 22H10c-2-5-2-17 0-22z"/>
         <path d="M8.6 11h14.8M8.6 21h14.8"/>` },
 
-'jug':      { box: '7.6 4.6 23.8 24.8', sw: 1.32,
-  art: `<path d="M12 6h8l-1 4c3.5 1.8 6 5.3 6 9.5V24a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4v-4.5c0-4.2 2.5-7.7 6-9.5z"/>
-        <path d="M25 14h2a3 3 0 0 1 0 6h-2"/>` },
+/* Drawn on a 24 grid rather than 32, but stroked like the rest of the set. It
+   came stroked at 2 on that grid; measured back against the 24-unit box that
+   lands on the set's line weight. */
+'jug':      { box: '0 0 24 24', sw: 1.5,
+  art: `<path d="M10 2v5.632c0 .424-.272.795-.653.982A6 6 0 0 0 6 14c.006 4 3 7 5 8"/>
+        <path d="M10 5H8a2 2 0 0 0 0 4h.68"/>
+        <path d="M14 2v5.632c0 .424.272.795.652.982A6 6 0 0 1 18 14c0 4-3 7-5 8"/>
+        <path d="M14 5h2a2 2 0 0 1 0 4h-.68"/>
+        <path d="M18 22H6"/><path d="M9 2h6"/>` },
 
 'bucket':   { box: '5.6 9.6 20.8 19.8', sw: 1.11,
   art: `<path d="M7 11h18l-2.2 15.2A2 2 0 0 1 20.8 28h-9.6a2 2 0 0 1-2-1.8z"/>
