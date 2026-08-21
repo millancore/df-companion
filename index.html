@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DF Companion — Dwarf Fortress Industry Workflows</title>
+<meta name="description" content="An interactive map of Dwarf Fortress industry chains: what makes what, at which workshop, with which skill.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='4.6 3.6 23.8 24.3' fill='none' stroke='%23a4632a' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 26.5 17 15.5'/%3E%3Cpath d='M14.5 8.5 23.5 17.5 27 14 18 5z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <a class="brand" href="#/">
+    <span class="brand-mark">
+      <svg viewBox="4.6 3.6 23.8 24.3" aria-hidden="true" fill="none" stroke="currentColor"
+           stroke-width="1.29" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 26.5 17 15.5"/><path d="M14.5 8.5 23.5 17.5 27 14 18 5z"/>
+      </svg>
+    </span>
+    <span class="brand-text">
+      <strong>DF Companion</strong>
+      <small>Industry workflows</small>
+    </span>
+  </a>
+
+  <div class="search-wrap">
+    <input id="search" type="search" placeholder="Search items, workshops, skills…  (press /)" autocomplete="off" spellcheck="false" aria-label="Search">
+    <div id="results" class="results" hidden></div>
+  </div>
+
+  <nav class="topnav">
+    <a href="#/" data-nav="industries">Industries</a>
+    <a href="#/w" data-nav="workshops">Workshops</a>
+    <a href="#/armor" data-nav="armor">Armor</a>
+    <a href="#/about" data-nav="about">About</a>
+    <button id="theme" class="icon-btn" title="Toggle light / dark" aria-label="Toggle theme"></button>
+  </nav>
+</header>
+
+<main id="main"></main>
+
+<footer class="foot">
+  <p>
+    A fan-made reference for <a href="https://www.bay12games.com/dwarves/" target="_blank" rel="noopener">Dwarf Fortress</a>.
+    Not affiliated with Bay 12 Games or Kitfox Games. Verify anything load-bearing against the
+    <a href="https://dwarffortresswiki.org" target="_blank" rel="noopener">wiki</a>.
+  </p>
+  <p class="muted">Layout inspired by Max Cantor’s printable cheat sheet at <a href="https://thingsfittogether.com" target="_blank" rel="noopener">thingsfittogether.com</a>.</p>
+</footer>
+
+<script src="data/icons.js"></script>
+<script src="data/recipes.js"></script>
+<script src="data/brewing.js"></script>
+<script src="data/milling.js"></script>
+<script src="data/workshops.js"></script>
+<script src="data/metals.js"></script>
+<script src="data/dyes.js"></script>
+<script src="data/smelting.js"></script>
+<script src="data/reference.js"></script>
+<script src="data/armor.js"></script>
+<script src="assets/js/graph.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,781 @@
+/* ── Theme tokens ─────────────────────────────────────────────── */
+:root {
+  --bg:        #f4efe4;
+  --bg-2:      #ebe3d3;
+  --panel:     #fffdf7;
+  --panel-2:   #f7f1e4;
+  --ink:       #2b2419;
+  --ink-2:     #5c5142;
+  --ink-3:     #8b7f6c;
+  --line:      #d9cfba;
+  --line-2:    #c2b49a;
+  --accent:    #a4632a;
+  --accent-2:  #7d4a1e;
+  --accent-ink:#ffffff;
+  --gold:      #b8860b;
+  --shadow:    0 1px 2px rgba(43,36,25,.08), 0 8px 24px rgba(43,36,25,.07);
+  --radius:    0px;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html[data-theme="dark"] {
+  --bg:        #16130f;
+  --bg-2:      #1d1a14;
+  --panel:     #221e18;
+  --panel-2:   #2a251d;
+  --ink:       #ede4d4;
+  --ink-2:     #b9ac96;
+  --ink-3:     #8a7d68;
+  --line:      #3a3227;
+  --line-2:    #4d4335;
+  --accent:    #d99447;
+  --accent-2:  #f0b268;
+  --accent-ink:#1a1610;
+  --gold:      #e0b452;
+  --shadow:    0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); }
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: var(--accent-ink);
+  padding: .6rem 1rem; z-index: 100; border-radius: 0;
+}
+.skip:focus { left: 0; top: 0; }
+
+.muted { color: var(--ink-3); }
+
+/* ── Top bar ──────────────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; gap: 1rem;
+  padding: .6rem clamp(.75rem, 3vw, 2rem);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand { display: flex; align-items: center; gap: .6rem; text-decoration: none; color: inherit; flex-shrink: 0; }
+.brand-mark {
+  width: 34px; height: 34px; display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-ink);
+  border-radius: 0; font-size: 1.1rem;
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+.brand-text strong { font-size: .95rem; letter-spacing: .01em; }
+.brand-text small { font-size: .7rem; color: var(--ink-3); }
+
+.search-wrap { position: relative; flex: 1; max-width: 460px; margin-inline: auto; }
+#search {
+  width: 100%; padding: .5rem .8rem;
+  font: inherit; font-size: .88rem;
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--line-2); border-radius: 0;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+}
+#search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+#search::placeholder { color: var(--ink-3); }
+
+.results {
+  position: absolute; top: calc(100% + .4rem); left: 0; right: 0;
+  max-height: 60vh; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--line-2);
+  border-radius: 0; box-shadow: var(--shadow); padding: .3rem;
+}
+.results button {
+  display: flex; width: 100%; gap: .55rem; align-items: baseline;
+  padding: .45rem .6rem; border: 0; border-radius: 0;
+  background: none; color: inherit; font: inherit; font-size: .85rem;
+  text-align: left; cursor: pointer;
+}
+.results button:hover, .results button[aria-selected="true"] { background: var(--panel-2); }
+.results .r-kind { font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); margin-left: auto; flex-shrink: 0; }
+.results .r-sub { color: var(--ink-3); font-size: .78rem; }
+.results .empty { padding: .8rem; color: var(--ink-3); font-size: .85rem; }
+
+.topnav { display: flex; align-items: center; gap: .2rem; flex-shrink: 0; }
+.topnav a {
+  padding: .4rem .7rem; border-radius: 0; font-size: .85rem;
+  text-decoration: none; color: var(--ink-2);
+}
+.topnav a:hover { background: var(--panel-2); color: var(--ink); }
+.topnav a.on { background: var(--panel-2); color: var(--ink); font-weight: 600; }
+
+.icon-btn {
+  width: 32px; height: 32px; margin-left: .3rem;
+  border: 1px solid var(--line-2); border-radius: 0;
+  background: var(--panel); color: var(--ink-2);
+  cursor: pointer; font-size: .9rem;
+}
+.icon-btn:hover { color: var(--ink); border-color: var(--accent); }
+
+/* ── Layout ───────────────────────────────────────────────────── */
+main { max-width: 1240px; margin: 0 auto; padding: clamp(1.2rem, 4vw, 2.5rem) clamp(.75rem, 3vw, 2rem) 4rem; }
+
+.hero { margin-bottom: 2rem; }
+.hero h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); margin: 0 0 .4rem; letter-spacing: -.02em; }
+.hero p { margin: 0; color: var(--ink-2); max-width: 62ch; }
+
+.page-head { display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
+.page-head h1 { margin: 0 0 .25rem; font-size: clamp(1.4rem, 3.5vw, 2rem); letter-spacing: -.02em; }
+.page-head p { margin: 0; color: var(--ink-2); max-width: 62ch; }
+.back { display: inline-flex; align-items: center; gap: .3rem; font-size: .82rem; text-decoration: none; margin-bottom: .8rem; color: var(--ink-3); }
+.back:hover { color: var(--accent); }
+
+/* ── Industry grid ────────────────────────────────────────────── */
+.ind-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.ind-card {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 4px solid var(--c, var(--accent));
+  border-radius: 0; padding: 1.1rem 1.2rem;
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.ind-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--line-2); border-left-color: var(--c); }
+.ind-card .ic { font-size: 1.5rem; line-height: 1; }
+.ind-card h2 { margin: .5rem 0 .3rem; font-size: 1.02rem; }
+.ind-card p { margin: 0 0 .7rem; font-size: .85rem; color: var(--ink-2); }
+.ind-card .count { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); }
+
+/* ── Recipe cards ─────────────────────────────────────────────── */
+.shop-group { margin-bottom: 2rem; }
+.shop-head {
+  display: flex; align-items: baseline; gap: .6rem;
+  padding-bottom: .5rem; margin-bottom: .9rem;
+  border-bottom: 1px solid var(--line);
+}
+.shop-head h2 { margin: 0; font-size: 1rem; letter-spacing: .01em; }
+.shop-head .skill { font-size: .78rem; color: var(--ink-3); font-family: var(--mono); }
+
+.rec-grid { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+
+.rec {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 0; padding: .9rem 1rem;
+  scroll-margin-top: 5.5rem;   /* clear the sticky header when jumped to by anchor */
+}
+.rec:target { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.rec h3 { margin: 0 0 .6rem; font-size: .92rem; display: flex; align-items: center; gap: .45rem; }
+.rec .flow { display: flex; flex-direction: column; gap: .4rem; }
+.flow-row { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+.flow-label {
+  font-size: .62rem; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-3); width: 3.1rem; flex-shrink: 0; font-family: var(--mono);
+}
+.arrow { margin-left: 3.1rem; line-height: 0; padding: .1rem 0; color: var(--ink-2); opacity: .75; }
+.arrow-svg { width: 16px; height: 16px; display: block; }
+.rec:hover .arrow { color: var(--accent); opacity: 1; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .17rem .55rem; border-radius: 0;
+  border: 1px solid var(--line-2); background: var(--panel-2);
+  font-size: .8rem; color: var(--ink); text-decoration: none;
+  cursor: pointer; transition: border-color .12s, background .12s;
+}
+.chip:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); }
+.chip .qty { font-family: var(--mono); font-size: .72rem; color: var(--accent); font-weight: 600; }
+.chip.out { border-color: color-mix(in srgb, var(--gold) 45%, var(--line-2)); }
+
+.needs { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .6rem; }
+.need {
+  font-size: .7rem; padding: .12rem .45rem; border-radius: 0;
+  background: var(--bg-2); border: 1px solid var(--line);
+  color: var(--ink-2); font-family: var(--mono);
+}
+.rec .note {
+  margin: .7rem 0 0; padding-top: .6rem; border-top: 1px dashed var(--line);
+  font-size: .8rem; color: var(--ink-2);
+}
+
+/* Three stacked bars are squarer than the single bar they replaced, so the
+   height follows the width rather than being set twice. */
+.ingot { width: 18px; aspect-ratio: 27.4 / 19.4; height: auto; flex: none; }
+.ingot.big { width: 36px; margin-right: .5rem; }
+.ingot.title { width: 21px; }
+td .ingot { margin-right: .4rem; vertical-align: -.28em; }  /* chips use flex gap; cells don't */
+.chip.is-metal { padding-left: .4rem; }
+.item-head h1 { display: flex; align-items: center; gap: 0; }
+.plus { color: var(--ink-3); margin: 0 .35rem; }
+
+/* ── Workshop art ─────────────────────────────────────────────── */
+.ws-icon { width: 1.15em; height: 1.15em; flex: none; vertical-align: -.2em; }
+.ws-icon .ac { fill: var(--accent); stroke: none; }
+.ws-icon.lg  { width: 26px; height: 26px; }
+.ws-icon.xl  { width: 42px; height: 42px; }
+.ws-icon.xxl { width: 60px; height: 60px; }
+
+.chip.shop .ws-icon { color: var(--accent); }
+
+.shop-link { display: flex; align-items: center; gap: .55rem; text-decoration: none; color: inherit; }
+.shop-link .ws-icon { color: var(--accent); }
+.shop-link:hover h2 { color: var(--accent); }
+
+.group-note { margin: -.4rem 0 1rem; font-size: .84rem; color: var(--ink-3); max-width: 62ch; }
+
+.ws-grid { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+.ws-card {
+  display: flex; gap: .9rem; align-items: flex-start;
+  padding: 1rem; text-decoration: none; color: inherit;
+  background: var(--panel); border: 1px solid var(--line);
+  transition: border-color .15s, box-shadow .15s;
+}
+.ws-card:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+.ws-art { color: var(--ink-2); flex: none; }
+.ws-card:hover .ws-art { color: var(--accent); }
+.ws-body { min-width: 0; }
+.ws-card h3 { margin: 0 0 .3rem; font-size: .95rem; }
+.ws-card p { margin: 0 0 .6rem; font-size: .82rem; color: var(--ink-2); }
+.ws-meta { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+.ws-meta .count {
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--accent); font-family: var(--mono);
+}
+
+.ws-head { display: flex; gap: 1.2rem; align-items: flex-start; margin-bottom: 1.8rem; }
+.ws-head h1 { margin: 0 0 .5rem; font-size: clamp(1.4rem, 3.5vw, 2rem); letter-spacing: -.02em; }
+.ws-head .ws-art { color: var(--accent); padding-top: .2rem; }
+.ws-head .item-note { margin: .7rem 0 0; }
+.ws-inds { font-size: .82rem; margin: .5rem 0 0; }
+
+/* ── Item detail ──────────────────────────────────────────────── */
+.item-head { margin-bottom: 1.5rem; }
+.item-head h1 { margin: 0 0 .3rem; font-size: clamp(1.4rem, 3.5vw, 2rem); }
+.item-head .item-note { color: var(--ink-2); max-width: 66ch; margin: .5rem 0 0; }
+
+.two-col { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); align-items: start; }
+.col-head {
+  font-size: .74rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--ink-3); margin: 0 0 .8rem; font-family: var(--mono);
+}
+.col-head .n { color: var(--accent); }
+.stack { display: flex; flex-direction: column; gap: .7rem; }
+.none { color: var(--ink-3); font-size: .85rem; font-style: italic; }
+
+/* ── Tables ───────────────────────────────────────────────────── */
+.ref-block { margin-bottom: 2.4rem; scroll-margin-top: 5rem; }
+.ref-block h2 { margin: 0 0 .25rem; font-size: 1.1rem; }
+.ref-block > p { margin: 0 0 .9rem; color: var(--ink-2); font-size: .88rem; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 0; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+th, td { padding: .5rem .8rem; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--panel-2); font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--panel-2); }
+td:first-child { font-weight: 600; white-space: nowrap; }
+
+.toc { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 2rem; }
+.toc a {
+  font-size: .8rem; padding: .3rem .7rem; border-radius: 0;
+  border: 1px solid var(--line-2); background: var(--panel);
+  text-decoration: none; color: var(--ink-2);
+}
+.toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Graph ────────────────────────────────────────────────────── */
+.view-tabs { display: inline-flex; gap: .2rem; padding: .2rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: 0; margin-bottom: 1.2rem; }
+.view-tabs button {
+  padding: .32rem .85rem; border: 0; border-radius: 0;
+  background: none; color: var(--ink-2); font: inherit; font-size: .82rem; cursor: pointer;
+}
+.view-tabs button.on { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+
+.graph-shell {
+  position: relative; border: 1px solid var(--line); border-radius: 0;
+  background: var(--panel); overflow: hidden; height: min(70vh, 640px);
+}
+.graph-shell svg { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.graph-shell svg.drag { cursor: grabbing; }
+.graph-hint {
+  position: absolute; bottom: .6rem; left: .7rem;
+  font-size: .72rem; color: var(--ink-3); pointer-events: none;
+  background: color-mix(in srgb, var(--panel) 80%, transparent); padding: .2rem .5rem; border-radius: 0;
+}
+.graph-tools { position: absolute; top: .6rem; right: .6rem; display: flex; gap: .3rem; }
+.graph-tools button {
+  width: 28px; height: 28px; border: 1px solid var(--line-2); border-radius: 0;
+  background: var(--panel); color: var(--ink-2); cursor: pointer; font-size: .85rem; line-height: 1;
+}
+.graph-tools button:hover { color: var(--accent); border-color: var(--accent); }
+
+.n-item rect { fill: var(--panel-2); stroke: var(--line-2); }
+.n-item:hover rect { stroke: var(--accent); }
+.n-item text { fill: var(--ink); font-size: 11px; font-family: var(--sans); }
+.n-job rect { fill: color-mix(in srgb, var(--c, var(--accent)) 20%, var(--panel)); stroke: var(--c, var(--accent)); }
+.n-job text { fill: var(--ink); font-size: 10.5px; font-family: var(--sans); }
+.n-job .sub { fill: var(--ink-3); font-size: 9px; font-family: var(--mono); }
+.edge { fill: none; stroke: var(--line-2); stroke-width: 1.4; }
+.edge.hot { stroke: var(--accent); stroke-width: 2.2; }
+.node.dim { opacity: .25; }
+.node { cursor: pointer; }
+
+/* ── About ────────────────────────────────────────────────────── */
+.prose { max-width: 68ch; }
+.prose h2 { font-size: 1.05rem; margin: 1.8rem 0 .5rem; }
+.prose p, .prose li { color: var(--ink-2); }
+.prose code { font-family: var(--mono); font-size: .85em; background: var(--panel-2); padding: .1rem .35rem; border-radius: 0; color: var(--ink); }
+.prose pre { background: var(--panel); border: 1px solid var(--line); border-radius: 0; padding: .9rem 1rem; overflow-x: auto; }
+.prose pre code { background: none; padding: 0; font-size: .8rem; line-height: 1.6; }
+
+/* ── Footer ───────────────────────────────────────────────────── */
+.foot {
+  border-top: 1px solid var(--line); padding: 1.5rem clamp(.75rem, 3vw, 2rem);
+  font-size: .8rem; color: var(--ink-3); text-align: center;
+}
+.foot p { margin: .2rem 0; }
+
+@media (max-width: 720px) {
+  /* Brand and nav share the first row, search gets a full-width row of its own —
+     otherwise the input is crushed to a few dozen pixels. */
+  .topbar { flex-wrap: wrap; row-gap: .5rem; }
+  .brand-text { display: none; }
+  .topnav { margin-left: auto; }
+  .topnav a { padding: .4rem .5rem; font-size: .82rem; }
+  .search-wrap { order: 3; flex-basis: 100%; max-width: none; margin-inline: 0; }
+  .graph-shell { height: min(65vh, 460px); }
+  .page-head h1, .item-head h1 { font-size: 1.35rem; }
+  .ws-head { gap: .8rem; }
+  .ws-icon.xxl { width: 44px; height: 44px; }
+}
+
+/* ── Symbols ──────────────────────────────────────────────────── */
+/* The shared set from data/icons.js. Sized in em so a symbol scales with
+   whatever it sits in — a heading, a badge, a table-of-contents chip — and
+   inherits that context's colour through currentColor. */
+.sym { width: 1.05em; height: 1.05em; flex: none; vertical-align: -.16em; }
+
+.need {
+  display: inline-flex; align-items: center; gap: .3rem;
+  line-height: 1.5;
+}
+/* The badges set .7rem type; a symbol at 1.15em of that muddies into a blob,
+   so it runs a shade larger than its words. */
+.need .sym { width: 1.35em; height: 1.35em; vertical-align: baseline; }
+
+/* Industry symbols take the industry's own colour rather than the body ink. */
+.ind-card .ic { color: var(--c, var(--accent)); }
+.sym.ind { width: 32px; height: 32px; }
+.page-head h1 .sym { color: var(--accent); margin-right: .1em; }
+.ws-inds .sym { color: var(--accent); margin-right: .1em; }
+.toc a .sym, .ref-block h2 .sym { color: var(--accent); margin-right: .15em; }
+
+.brand-mark svg { width: 20px; height: 20px; display: block; }
+.icon-btn svg { width: 17px; height: 17px; display: block; margin: 0 auto; }
+
+/* ── The Still's brewing picker ───────────────────────────────── */
+.brew {
+  display: grid; gap: 1rem; align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  margin-bottom: 2rem;
+}
+
+.brew-pick { border: 1px solid var(--line); background: var(--panel); }
+
+.brew-filters { padding: .7rem .8rem .5rem; border-bottom: 1px solid var(--line); }
+.frow { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
+.frow + .frow { margin-top: .4rem; }
+.flabel {
+  font-size: .62rem; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-3); width: 3.6rem; flex-shrink: 0; font-family: var(--mono);
+}
+.fchip {
+  padding: .18rem .55rem; font: inherit; font-size: .74rem;
+  border: 1px solid var(--line-2); border-radius: 0;
+  background: var(--panel-2); color: var(--ink-2); cursor: pointer;
+}
+.fchip:hover { border-color: var(--accent); color: var(--ink); }
+.fchip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+.brew-search {
+  width: 100%; padding: .45rem .8rem;
+  font: inherit; font-size: .82rem;
+  background: var(--panel); color: var(--ink);
+  border: 0; border-bottom: 1px solid var(--line);
+  outline: none;
+}
+.brew-search:focus { border-bottom-color: var(--accent); }
+.brew-search::placeholder { color: var(--ink-3); }
+
+/* Tall enough to show the shape of the list, short enough that the answer
+   panel stays on screen next to it. */
+.brew-list { max-height: 26rem; overflow-y: auto; }
+.brew-list button {
+  display: flex; width: 100%; gap: .6rem; align-items: baseline;
+  padding: .38rem .8rem; border: 0; border-radius: 0;
+  background: none; color: inherit; font: inherit; font-size: .82rem;
+  text-align: left; cursor: pointer;
+}
+.brew-list button:hover { background: var(--panel-2); }
+.brew-list button.on { background: color-mix(in srgb, var(--accent) 14%, var(--panel)); font-weight: 600; }
+.brew-list button.on .bi { color: var(--accent); }
+.brew-list .bo { margin-left: auto; font-size: .76rem; color: var(--ink-3); font-weight: 400; }
+.brew-list .none { padding: .9rem .8rem; }
+
+.brew-panel { position: sticky; top: 4.6rem; }
+.brew-out { border: 1px solid var(--line); background: var(--panel); padding: 1.1rem 1.2rem; }
+.brew-flow { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.brew-flow .chip { font-size: .95rem; padding: .3rem .7rem; }
+/* The connector points down everywhere else; here the flow runs across. */
+.brew-arrow { line-height: 0; color: var(--ink-3); transform: rotate(-90deg); }
+.brew-arrow .arrow-svg { width: 18px; height: 18px; }
+
+.brew-meta { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .9rem; }
+.need.kind { font-weight: 600; color: var(--ink); }
+.need.kind[data-kind="Wine"]  { border-color: #9d5c7d; }
+.need.kind[data-kind="Beer"]  { border-color: #b08a3a; }
+.need.kind[data-kind="Cider"] { border-color: #8a9d5c; }
+.need.kind[data-kind="Other"] { border-color: var(--line-2); }
+.val {
+  font-family: var(--mono); font-size: .72rem; font-weight: 600;
+  padding: .12rem .45rem; border: 1px solid var(--gold);
+  color: var(--gold); background: var(--bg-2);
+}
+
+.brew-job {
+  margin: .9rem 0 0; padding-top: .7rem; border-top: 1px dashed var(--line);
+  font-size: .82rem; color: var(--ink-2);
+}
+.brew-job strong { color: var(--ink); }
+
+.brew-else { margin-top: .9rem; padding-top: .7rem; border-top: 1px dashed var(--line); }
+.brew-else .col-head { margin-bottom: .5rem; }
+
+@media (max-width: 780px) {
+  .brew { grid-template-columns: 1fr; }
+  .brew-panel { position: static; }
+  .brew-list { max-height: 15rem; }
+}
+
+/* ── The still, animated ──────────────────────────────────────── */
+/* The base rules are the FINISHED state — vessel full, plant already in. The
+   keyframes run from empty up to that, so anyone who has asked for reduced
+   motion simply sees the finished picture instead of nothing. */
+.brew-anim {
+  --brew: var(--accent);
+  display: block; width: 100%; max-width: 280px; height: auto;
+  margin: 0 auto .9rem; color: var(--ink-2);
+}
+.brew-anim[data-kind="Wine"]  { --brew: #9d5c7d; }
+.brew-anim[data-kind="Beer"]  { --brew: #b08a3a; }
+.brew-anim[data-kind="Cider"] { --brew: #8a9d5c; }
+
+.brew-anim .liq  { fill: var(--brew); opacity: .62; }
+.brew-anim .bub  { fill: var(--panel); opacity: 0; }
+.brew-anim .drip { fill: var(--brew); opacity: 0; }
+.brew-anim .seed { opacity: 0; }
+
+@keyframes brew-fall {
+  0%        { transform: translateY(0);    opacity: 0; }
+  15%       { opacity: 1; }
+  75%       { transform: translateY(13px); opacity: 1; }
+  100%      { transform: translateY(18px); opacity: 0; }
+}
+@keyframes brew-fill { from { transform: translateY(46px); } to { transform: translateY(0); } }
+@keyframes brew-keg  { from { transform: translateY(20px); } to { transform: translateY(0); } }
+@keyframes brew-bub {
+  0%   { transform: translateY(0);     opacity: 0; }
+  25%  { opacity: .75; }
+  100% { transform: translateY(-26px); opacity: 0; }
+}
+@keyframes brew-drip {
+  0%   { transform: translateY(0);    opacity: 0; }
+  20%  { opacity: .9; }
+  100% { transform: translateY(13px); opacity: 0; }
+}
+
+.brew-anim .seed { animation: brew-fall .62s ease-in both; }
+.brew-anim .liq  { animation: brew-fill 1.1s .38s cubic-bezier(.4, 0, .2, 1) both; }
+.brew-anim .keg  { animation: brew-keg 1.2s 1.5s ease-out both; }
+.brew-anim .bub  { animation: brew-bub 2s 1.1s ease-in-out infinite both; }
+.brew-anim .b2   { animation-duration: 2.4s; animation-delay: 1.6s; }
+.brew-anim .b3   { animation-duration: 1.7s; animation-delay: 2.1s; }
+.brew-anim .drip { animation: brew-drip 1.5s 1.4s ease-in infinite both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .brew-anim * { animation: none !important; }
+  .brew-anim .seed, .brew-anim .bub, .brew-anim .drip { opacity: 0; }
+}
+
+/* ── Colour swatches ──────────────────────────────────────────── */
+/* The hex behind these is an approximation of a name the game gives without a
+   value, so the swatch is a hint next to the name, never a substitute for it. */
+.swatch {
+  display: inline-block; width: .8em; height: .8em; flex: none;
+  margin-right: .4em; vertical-align: -.05em;
+  background: var(--sw); border: 1px solid color-mix(in srgb, var(--ink) 35%, transparent);
+}
+.need .swatch { margin-right: .35em; }
+
+/* ── The quern, animated ──────────────────────────────────────── */
+.mill-anim { --brew: #c9ae72; }
+.mill-anim[data-kind="Sugar"] { --brew: #e3d6b6; }
+.mill-anim[data-kind="Dye"]   { --brew: #7a6fa8; }   /* overridden per dye inline */
+
+.mill-anim .pow  { fill: var(--brew); opacity: .78; }
+.mill-anim .eye  { fill: var(--brew); opacity: .5; }
+.mill-anim .dust { fill: var(--brew); opacity: 0; }
+.mill-anim .grain { opacity: 0; }
+
+@keyframes mill-drop {
+  0%   { transform: translateY(0);    opacity: 0; }
+  15%  { opacity: 1; }
+  80%  { transform: translateY(20px); opacity: 1; }
+  100% { transform: translateY(26px); opacity: 0; }
+}
+/* A quern handle is a peg near the rim that you push round, so it travels the
+   ellipse of the stone rather than spinning on the spot. */
+@keyframes mill-turn {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-24px, 6px); }
+  50%  { transform: translate(-48px, 0); }
+  75%  { transform: translate(-24px, -6px); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes mill-dust {
+  0%   { transform: translate(0, 0);      opacity: 0; }
+  25%  { opacity: .85; }
+  100% { transform: translate(9px, 22px); opacity: 0; }
+}
+
+.mill-anim .grain  { animation: mill-drop .7s ease-in both; }
+.mill-anim .handle { animation: mill-turn 2.6s .3s linear infinite; }
+.mill-anim .pow    { animation: brew-keg 1.4s 1s ease-out both; }
+.mill-anim .dust   { animation: mill-dust 1.6s 1.1s ease-in infinite both; }
+.mill-anim .d2     { animation-duration: 2s; animation-delay: 1.7s; }
+
+.need.kind[data-kind="Flour"] { border-color: #b08a3a; }
+.need.kind[data-kind="Sugar"] { border-color: #c2b28a; }
+.need.kind[data-kind="Dye"]   { border-color: #7a6fa8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mill-anim * { animation: none !important; }
+  .mill-anim .grain, .mill-anim .dust { opacity: 0; }
+}
+
+/* On an item page the card runs the full width, so the animation sits beside
+   the answer rather than stacked on top of it. */
+@media (min-width: 720px) {
+  .brew-out.beside {
+    display: grid; gap: 1.4rem; align-items: center;
+    grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+  }
+  .brew-out.beside .brew-anim { margin: 0; max-width: 100%; }
+  .brew-out.beside > *:not(.brew-anim) { grid-column: 2; }
+  .brew-out.beside .brew-anim { grid-row: 1 / span 3; }
+}
+
+/* ── The dyer's vat, animated ─────────────────────────────────── */
+.dye-anim { --brew: var(--accent); }
+.dye-anim .bath   { fill: var(--brew); opacity: .8; }
+.dye-anim .ripple { fill: none; stroke: var(--panel); stroke-width: 1.6; opacity: 0; }
+.dye-anim .cloth.dyed { fill: var(--brew); opacity: 0; }
+.dye-anim .cloth.raw  { opacity: 1; }
+
+@keyframes dye-dip   { from { transform: translateY(0); }    to { transform: translateY(26px); } }
+@keyframes dye-lift  { from { transform: translateY(26px); } to { transform: translateY(0); } }
+@keyframes dye-hide  { to { opacity: 0; } }
+@keyframes dye-show  { to { opacity: 1; } }
+@keyframes dye-ripple {
+  0%   { transform: scale(.3); opacity: 0; }
+  30%  { opacity: .7; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+/* Down, swap at the bottom of the dip, back up wearing the colour. */
+.dye-anim .cloth.raw {
+  animation: dye-dip .75s ease-in both, dye-hide .01s .75s linear both;
+}
+.dye-anim .cloth.dyed {
+  animation: dye-lift .8s 1.15s ease-out both, dye-show .01s 1.15s linear both;
+}
+.dye-anim .ripple {
+  transform-box: fill-box; transform-origin: center;
+  animation: dye-ripple 1.8s .9s ease-out infinite both;
+}
+.dye-anim .r2 { animation-delay: 1.7s; }
+
+.need.kind[data-fam] { font-weight: 600; color: var(--ink); }
+.need.kind[data-fam="Blue"]   { border-color: #4a6f9d; }
+.need.kind[data-fam="Green"]  { border-color: #5c8a4a; }
+.need.kind[data-fam="Red"]    { border-color: #a8483c; }
+.need.kind[data-fam="Pink"]   { border-color: #b96f8c; }
+.need.kind[data-fam="Purple"] { border-color: #7a6fa8; }
+.need.kind[data-fam="Orange"] { border-color: #c07a35; }
+.need.kind[data-fam="Yellow"] { border-color: #b09a3a; }
+.need.kind[data-fam="Brown"]  { border-color: #8a6a45; }
+.need.kind[data-fam="Neutral"]{ border-color: var(--line-2); }
+
+/* A name the graph has no item for: it reads as a chip but does not pretend to
+   be a link. */
+.chip.flat { cursor: default; }
+.chip.flat:hover { border-color: var(--line-2); background: var(--panel-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .dye-anim * { animation: none !important; }
+  .dye-anim .cloth.raw  { opacity: 0; }
+  .dye-anim .cloth.dyed { opacity: 1; }
+  .dye-anim .ripple { opacity: 0; }
+}
+
+/* A filter chip carrying a colour square, and the same square in the list. */
+.fchip { display: inline-flex; align-items: center; }
+.fchip .swatch { width: .72em; height: .72em; margin-right: .4em; }
+/* On the selected chip the square sits on the accent, so its hairline needs to
+   read against that rather than against the paper. */
+.fchip.on .swatch { border-color: color-mix(in srgb, var(--accent-ink) 55%, transparent); }
+.brew-list .bo .swatch { width: .7em; height: .7em; margin-right: .4em; vertical-align: -.02em; }
+
+/* ── The furnace, animated ────────────────────────────────────── */
+.smelt-anim { --brew: var(--accent); }
+.smelt-anim .fire  { fill: var(--accent); opacity: .9; transform-box: fill-box; transform-origin: bottom center; }
+.smelt-anim .spark { fill: var(--accent); opacity: 0; }
+.smelt-anim .ore   { opacity: 0; }
+/* Drawn at 1.31x by a nested transform, so the stroke is set below the ingot's
+   1.4 to land on the same rendered weight. */
+.smelt-anim .bar path {
+  fill: var(--brew); stroke: #000; stroke-opacity: .45;
+  stroke-width: 1.1; stroke-linejoin: round;
+}
+.smelt-anim .bar { opacity: 1; }
+
+@keyframes smelt-feed {
+  0%   { transform: translate(0, 0);       opacity: 0; }
+  15%  { opacity: 1; }
+  80%  { transform: translate(6px, 46px);  opacity: 1; }
+  100% { transform: translate(7px, 52px);  opacity: 0; }
+}
+@keyframes smelt-flare {
+  0%, 100% { transform: scaleY(1)    scaleX(1);    opacity: .85; }
+  50%      { transform: scaleY(1.18) scaleX(.92);  opacity: 1; }
+}
+@keyframes smelt-spark {
+  0%   { transform: translateY(0);     opacity: 0; }
+  30%  { opacity: .9; }
+  100% { transform: translateY(-14px); opacity: 0; }
+}
+@keyframes smelt-cast {
+  0%   { transform: translateY(-8px) scale(.85); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: translateY(0)    scale(1);   opacity: 1; }
+}
+
+.smelt-anim .ore  { animation: smelt-feed .9s ease-in both; }
+.smelt-anim .fire { animation: smelt-flare 1.3s .2s ease-in-out infinite both; }
+.smelt-anim .bar  { transform-box: fill-box; transform-origin: center;
+                    animation: smelt-cast .7s 1s ease-out both; }
+.smelt-anim .spark { animation: smelt-spark 1.6s 1.1s ease-out infinite both; }
+.smelt-anim .s2    { animation-duration: 2.1s; animation-delay: 1.9s; }
+
+.need.kind[data-use="Weapons-grade"] { border-color: #8fa9c4; }
+.need.kind[data-use="Decorative"]    { border-color: var(--line-2); }
+
+.brew-where { margin: .7rem 0 0; font-size: .82rem; color: var(--ink-2); }
+.brew-where .col-head { display: inline; margin: 0 .35rem 0 0; }
+.ore-list { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: 1.5rem; }
+.brew-flow .plus { align-self: center; }
+.brew-list .bi .ingot,
+.brew-list .bo .ingot { width: 16px; margin-right: .4em; vertical-align: -.28em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .smelt-anim * { animation: none !important; }
+  .smelt-anim .ore, .smelt-anim .spark { opacity: 0; }
+}
+
+/* ── The interactive marker ───────────────────────────────────── */
+/* The workshop list is a wall of near-identical cards, so the buildings whose
+   page is a picker rather than a list of jobs get a mark in the corner. It
+   carries no words; the tooltip explains it. */
+.ws-card { position: relative; }
+.live-mark {
+  position: absolute; top: .5rem; right: .55rem;
+  line-height: 0; color: var(--accent); opacity: .8;
+}
+.live-mark .sym { width: 17px; height: 17px; }
+.ws-card:hover .live-mark { opacity: 1; }
+
+
+/* ── The armour page ──────────────────────────────────────────── */
+/* The right-hand side of this picker is a dwarf rather than a result card, and
+   the card sits under it — so the column is far too tall to pin. Sticky would
+   park its top under the header and put the bottom of the card out of reach. */
+#armor-pick .brew-panel { position: static; }
+
+.body-wrap {
+  border: 1px solid var(--line); background: var(--panel);
+  padding: 1rem 1.2rem .9rem; margin-bottom: 1rem;
+}
+
+.body-fig { display: block; width: 100%; max-width: 172px; margin: 0 auto; }
+
+/* One rule for every shape in a region, whatever it is drawn with: the hands
+   are ellipses, the rest are paths, and both halves of a pair light up together
+   because they are one region. */
+.body-fig .bp > * {
+  fill: var(--panel-2); stroke: var(--line-2); stroke-width: 2;
+  transition: fill .14s, stroke .14s;
+}
+.body-fig .bp { cursor: pointer; }
+.body-fig .bp:hover > * { fill: color-mix(in srgb, var(--accent) 20%, var(--panel-2));
+                          stroke: var(--accent); }
+/* What the piece in the card below actually protects. */
+.body-fig .bp.cov > * { fill: color-mix(in srgb, var(--accent) 34%, var(--panel));
+                        stroke: var(--accent); }
+/* What the list is being filtered by. Solid, because it is a choice the reader
+   made rather than something the page is telling them. */
+.body-fig .bp.on > *  { fill: var(--accent); stroke: var(--accent-2); }
+.body-fig .bp:focus { outline: none; }
+.body-fig .bp:focus-visible > * { stroke: var(--accent-2); stroke-width: 3.5; }
+
+.body-cap {
+  display: flex; align-items: center; gap: .6rem;
+  margin-top: .8rem; padding-top: .7rem; border-top: 1px dashed var(--line);
+}
+.body-cap strong { font-size: .9rem; }
+.body-all { margin-left: auto; }
+.body-note { margin: .35rem 0 0; font-size: .78rem; color: var(--ink-3); min-height: 2.4em; }
+
+.armor-covers {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .35rem;
+  margin-top: .9rem; padding-top: .8rem; border-top: 1px dashed var(--line);
+}
+.armor-covers .flow-label { width: auto; margin-right: .2rem; }
+.bp-chip { font: inherit; font-size: .8rem; }
+
+/* The raw tokens. A definition list rather than prose because these are the
+   numbers you compare between two pieces, and prose makes that a reading task. */
+.armor-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: .5rem .9rem; margin: .9rem 0 0; padding-top: .8rem;
+  border-top: 1px dashed var(--line);
+}
+.armor-stats dt {
+  font-size: .62rem; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-3); font-family: var(--mono);
+}
+.armor-stats dd { margin: .1rem 0 0; font-size: .86rem; }
+.armor-stats dd .muted { font-size: .76rem; }
+
+.need.warnish { border-color: var(--gold); color: var(--ink); }
+.need.kind[data-kind="Armor"]    { border-color: var(--accent); }
+.need.kind[data-kind="Clothing"] { border-color: #8a9d5c; }
+.need.kind[data-kind="Shield"]   { border-color: #5c7d9d; }
+.need.kind[data-kind="Gear"]     { border-color: var(--line-2); }
+
+@media (max-width: 780px) {
+  /* On one column the figure would otherwise land under a 44-row list. */
+  #armor-pick .brew { display: flex; flex-direction: column; }
+  #armor-pick .brew-panel { order: -1; }
+}
