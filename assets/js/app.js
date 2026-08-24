@@ -15,6 +15,7 @@
   const ORES       = window.DF_ORES || [];
   const ALLOYS     = window.DF_ALLOYS || [];
   const BODY       = window.DF_BODY || [];
+  const DWARF      = window.DF_DWARF_PATH || '';
   const ARMOR_MATS = window.DF_ARMOR_MATS || {};
   const ARMOR      = window.DF_ARMOR || [];
   const ARMOR_TABLES = window.DF_ARMOR_TABLES || [];
@@ -229,14 +230,17 @@
   }));
   const ARMOR_BY = new Map(ARMOR_ROWS.map((p) => [p.id, p]));
 
-  /* The figure. Every region is a button so the page works from the keyboard.
-     Nothing else is drawn on it: a face would be the one part of the dwarf no
-     armour in the game covers, which is a strange thing to put in the middle of
-     a coverage diagram. */
+  /* The figure: the dwarf underneath, the ten regions as squares over the top.
+     Every region is a button so the page works from the keyboard; the silhouette
+     is decoration and takes no hits. Nothing is drawn on the dwarf itself — a
+     face would be the one part no armour in the game covers, which is a strange
+     thing to put in the middle of a coverage diagram. */
   function bodyFigure() {
     return `<div class="body-wrap">
-      <svg class="body-fig" viewBox="34 6 152 312" role="group"
+      <svg class="body-fig" viewBox="0 0 200 355" role="group"
            aria-label="Dwarf body — choose a part to filter the armour">
+        <g class="body-shape" aria-hidden="true"
+           transform="translate(0 354.5) scale(.0332226 -.0332226)"><path d="${DWARF}"/></g>
         ${BODY.map((b) => `<g class="bp" data-part="${esc(b.id)}" role="button" tabindex="0"
             aria-label="${esc(b.label)}"><title>${esc(b.label)}</title>${b.art}</g>`).join('')}
       </svg>
@@ -1176,7 +1180,7 @@
   function viewArmor(id) {
     main.innerHTML = `
       <div class="page-head"><div>
-        <h1>${sym('armor')} Armor</h1>
+        <h1>${sym('shield')} Armor</h1>
         <p>There is no suit of armour in this game, only pieces — and a dwarf is
         covered exactly where the pieces reach. Click the dwarf to see what protects
         that part; click a piece to see how far it reaches.</p>

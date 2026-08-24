@@ -2,9 +2,8 @@
 
    Three tables in one file:
 
-   `DF_BODY` is the figure on the Armor page — one entry per clickable region,
-   carrying its own art on a 152×312 grid in the same stroked-SVG contract as
-   data/workshops.js. The `id` is what a piece names in its `covers` list, so
+   `DF_BODY` is the clickable half of the figure on the Armor page — see the
+   comment above it. The `id` is what a piece names in its `covers` list, so
    the diagram and the coverage data cannot drift apart: a region nothing covers
    simply never lights up. It is worn armour only — a shield is held rather than
    worn, so it covers nothing and the figure has nowhere to put it.
@@ -34,49 +33,59 @@
    `sprite2` is a second cell for an entry that is two items — "Flask /
    waterskin" is one row in the game's tables and two things on the shelf. */
 
+/* The figure is two layers. The dwarf underneath is one traced outline, kept in
+   data/dwarf.js because it is 13k of path data and has no business making this
+   file unreadable. `DF_BODY` is the layer on top: ten plain rectangles, one per
+   region, and they are what the reader actually clicks. Squares rather than
+   body-shaped outlines so the regions read as a set of choices laid over the
+   dwarf rather than a diagram someone has to aim at.
+
+   Both layers share a 200×355 grid. The rectangles were measured off the traced
+   drawing, which stands with its left boot forward — so the two feet, and the
+   two lower legs, do not sit at the same height. Re-trace the dwarf and these
+   all need measuring again. */
+
 window.DF_BODY = [
 
 { id: 'head', label: 'Head',
   note: 'Face, ears, nose, lips and teeth are never covered — no headgear in the game protects them.',
-  art: '<ellipse cx="110" cy="40" rx="27" ry="28"/>' },
+  art: '<rect x="58" y="4" width="62" height="44"/>' },
 
 { id: 'neck', label: 'Neck',
   note: 'Only reached from the torso, by a piece that steps up: a mail shirt, a robe, a cloak.',
-  art: '<path d="M97 69h26v13H97z"/>' },
+  art: '<rect x="74" y="50" width="40" height="12"/>' },
 
 { id: 'upper-body', label: 'Upper body',
   note: 'The anchor for all torso armour, and where a breastplate stops.',
-  art: '<path d="M72 96c0-9 7-14 16-14h44c9 0 16 5 16 14v52H72z"/>' },
+  art: '<rect x="58" y="64" width="92" height="72"/>' },
 
 { id: 'lower-body', label: 'Lower body',
   note: 'Zero steps from the upper body, so every torso piece covers both — and leg armour starts here.',
-  art: '<path d="M76 152h68v32c0 7-6 12-14 12H90c-8 0-14-5-14-12z"/>' },
+  art: '<rect x="56" y="140" width="96" height="74"/>' },
 
 { id: 'upper-arms', label: 'Upper arms',
   note: 'One step up from the torso. A breastplate leaves them bare; a mail shirt does not.',
-  art: '<path d="M40 96c0-9 5-14 12-14s12 5 12 14v44H40z"/>' +
-       '<path d="M156 96c0-9 5-14 12-14s12 5 12 14v44h-24z"/>' },
+  art: '<rect x="16" y="64" width="38" height="72"/><rect x="154" y="64" width="40" height="72"/>' },
 
 { id: 'lower-arms', label: 'Lower arms',
   note: 'No arm armour exists. The only way to cover these is gauntlets stepping up from the hands.',
-  art: '<path d="M41 144h22v42H41z"/><path d="M157 144h22v42h-22z"/>' },
+  art: '<rect x="14" y="140" width="38" height="42"/><rect x="152" y="140" width="42" height="42"/>' },
 
 { id: 'hands', label: 'Hands & fingers',
   note: 'Gauntlets are the only military handwear — and civilians will steal leather gloves.',
-  art: '<ellipse cx="52" cy="200" rx="13" ry="12"/><ellipse cx="168" cy="200" rx="13" ry="12"/>' },
+  art: '<rect x="14" y="186" width="38" height="30"/><rect x="154" y="186" width="40" height="30"/>' },
 
 { id: 'upper-legs', label: 'Upper legs',
   note: 'Reachable from above (mail shirt, robe) as well as from leg armour.',
-  art: '<path d="M78 200h28v44H78z"/><path d="M114 200h28v44h-28z"/>' },
+  art: '<rect x="58" y="218" width="44" height="48"/><rect x="106" y="218" width="48" height="48"/>' },
 
 { id: 'lower-legs', label: 'Lower legs',
   note: 'Greaves and leggings cover the whole leg; high boots reach up to here from the feet.',
-  art: '<path d="M80 248h24v44H80z"/><path d="M116 248h24v44h-24z"/>' },
+  art: '<rect x="58" y="270" width="44" height="26"/><rect x="106" y="270" width="50" height="42"/>' },
 
 { id: 'feet', label: 'Feet & toes',
   note: 'Boots are the anchor. Shoes are too big to fit inside boots — one or the other.',
-  art: '<path d="M76 296h28v8c0 5-3 8-8 8H84c-5 0-8-3-8-8z"/>' +
-       '<path d="M116 296h28v8c0 5-3 8-8 8h-12c-5 0-8-3-8-8z"/>' }
+  art: '<rect x="18" y="298" width="86" height="44"/><rect x="108" y="314" width="58" height="40"/>' }
 
 ];
 
@@ -212,7 +221,7 @@ window.DF_ARMOR = [
 /* ── Legs ─────────────────────────────────────────────────────── */
 
 { id: 'greaves', sprite: [4, 19], name: 'Greaves', slot: 'Lower body', kind: 'Armor', shaped: true,
-  covers: ['lower-body', 'upper-legs', 'lower-legs'], mats: ['B', 'M'],
+  covers: ['lower-body', 'upper-legs', 'lower-legs', 'feet'], mats: ['B', 'M'],
   size: 6, ls: 15, perm: 30, layer: 'Armor', cov: 100, level: 3, elastic: 'Plate', melt: 1.8,
   note: 'Plate for the legs: two bars, rigid, and the only leg piece that stops a hammer. Shell cannot be carved into them; bone can.' },
 
@@ -306,7 +315,7 @@ window.DF_ARMOR = [
    rendered by the same code. */
 window.DF_ARMOR_TABLES = [
 
-{ id: 'suit', title: 'A complete suit', icon: 'armor',
+{ id: 'suit', title: 'A complete suit', icon: 'shield',
   blurb: 'There is no "suit of armour" item — a covered dwarf is one piece from each row. ' +
          'The cheap column can be made before you own a forge; the full column is what a ' +
          'real militia wears.',

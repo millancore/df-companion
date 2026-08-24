@@ -781,26 +781,35 @@ td:first-child { font-weight: 600; white-space: nowrap; }
   padding: 1rem 1.2rem .9rem; margin-bottom: 1rem;
 }
 
-.body-fig { display: block; width: 100%; max-width: 172px; margin: 0 auto; }
+.body-fig { display: block; width: 100%; max-width: 196px; margin: 0 auto; }
 
-/* One rule for every shape in a region, whatever it is drawn with: the hands
-   are ellipses, the rest are paths, and both halves of a pair light up together
-   because they are one region. */
+/* The dwarf underneath: one flat silhouette, no strokes, and out of the way of
+   the pointer so a click always lands on the region square over it. */
+.body-shape > * { fill: var(--line); stroke: none; }
+.body-fig .body-shape { pointer-events: none; }
+
+/* One rule for every square in a region, and both halves of a pair light up
+   together because they are one region. The fills are translucent so the dwarf
+   still reads through whatever is lit; `pointer-events: all` is what makes an
+   unfilled square catch the click across its whole area rather than on its
+   outline alone. */
 .body-fig .bp > * {
-  fill: var(--panel-2); stroke: var(--line-2); stroke-width: 2;
+  fill: transparent; stroke: color-mix(in srgb, var(--ink-3) 55%, transparent);
+  stroke-width: 1.2; stroke-dasharray: 3 3; pointer-events: all;
   transition: fill .14s, stroke .14s;
 }
 .body-fig .bp { cursor: pointer; }
-.body-fig .bp:hover > * { fill: color-mix(in srgb, var(--accent) 20%, var(--panel-2));
-                          stroke: var(--accent); }
+.body-fig .bp:hover > * { fill: color-mix(in srgb, var(--accent) 25%, transparent);
+                          stroke: var(--accent); stroke-dasharray: none; }
 /* What the piece in the card below actually protects. */
-.body-fig .bp.cov > * { fill: color-mix(in srgb, var(--accent) 34%, var(--panel));
-                        stroke: var(--accent); }
-/* What the list is being filtered by. Solid, because it is a choice the reader
-   made rather than something the page is telling them. */
-.body-fig .bp.on > *  { fill: var(--accent); stroke: var(--accent-2); }
+.body-fig .bp.cov > * { fill: color-mix(in srgb, var(--accent) 40%, transparent);
+                        stroke: var(--accent); stroke-dasharray: none; }
+/* What the list is being filtered by. The strongest of the three, because it is
+   a choice the reader made rather than something the page is telling them. */
+.body-fig .bp.on > *  { fill: color-mix(in srgb, var(--accent) 68%, transparent);
+                        stroke: var(--accent-2); stroke-dasharray: none; }
 .body-fig .bp:focus { outline: none; }
-.body-fig .bp:focus-visible > * { stroke: var(--accent-2); stroke-width: 3.5; }
+.body-fig .bp:focus-visible > * { stroke: var(--accent-2); stroke-width: 3; stroke-dasharray: none; }
 
 .body-cap {
   display: flex; align-items: center; gap: .6rem;
