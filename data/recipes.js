@@ -106,7 +106,7 @@ window.DF_RECIPES = [
 
 { id:'press-oil', name:'Press paste to oil', industry:'food', workshop:'Screw Press', skill:'Presser',
   needs:['jug'], in:[{item:'Rock nut paste'}], out:[{item:'Rock nut oil'},{item:'Press cake'}],
-  note:'Oil goes to the soap maker, or into the kitchen. The screw press needs a mechanism to build.' },
+  note:'Oil goes to the soap maker, or into the kitchen. The screw press costs two mechanisms to build.' },
 
 { id:'cook-meals', name:'Prepare meals', industry:'food', workshop:'Kitchen', skill:'Cook',
   in:[{item:'Meat'},{item:'Fish'},{item:'Quarry bush leaves'},{item:'Cave wheat flour'},{item:'Dwarven syrup'},{item:'Dwarven sugar'},{item:'Tallow'}],

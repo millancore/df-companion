@@ -21,7 +21,18 @@
    answer to "does this protect my dwarf's legs".
 
    Metal bar cost is NOT stored: it is material size ÷ 3, rounded down, minimum
-   one, and app.js computes it. Adamantine costs the material size in wafers. */
+   one, and app.js computes it. Adamantine costs the material size in wafers.
+
+   `sprite` is a [column, row] cell in assets/img/item_equipment.png, a 256×832
+   sheet of 32×32 pixel-art items. Column 1 is the clothing, column 4 the
+   armour. Each has a twin the sheet never uses here: column 0 is the same
+   clothing without the gold trim, column 5 a straight copy of column 4. It is a cell rather than a file because 43
+   pieces would otherwise be 43 requests, and only the picker's list draws it —
+   the sprite is a label for the row, not a second illustration of the piece.
+   Not every piece has one: the sheet has no cell for most of the foreign
+   clothing, and those rows show the name alone rather than a wrong picture.
+   `sprite2` is a second cell for an entry that is two items — "Flask /
+   waterskin" is one row in the game's tables and two things on the shelf. */
 
 window.DF_BODY = [
 
@@ -93,168 +104,168 @@ window.DF_ARMOR = [
 
 /* ── Headgear ─────────────────────────────────────────────────── */
 
-{ id: 'helm', name: 'Helm', slot: 'Head', kind: 'Armor', shaped: true,
+{ id: 'helm', sprite: [4, 21], name: 'Helm', slot: 'Head', kind: 'Armor', shaped: true,
   covers: ['head'], mats: ['L', 'B', 'S', 'M'],
   size: 2, ls: 30, perm: 20, layer: 'Armor', cov: 100, level: '1+', melt: 0.6,
   note: 'The head armour. Civilians will not touch it, which is exactly why you make helms and not caps — a leather cap on a hauler is a helm your soldier is not wearing.' },
 
-{ id: 'cap', name: 'Cap', slot: 'Head', kind: 'Clothing', shaped: true,
+{ id: 'cap', sprite: [4, 22], name: 'Cap', slot: 'Head', kind: 'Clothing', shaped: true,
   covers: ['head'], mats: ['C', 'L', 'M'],
   size: 1, ls: 10, perm: 15, layer: 'Over', cov: 50, level: '+', melt: 0.3,
   note: 'Half the coverage of a helm, and shaped — so a dwarf already wearing a cap cannot put a helm on. The single most common reason a soldier stands there bare-headed.' },
 
-{ id: 'hood', name: 'Hood', slot: 'Head', kind: 'Clothing',
+{ id: 'hood', sprite: [1, 17], name: 'Hood', slot: 'Head', kind: 'Clothing',
   covers: ['head'], mats: ['C', 'L'],
   size: 2, ls: 10, perm: 100, layer: 'Cover', cov: 100,
   note: 'Cover layer, so it goes over a helm rather than fighting it. Cheap extra padding.' },
 
-{ id: 'mask', name: 'Mask', slot: 'Head', kind: 'Clothing', shaped: true, avail: 'foreign',
+{ id: 'mask', sprite: [1, 22], name: 'Mask', slot: 'Head', kind: 'Clothing', shaped: true, avail: 'foreign',
   covers: ['head'], mats: ['C', 'L', 'B', 'S', 'M'],
   size: 2, ls: 20, perm: 10, layer: 'Under', cov: 50,
   note: 'Shaped, so it blocks a helm from the inside. Dwarves cannot make them — these arrive on visitors and corpses.' },
 
-{ id: 'face-veil', name: 'Face veil', slot: 'Head', kind: 'Clothing', avail: 'foreign',
+{ id: 'face-veil', sprite: [1, 20], name: 'Face veil', slot: 'Head', kind: 'Clothing', avail: 'foreign',
   covers: ['head'], mats: ['C', 'L'], size: 2, ls: 10, perm: 100, layer: 'Under', cov: 50 },
 
-{ id: 'head-veil', name: 'Head veil', slot: 'Head', kind: 'Clothing', avail: 'foreign',
+{ id: 'head-veil', sprite: [1, 19], name: 'Head veil', slot: 'Head', kind: 'Clothing', avail: 'foreign',
   covers: ['head'], mats: ['C', 'L'], size: 2, ls: 10, perm: 100, layer: 'Over', cov: 50 },
 
-{ id: 'headscarf', name: 'Headscarf', slot: 'Head', kind: 'Clothing', avail: 'foreign',
+{ id: 'headscarf', sprite: [1, 21], name: 'Headscarf', slot: 'Head', kind: 'Clothing', avail: 'foreign',
   covers: ['head'], mats: ['C', 'L'], size: 2, ls: 10, perm: 100, layer: 'Over', cov: 50 },
 
-{ id: 'turban', name: 'Turban', slot: 'Head', kind: 'Clothing', avail: 'foreign',
+{ id: 'turban', sprite: [1, 18], name: 'Turban', slot: 'Head', kind: 'Clothing', avail: 'foreign',
   covers: ['head'], mats: ['C', 'L'], size: 2, ls: 20, perm: 100, layer: 'Over', cov: 50 },
 
 /* ── Torso ────────────────────────────────────────────────────── */
 
-{ id: 'breastplate', name: 'Breastplate', slot: 'Upper body', kind: 'Armor', shaped: true,
+{ id: 'breastplate', sprite: [4, 6], name: 'Breastplate', slot: 'Upper body', kind: 'Armor', shaped: true,
   covers: ['upper-body', 'lower-body'], mats: ['M'],
   size: 9, ls: 20, perm: 50, layer: 'Armor', cov: 100, level: 3, elastic: 'Plate', melt: 2.7,
   note: 'The best protection in the game and the most metal: three bars, and it covers the torso and nothing else. Layer it over a mail shirt and the shirt takes the neck, arms and upper legs.' },
 
-{ id: 'mail-shirt', name: 'Mail shirt', slot: 'Upper body', kind: 'Armor',
+{ id: 'mail-shirt', sprite: [4, 7], name: 'Mail shirt', slot: 'Upper body', kind: 'Armor',
   covers: ['upper-body', 'lower-body', 'neck', 'upper-arms', 'upper-legs'], mats: ['M'],
   size: 6, ls: 15, perm: 50, layer: 'Over', cov: 100, level: 2, elastic: 'Chain', melt: 1.8,
   note: 'Flexible: it turns axes and swords and does almost nothing against maces and hammers. Its real value is reach — neck, upper arms and upper legs come free, which no plate piece gives you.' },
 
-{ id: 'leather-armor', name: 'Leather armor', slot: 'Upper body', kind: 'Armor', shaped: true,
+{ id: 'leather-armor', sprite: [4, 8], name: 'Leather armor', slot: 'Upper body', kind: 'Armor', shaped: true,
   covers: ['upper-body', 'lower-body', 'neck', 'upper-arms', 'upper-legs'], mats: ['L'],
   size: 6, ls: 20, perm: 50, layer: 'Armor', cov: 100, level: 1,
   note: 'The first armour a fortress can field — no forge, no fuel, just a tanned hide. Shaped, so it and a breastplate are mutually exclusive. Not the same item as leather clothing: civilians will not wear it.' },
 
-{ id: 'robe', name: 'Robe', slot: 'Upper body', kind: 'Clothing',
+{ id: 'robe', sprite: [1, 6], name: 'Robe', slot: 'Upper body', kind: 'Clothing',
   covers: ['upper-body', 'lower-body', 'neck', 'upper-arms', 'lower-arms', 'hands',
            'upper-legs', 'lower-legs', 'feet'], mats: ['C', 'L'],
   size: 6, ls: 20, perm: 100, layer: 'Over', cov: 100,
   note: 'Steps to maximum both up and down, so one garment touches nearly the whole body. Weak, but free coverage over the top of real armour — worth putting on anyone walking into a danger room.' },
 
-{ id: 'cloak', name: 'Cloak', slot: 'Upper body', kind: 'Clothing',
+{ id: 'cloak', sprite: [1, 7], name: 'Cloak', slot: 'Upper body', kind: 'Clothing',
   covers: ['upper-body', 'lower-body', 'neck', 'upper-arms', 'lower-arms', 'hands', 'upper-legs'],
   mats: ['C', 'L'], size: 5, ls: 15, perm: 150, layer: 'Cover', cov: 100,
   note: 'Cover layer with a 150 permit: it sits over everything and complains about nothing.' },
 
-{ id: 'coat', name: 'Coat', slot: 'Upper body', kind: 'Clothing',
+{ id: 'coat', sprite: [1, 5], name: 'Coat', slot: 'Upper body', kind: 'Clothing',
   covers: ['upper-body', 'lower-body', 'neck', 'upper-arms', 'lower-arms', 'hands', 'upper-legs'],
   mats: ['C', 'L'], size: 5, ls: 20, perm: 50, layer: 'Over', cov: 100 },
 
-{ id: 'dress', name: 'Dress', slot: 'Upper body', kind: 'Clothing',
+{ id: 'dress', sprite: [1, 4], name: 'Dress', slot: 'Upper body', kind: 'Clothing',
   covers: ['upper-body', 'lower-body', 'neck', 'upper-arms', 'lower-arms', 'hands',
            'upper-legs', 'lower-legs', 'feet'], mats: ['C', 'L'],
   size: 5, ls: 10, perm: 50, layer: 'Under', cov: 100,
   note: 'Same maximum reach as a robe, but on the under layer. Dwarves are gender-blind about clothing — a male dwarf will happily wear one.' },
 
-{ id: 'shirt', name: 'Shirt', slot: 'Upper body', kind: 'Clothing',
+{ id: 'shirt', sprite: [1, 0], name: 'Shirt', slot: 'Upper body', kind: 'Clothing',
   covers: ['upper-body', 'lower-body', 'neck', 'upper-arms', 'lower-arms', 'hands'],
   mats: ['C', 'L'], size: 3, ls: 10, perm: 50, layer: 'Under', cov: 100 },
 
-{ id: 'tunic', name: 'Tunic', slot: 'Upper body', kind: 'Clothing',
+{ id: 'tunic', sprite: [1, 1], name: 'Tunic', slot: 'Upper body', kind: 'Clothing',
   covers: ['upper-body', 'lower-body', 'upper-legs'], mats: ['C', 'L'],
   size: 3, ls: 10, perm: 50, layer: 'Under', cov: 100 },
 
-{ id: 'vest', name: 'Vest', slot: 'Upper body', kind: 'Clothing',
+{ id: 'vest', sprite: [1, 2], name: 'Vest', slot: 'Upper body', kind: 'Clothing',
   covers: ['upper-body', 'lower-body'], mats: ['C', 'L'],
   size: 2, ls: 10, perm: 50, layer: 'Over', cov: 50 },
 
-{ id: 'toga', name: 'Toga', slot: 'Upper body', kind: 'Clothing', avail: 'uncommon',
+{ id: 'toga', sprite: [1, 3], name: 'Toga', slot: 'Upper body', kind: 'Clothing', avail: 'uncommon',
   covers: ['upper-body', 'lower-body', 'neck', 'upper-arms', 'upper-legs'], mats: ['C', 'L'],
   size: 5, ls: 30, perm: 100, layer: 'Over', cov: 100 },
 
-{ id: 'cape', name: 'Cape', slot: 'Upper body', kind: 'Clothing', avail: 'foreign',
+{ id: 'cape', sprite: [1, 8], name: 'Cape', slot: 'Upper body', kind: 'Clothing', avail: 'foreign',
   covers: ['upper-body', 'lower-body'], mats: ['C', 'L'],
   size: 3, ls: 10, perm: 300, layer: 'Cover', cov: 50 },
 
 /* ── Hands ────────────────────────────────────────────────────── */
 
-{ id: 'gauntlets', name: 'Gauntlets', slot: 'Hands', kind: 'Armor', shaped: true,
+{ id: 'gauntlets', sprite: [4, 9], name: 'Gauntlets', slot: 'Hands', kind: 'Armor', shaped: true,
   covers: ['hands', 'lower-arms'], mats: ['B', 'S', 'M'],
   size: 2, ls: 20, perm: 15, layer: 'Armor', cov: 100, level: 2, melt: 1.2,
   note: 'One bar a pair, one or two units of weight, and the only thing in the game that covers the lower arms. There is no arm armour: gauntlets from below and a mail shirt from above are the whole answer.' },
 
-{ id: 'gloves', name: 'Gloves', slot: 'Hands', kind: 'Clothing',
+{ id: 'gloves', sprite: [4, 11], name: 'Gloves', slot: 'Hands', kind: 'Clothing',
   covers: ['hands'], mats: ['C', 'L'], size: 1, ls: 10, perm: 10, layer: 'Under', cov: 100,
   note: 'Civilians will pick these up, so leather gloves left in a stockpile walk away on a hauler.' },
 
-{ id: 'mittens', name: 'Mittens', slot: 'Hands', kind: 'Clothing',
+{ id: 'mittens', sprite: [4, 13], name: 'Mittens', slot: 'Hands', kind: 'Clothing',
   covers: ['hands'], mats: ['C', 'L'], size: 1, ls: 15, perm: 20, layer: 'Cover', cov: 150,
   note: 'The only item in the game with coverage above 100% — the surplus does nothing for defence but helps against contaminants and cold.' },
 
 /* ── Legs ─────────────────────────────────────────────────────── */
 
-{ id: 'greaves', name: 'Greaves', slot: 'Lower body', kind: 'Armor', shaped: true,
+{ id: 'greaves', sprite: [4, 19], name: 'Greaves', slot: 'Lower body', kind: 'Armor', shaped: true,
   covers: ['lower-body', 'upper-legs', 'lower-legs'], mats: ['B', 'M'],
   size: 6, ls: 15, perm: 30, layer: 'Armor', cov: 100, level: 3, elastic: 'Plate', melt: 1.8,
   note: 'Plate for the legs: two bars, rigid, and the only leg piece that stops a hammer. Shell cannot be carved into them; bone can.' },
 
-{ id: 'leggings', name: 'Leggings', slot: 'Lower body', kind: 'Armor', shaped: true,
+{ id: 'leggings', sprite: [4, 10], name: 'Leggings', slot: 'Lower body', kind: 'Armor', shaped: true,
   covers: ['lower-body', 'upper-legs', 'lower-legs'], mats: ['L', 'B', 'S', 'M'],
   size: 5, ls: 15, perm: 30, layer: 'Armor', cov: 100, level: '1+', elastic: 'Chain (metal)', melt: 1.5,
   note: 'One bar for full leg coverage, and melting them back returns one and a half — the best metal deal on this page. Metal leggings are chain, so they share chain’s weakness to blunt weapons.' },
 
-{ id: 'trousers', name: 'Trousers', slot: 'Lower body', kind: 'Clothing',
+{ id: 'trousers', sprite: [1, 9], name: 'Trousers', slot: 'Lower body', kind: 'Clothing',
   covers: ['lower-body', 'upper-legs', 'lower-legs', 'feet'], mats: ['C', 'L'],
   size: 4, ls: 15, perm: 30, layer: 'Over', cov: 100 },
 
-{ id: 'braies', name: 'Braies', slot: 'Lower body', kind: 'Clothing', avail: 'uncommon',
+{ id: 'braies', sprite: [1, 10], name: 'Braies', slot: 'Lower body', kind: 'Clothing', avail: 'uncommon',
   covers: ['lower-body', 'upper-legs'], mats: ['C', 'L'],
   size: 3, ls: 10, perm: 30, layer: 'Under', cov: 100 },
 
-{ id: 'loincloth', name: 'Loincloth', slot: 'Lower body', kind: 'Clothing',
+{ id: 'loincloth', sprite: [1, 14], name: 'Loincloth', slot: 'Lower body', kind: 'Clothing',
   covers: ['lower-body'], mats: ['C', 'L'], size: 1, ls: 10, perm: 30, layer: 'Under', cov: 50 },
 
-{ id: 'thong', name: 'Thong', slot: 'Lower body', kind: 'Clothing', avail: 'foreign',
+{ id: 'thong', sprite: [1, 15], name: 'Thong', slot: 'Lower body', kind: 'Clothing', avail: 'foreign',
   covers: ['lower-body'], mats: ['C', 'L'], size: 1, ls: 10, perm: 30, layer: 'Under', cov: 25 },
 
-{ id: 'skirt-short', name: 'Skirt (short)', slot: 'Lower body', kind: 'Clothing', avail: 'foreign',
+{ id: 'skirt-short', sprite: [1, 11], name: 'Skirt (short)', slot: 'Lower body', kind: 'Clothing', avail: 'foreign',
   covers: ['lower-body'], mats: ['C', 'L'], size: 2, ls: 10, perm: 100, layer: 'Over', cov: 100 },
 
-{ id: 'skirt', name: 'Skirt', slot: 'Lower body', kind: 'Clothing', avail: 'foreign',
+{ id: 'skirt', sprite: [1, 12], name: 'Skirt', slot: 'Lower body', kind: 'Clothing', avail: 'foreign',
   covers: ['lower-body', 'upper-legs'], mats: ['C', 'L'],
   size: 2, ls: 10, perm: 100, layer: 'Over', cov: 100 },
 
-{ id: 'skirt-long', name: 'Skirt (long)', slot: 'Lower body', kind: 'Clothing', avail: 'foreign',
+{ id: 'skirt-long', sprite: [1, 13], name: 'Skirt (long)', slot: 'Lower body', kind: 'Clothing', avail: 'foreign',
   covers: ['lower-body', 'upper-legs', 'lower-legs'], mats: ['C', 'L'],
   size: 2, ls: 10, perm: 100, layer: 'Over', cov: 100 },
 
 /* ── Feet ─────────────────────────────────────────────────────── */
 
-{ id: 'high-boots', name: 'High boots', slot: 'Feet', kind: 'Armor',
+{ id: 'high-boots', sprite: [4, 17], name: 'High boots', slot: 'Feet', kind: 'Armor',
   covers: ['feet', 'lower-legs'], mats: ['L', 'M'],
   size: 2, ls: 25, perm: 15, layer: 'Over', cov: 100, level: '1+', melt: 1.2,
   note: 'One bar, three units of weight, and they reach the lower legs. With a mail shirt taking the upper legs, a dwarf in high boots has a full chain layer on both legs before you forge a single greave.' },
 
-{ id: 'low-boots', name: 'Low boots', slot: 'Feet', kind: 'Armor',
+{ id: 'low-boots', sprite: [4, 16], name: 'Low boots', slot: 'Feet', kind: 'Armor',
   covers: ['feet'], mats: ['L', 'M'],
   size: 1, ls: 25, perm: 15, layer: 'Over', cov: 100, level: '1+', melt: 0.6,
   note: 'The foot and nothing above it. Same bar cost as high boots, so there is little reason to prefer them.' },
 
-{ id: 'shoes', name: 'Shoes', slot: 'Feet', kind: 'Clothing',
+{ id: 'shoes', sprite: [4, 15], name: 'Shoes', slot: 'Feet', kind: 'Clothing',
   covers: ['feet'], mats: ['C', 'L'], size: 1, ls: 20, perm: 15, layer: 'Over', cov: 100,
   note: 'A layer size of 20 against a boot’s permit of 15 — shoes do not fit inside boots. A soldier in a uniform set to "worn over clothes" keeps the shoes and never puts the boots on.' },
 
-{ id: 'sandals', name: 'Sandals', slot: 'Feet', kind: 'Clothing', avail: 'foreign',
+{ id: 'sandals', sprite: [4, 14], name: 'Sandals', slot: 'Feet', kind: 'Clothing', avail: 'foreign',
   covers: ['feet'], mats: ['C', 'L'], size: 1, ls: 25, perm: 15, layer: 'Over', cov: 100 },
 
-{ id: 'socks', name: 'Socks', slot: 'Feet', kind: 'Clothing',
+{ id: 'socks', sprite: [1, 16], name: 'Socks', slot: 'Feet', kind: 'Clothing',
   covers: ['feet'], mats: ['C'], size: 1, ls: 10, perm: 15, layer: 'Under', cov: 100 },
 
 { id: 'chausses', name: 'Chausses', slot: 'Feet', kind: 'Clothing', avail: 'foreign',
@@ -264,27 +275,27 @@ window.DF_ARMOR = [
 
 /* ── Shields ──────────────────────────────────────────────────── */
 
-{ id: 'shield', name: 'Shield', slot: 'Shield', kind: 'Shield',
+{ id: 'shield', sprite: [4, 0], name: 'Shield', slot: 'Shield', kind: 'Shield',
   covers: [], mats: ['L', 'M', 'W'],
   size: 4, layer: 'Held', block: 20, level: 2, melt: 1.2,
   note: 'Blocks the attack outright instead of absorbing it — deflection where armour would give you a broken bone. Material does not affect blocking at all, so wood is as good as steel and far lighter; it just wears out faster and makes a poor bludgeon.' },
 
-{ id: 'buckler', name: 'Buckler', slot: 'Shield', kind: 'Shield',
+{ id: 'buckler', sprite: [4, 3], name: 'Buckler', slot: 'Shield', kind: 'Shield',
   covers: [], mats: ['L', 'M', 'W'],
   size: 2, layer: 'Held', block: 10, level: 1, melt: 0.6,
   note: 'Half a shield’s block chance for half the bulk. Take the shield unless weight is the problem.' },
 
 /* ── Uniform gear ─────────────────────────────────────────────── */
 
-{ id: 'backpack', name: 'Backpack', slot: 'Upper body', kind: 'Gear',
+{ id: 'backpack', sprite: [4, 24], name: 'Backpack', slot: 'Upper body', kind: 'Gear',
   covers: ['upper-body'], mats: ['L'], size: 3, ls: 0, perm: 300, layer: 'Over',
   note: 'No coverage and no layer size, so it never conflicts with anything. Lets a soldier carry rations on campaign.' },
 
-{ id: 'quiver', name: 'Quiver', slot: 'Upper body', kind: 'Gear',
+{ id: 'quiver', sprite: [4, 23], name: 'Quiver', slot: 'Upper body', kind: 'Gear',
   covers: ['upper-body'], mats: ['C', 'L'], size: 3, ls: 0, perm: 300, layer: 'Over',
   note: 'Holds ammunition. Assign the ranged weapon when the squad is created — added later, the squad may never pick bolts up at all.' },
 
-{ id: 'flask', name: 'Flask / waterskin', slot: 'Upper body', kind: 'Gear',
+{ id: 'flask', sprite: [1, 24], sprite2: [1, 23], name: 'Flask / waterskin', slot: 'Upper body', kind: 'Gear',
   covers: ['upper-body'], mats: ['L', 'M'], size: 5, layer: 'Unique',
   note: 'Its own layer, so it fights with nothing. A soldier without one dies of thirst on a long patrol.' }
 

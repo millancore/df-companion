@@ -68,6 +68,44 @@
   const icon = (name, cls) => draw(SHOPS[name] || { art: GENERIC }, 'ws-icon ' + (cls || ''));
   const sym  = (name, cls) => (ICONS[name] ? draw(ICONS[name], 'sym ' + (cls || '')) : '');
 
+  /* The pixel-art plate from assets/img. It only stands in for the SVG on the
+     two places that give a building real estate — its card on the grid and its
+     own page. At chip size 96×128 of pixel art is mush, and the places and
+     zones have no plate at all, so those fall back to the icon. Either way it
+     stands in the same frame, so a row of cards keeps one left edge instead of
+     one card's text starting further in. `alt` is empty because the heading
+     next to it already names the building. */
+  const plate = (name, cls) => {
+    const m = SHOPS[name] || {};
+    const frame = (inner, extra) =>
+      `<span class="ws-pic ${extra} ${cls || ''}">${inner}</span>`;
+    if (!m.img) return frame(icon(name, cls), '');
+
+    /* `img2` is a second building the entry covers, and only the workshop's own
+       page has the width for both — the card shows the first and lets the note
+       explain the other. */
+    const files = [m.img].concat(m.img2 && cls === 'xxl' ? [m.img2] : []);
+    return frame(files.map((f) =>
+      `<img src="assets/img/${f}" alt="" loading="lazy" decoding="async">`).join(''),
+      m.small ? 'small' : '');
+  };
+
+  /* A cell out of the equipment sheet. Only the armour picker's list draws
+     these: they are there to make a row findable at a glance, not to illustrate
+     the piece a second time — the card beside the list already does that. A
+     piece the sheet has no cell for still gets the empty box, so the names stay
+     in one column instead of stepping in and out. */
+  const eqCell = (c) =>
+    `<span class="eq" style="background-position:${-c[0] * 32}px ${-c[1] * 32}px"></span>`;
+  const eqSprite = (p) => p.sprite
+    ? eqCell(p.sprite) + (p.sprite2 ? eqCell(p.sprite2) : '')
+    : '<span class="eq blank"></span>';
+
+  /* The build-menu path, 'b-o-u-l' → four keycaps. Worth showing: it is the one
+     fact about a workshop you need while you are actually looking at the game. */
+  const keycaps = (keys) => keys
+    ? `<span class="keys">${keys.split('-').map((k) => `<kbd>${esc(k)}</kbd>`).join('')}</span>` : '';
+
   /* The in → out connector. A filled glyph rather than the ↓ character, which rendered
      thin and inconsistently across fonts. Filled with currentColor so it follows the
      theme and picks up the accent on card hover. */
@@ -993,14 +1031,15 @@
       const skills = [...new Set(steps.map((r) => r.skill).filter((x) => x && x !== '—'))];
       const meta = SHOPS[w] || {};
       const picks = pickersFor(steps);
-      return `<a class="ws-card" href="#/w/${encodeURIComponent(w)}">
+      return `<a class="ws-card" href="#/w/${encodeURIComponent(w)}" data-tier="${meta.tier || ''}">
         ${picks.length ? liveMark(picks) : ''}
-        <div class="ws-art">${icon(w, 'xl')}</div>
+        <div class="ws-art">${plate(w, 'xl')}</div>
         <div class="ws-body">
           <h3>${esc(w)}</h3>
           ${meta.note ? `<p>${esc(meta.note)}</p>` : ''}
           <div class="ws-meta">
             <span class="count">${steps.length} step${steps.length === 1 ? '' : 's'}</span>
+            ${meta.tier ? `<span class="need tier">Tier ${meta.tier}</span>` : ''}
             ${skills.map((sk) => `<span class="need">${esc(sk)}</span>`).join('')}
           </div>
         </div>
@@ -1010,14 +1049,40 @@
     main.innerHTML = `
       <div class="page-head"><div>
         <h1>Workshops</h1>
-        <p>Every building and place a job can happen, and what comes out of it.</p>
+        <p>Every building and place a job can happen, and what comes out of it.
+        Almost all of them are 3×3. The tier is how far the building sits from raw
+        material: a tier 1 building eats what the map gives you, tier 2 eats tier 1’s
+        output, tier 3 eats tier 2’s.</p>
       </div></div>
+      <div class="ws-filters frow">
+        <span class="flabel">Tier</span>
+        ${[['all', 'All'], ['1', '1'], ['2', '2'], ['3', '3']].map(([v, label]) =>
+          `<button class="fchip ${v === 'all' ? 'on' : ''}" data-tier="${v}">${label}</button>`).join('')}
+      </div>
       ${order.map((k) => `
         <section class="shop-group">
           <div class="shop-head"><h2>${heading[k][0]}</h2></div>
           <p class="group-note">${heading[k][1]}</p>
           <div class="ws-grid">${groups.get(k).map(card).join('')}</div>
         </section>`).join('')}`;
+
+    /* Hiding cards is only half of it: a section whose cards have all gone would
+       otherwise leave its heading and note sitting over an empty grid. Places
+       and zones have no tier at all, so that whole group drops out of every
+       filter but All — which is the honest answer, they are not workshops. */
+    const bar = main.querySelector('.ws-filters');
+    bar.addEventListener('click', (ev) => {
+      const chip = ev.target.closest('.fchip');
+      if (!chip) return;
+      const tier = chip.dataset.tier;
+      bar.querySelectorAll('.fchip').forEach((c) => c.classList.toggle('on', c === chip));
+      main.querySelectorAll('.ws-card').forEach((c) => {
+        c.hidden = tier !== 'all' && c.dataset.tier !== tier;
+      });
+      main.querySelectorAll('.shop-group').forEach((s) => {
+        s.hidden = !s.querySelector('.ws-card:not([hidden])');
+      });
+    });
   }
 
   function viewWorkshop(name) {
@@ -1039,15 +1104,19 @@
     main.innerHTML = `
       <a class="back" href="#/w">${sym('back')}All workshops</a>
       <div class="ws-head">
-        <div class="ws-art big">${icon(name, 'xxl')}</div>
+        <div class="ws-art big">${plate(name, 'xxl')}</div>
         <div>
           <h1>${esc(name)}</h1>
           <div class="ws-meta">
             <span class="need">${KIND_NAME[kind]}</span>
+            ${meta.tier ? `<span class="need tier">Tier ${meta.tier}</span>` : ''}
             ${burnsFuel ? `<span class="need">${sym('flame')}burns fuel</span>` : ''}
             ${skills.map((sk) => `<span class="need">${esc(sk)}</span>`).join('')}
           </div>
           ${meta.note ? `<p class="item-note">${esc(meta.note)}</p>` : ''}
+          ${meta.keys ? `<p class="ws-build">Build ${keycaps(meta.keys)}
+            <span class="dot">·</span> ${esc(meta.size || '3×3')}${meta.magma
+              ? ` <span class="dot">·</span> the magma version burns no fuel` : ''}</p>` : ''}
           <p class="muted ws-inds">Feeds ${inds.map((i) =>
             `<a href="#/i/${i.id}">${sym(i.icon)} ${esc(i.name)}</a>`).join(', ')}</p>
         </div>
@@ -1123,6 +1192,7 @@
       start: id,
       aside: bodyFigure(),
       result: armorResult,
+      rowIn: eqSprite,
       facets: [
         { key: 'covers', label: 'Body part', multi: true, silent: true },
         { key: 'kind', label: 'Type' },
@@ -1162,8 +1232,9 @@
         <p>DF Companion is a static, dependency-free reference for the industry chains in
         <a href="https://www.bay12games.com/dwarves/" target="_blank" rel="noopener">Dwarf Fortress</a>.
         Every page on this site is generated from ten data files, so extending it means editing
-        JavaScript objects rather than HTML. Nothing is loaded from the network and no page
-        carries a bitmap: every icon here, down to the back arrow, is inline SVG.</p>
+        JavaScript objects rather than HTML. Nothing is loaded from the network. Every icon
+        here, down to the back arrow, is inline SVG; the only bitmaps are the pixel-art
+        workshop plates and the equipment sheet the armour list reads its sprites from.</p>
 
         <h2>Adding a step</h2>
         <p>Open <code>data/recipes.js</code> and add an entry to <code>window.DF_RECIPES</code>:</p>

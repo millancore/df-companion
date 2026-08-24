@@ -218,6 +218,22 @@ td .ingot { margin-right: .4rem; vertical-align: -.28em; }  /* chips use flex ga
 .ws-icon.xl  { width: 42px; height: 42px; }
 .ws-icon.xxl { width: 60px; height: 60px; }
 
+/* Every plate stands in the same 96×128 frame, whatever it holds: a 3×3
+   building's art at 1:1, a 1×1 building's 32×64 art at 2x, or the fallback SVG.
+   Nearest-neighbour at a fraction drops whole pixel rows out of pixel art, so
+   the only scales in the sheet are whole ones — full and 2x here, half under
+   the mobile breakpoint. `pixelated` is the point of the whole rule: the
+   browser default smooths them into mud. */
+.ws-pic {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  flex: none; width: 96px; height: 128px;
+}
+.ws-pic img { display: block; image-rendering: pixelated; width: 96px; height: 128px; }
+.ws-pic.small img { width: 64px; height: 128px; }
+/* Two buildings in one frame need the room for both. Only the workshop page
+   asks for it, where nothing is lined up against the art. */
+.ws-pic.xxl:has(img + img) { width: auto; }
+
 .chip.shop .ws-icon { color: var(--accent); }
 
 .shop-link { display: flex; align-items: center; gap: .55rem; text-decoration: none; color: inherit; }
@@ -226,7 +242,15 @@ td .ingot { margin-right: .4rem; vertical-align: -.28em; }  /* chips use flex ga
 
 .group-note { margin: -.4rem 0 1rem; font-size: .84rem; color: var(--ink-3); max-width: 62ch; }
 
-.ws-grid { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+/* The tier filter reuses the pickers' chips, but it stands on the page rather
+   than inside a panel, so it brings its own spacing instead of `.brew-filters`. */
+.ws-filters { margin: -.6rem 0 1.4rem; }
+
+/* `hidden` alone loses to the card's own `display: flex`, and to the section's
+   block — the attribute selector is what actually takes them out of the grid. */
+.ws-card[hidden], .shop-group[hidden] { display: none; }
+
+.ws-grid { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fill, minmax(370px, 1fr)); }
 .ws-card {
   display: flex; gap: .9rem; align-items: flex-start;
   padding: 1rem; text-decoration: none; color: inherit;
@@ -250,6 +274,20 @@ td .ingot { margin-right: .4rem; vertical-align: -.28em; }  /* chips use flex ga
 .ws-head .ws-art { color: var(--accent); padding-top: .2rem; }
 .ws-head .item-note { margin: .7rem 0 0; }
 .ws-inds { font-size: .82rem; margin: .5rem 0 0; }
+
+/* Tier is the one badge in the row that is a number rather than a word, so it
+   gets the accent border to stop it reading as another skill name. */
+.need.tier { border-color: var(--line-2); color: var(--ink); }
+
+.ws-build { font-size: .82rem; color: var(--ink-3); margin: .6rem 0 0; }
+.ws-build .dot { margin: 0 .15rem; }
+.keys { display: inline-flex; gap: .18rem; vertical-align: -.1em; }
+kbd {
+  font-family: var(--mono); font-size: .72rem; line-height: 1;
+  padding: .2rem .35rem; min-width: 1.5em; text-align: center;
+  background: var(--panel-2); border: 1px solid var(--line-2);
+  border-bottom-width: 2px; color: var(--ink);
+}
 
 /* ── Item detail ──────────────────────────────────────────────── */
 .item-head { margin-bottom: 1.5rem; }
@@ -349,6 +387,10 @@ td:first-child { font-weight: 600; white-space: nowrap; }
   .page-head h1, .item-head h1 { font-size: 1.35rem; }
   .ws-head { gap: .8rem; }
   .ws-icon.xxl { width: 44px; height: 44px; }
+  /* Half scale — the one other ratio that divides the art evenly. */
+  .ws-pic { width: 48px; height: 64px; gap: 4px; }
+  .ws-pic img { width: 48px; height: 64px; }
+  .ws-pic.small img { width: 32px; height: 64px; }
 }
 
 /* ── Symbols ──────────────────────────────────────────────────── */
@@ -688,6 +730,27 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .brew-flow .plus { align-self: center; }
 .brew-list .bi .ingot,
 .brew-list .bo .ingot { width: 16px; margin-right: .4em; vertical-align: -.28em; }
+
+/* ── Equipment sprites ────────────────────────────────────────── */
+/* One 256×832 sheet of 32×32 cells; a row picks its cell with a background
+   position rather than its own file. Drawn at 1:1 — pixel art at anything else
+   drops rows out of the art — and reserved even when a piece has no cell, so
+   the armour names stay in one column. */
+.eq {
+  display: block; flex: none; width: 32px; height: 32px;
+  background-image: url(../img/item_equipment.png);
+  background-size: 256px 832px; image-rendering: pixelated;
+}
+/* The sprite is a block in a row otherwise aligned on its text baseline, so
+   the rows that carry one centre themselves instead. */
+/* Without this the empty box would paint whatever sits at the sheet's origin,
+   which is how a face veil ends up drawn as a shirt. */
+.eq.blank { background-image: none; }
+.brew-list button:has(.eq) { align-items: center; padding-block: .1rem; }
+.brew-list .bi:has(.eq) { display: flex; align-items: center; gap: .5rem; }
+/* Two cells for one entry sit tight against each other, so the pair reads as
+   one item's row rather than as a sprite, a gap and another sprite. */
+.eq + .eq { margin-left: -.35rem; }
 
 @media (prefers-reduced-motion: reduce) {
   .smelt-anim * { animation: none !important; }

@@ -269,6 +269,7 @@ that field existed the textiles page lost its only dye source.
 ```
 index.html            page shell
 assets/css/style.css  theme tokens, light + dark
+assets/img/*.png      a pixel-art plate per workshop: 96x128, or 32x64 for a 1x1
 assets/js/graph.js    layered DAG layout + SVG renderer with pan/zoom
 assets/js/app.js      hash router, views, search, theme toggle
 data/recipes.js       industries + production steps
@@ -276,7 +277,7 @@ data/brewing.js       the Still's 77 brewable ingredients
 data/milling.js       the quern's 33 millable plants
 data/dyes.js          all 72 dyes, plus the colour name lookups
 data/smelting.js      17 ores and 14 alloy recipes
-data/workshops.js     workshop artwork, kinds and blurbs
+data/workshops.js     workshop artwork, kinds, tiers, build keys and blurbs
 data/icons.js         the shared symbol set
 data/metals.js        one colour per metal, for the ingot icon
 data/reference.js     reference tables
