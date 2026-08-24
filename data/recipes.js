@@ -11,7 +11,7 @@ window.DF_INDUSTRIES = [
   { id: 'animal',   name: 'Animals & Leather',  icon: 'animal', color: '#cf7a55', blurb: 'Butchery, tanning, milk, wool, bone and shell.' },
   { id: 'stone',    name: 'Stone, Gems & Clay', icon: 'stone', color: '#a294cc', blurb: 'Mining output, mechanisms, cut gems and ceramics.' },
   { id: 'glass',    name: 'Glass',             icon: 'glass', color: '#5fae9e', blurb: 'Sand into green glass. Pearlash makes it clear, rock crystal makes it crystal.' },
-  { id: 'paper',    name: 'Paper & Books',      icon: 'paper', color: '#c4b183', blurb: 'Slurry, pressed sheets, quires and the written word.' }
+  { id: 'paper',    name: 'Paper & Books',      icon: 'paper', color: '#c4b183', blurb: 'Three routes to a sheet — plant fibre, papyrus, parchment — then quires, scrolls and the written word.' }
 ];
 
 /* needs[] strings map to the legend icons in the UI:
@@ -267,22 +267,79 @@ window.DF_RECIPES = [
   note:'Clay soil is renewable like sand. Porcelain additionally needs kaolinite.' },
 
 /* ── PAPER & BOOKS ───────────────────────────────────────────── */
-{ id:'make-slurry', name:'Mash plant into slurry', industry:'paper', workshop:'Quern or Millstone', skill:'Papermaker',
-  needs:['bucket'], in:[{item:'Pig tail'},{item:'Rope reed'}], out:[{item:'Plant slurry'}],
-  note:'Any plant works, but rope reed and pig tail are the traditional papermaking crops.' },
+/* Three routes to a sheet, and they share nothing but the sheet: plant fibre
+   through the quern and the press, papyrus straight off the farmer's workshop,
+   and parchment out of a hide by way of the kiln and the ashery. Past the sheet
+   the chain forks again into the two forms a book can take. */
 
-{ id:'press-paper', name:'Press plant paper', industry:'paper', workshop:'Screw Press', skill:'Presser',
-  in:[{item:'Plant slurry'}], out:[{item:'Paper sheet'}] },
+{ id:'make-slurry', name:'Mash plant into slurry', industry:'paper', workshop:'Quern or Millstone', skill:'Papermaker',
+  needs:['bucket'], in:[{item:'Pig tail'},{item:'Rope reed'},{item:'Hemp'},{item:'Flax'}], out:[{item:'Plant slurry'}],
+  note:'Any cloth plant works — rope reed and pig tail underground, hemp, flax, cotton, ramie, jute and kenaf on the surface.' },
+
+{ id:'press-paper', name:'Press plant paper', industry:'paper', workshop:'Screw Press', skill:'Papermaker',
+  in:[{item:'Plant slurry'}], out:[{item:'Paper sheet'}],
+  note:'The press’s other job wants a Presser; this one does not — both halves of the plant route to paper, the quern and the press, run on Papermaking.' },
+
+{ id:'papyrus-sheet', name:'Make papyrus sheet', industry:'paper', workshop:"Farmer's Workshop", skill:'Papermaker',
+  in:[{item:'Papyrus'}], out:[{item:'Paper sheet'}],
+  note:'The short route: no quern, no press, no bucket. One job at a building you already have — if the map grows papyrus sedge.' },
+
+{ id:'quicklime', name:'Burn stone to quicklime', industry:'paper', also:['stone'], workshop:'Kiln', skill:'Furnace operator',
+  needs:['fuel','bag'], in:[{item:'Calcium carbonate stone'}], out:[{item:'Quicklime'}],
+  note:'Calcite, chalk, limestone or marble. All four are also flux, and steel is usually the better use of them.' },
+
+{ id:'milk-of-lime', name:'Make milk of lime', industry:'paper', workshop:'Ashery', skill:'Lye maker',
+  needs:['bucket'], in:[{item:'Quicklime'}], out:[{item:'Milk of lime'}],
+  note:'One bag of quicklime, one bucket, one unit of milk of lime. It is good for nothing else.' },
+
+{ id:'parchment', name:'Make parchment sheet', industry:'paper', also:['animal'], workshop:"Tanner's Shop", skill:'Tanner',
+  in:[{item:'Raw hide'},{item:'Milk of lime'}], out:[{item:'Parchment sheet'}],
+  note:'One hide, one sheet, whatever the animal was — a cow gives vellum, everything else is named after the beast.' },
+
+{ id:'binding', name:'Make binding or roller', industry:'paper', workshop:"Craftsdwarf's Workshop", skill:'Bone carver',
+  in:[{item:'Log'},{item:'Stone'}], out:[{item:'Book binding'},{item:'Scroll roller'}],
+  note:'Wood and stone here; metal at the forge, glass at the glass furnace. A codex needs a binding, a scroll needs a roller.' },
 
 { id:'quire', name:'Bind a quire', industry:'paper', workshop:"Craftsdwarf's Workshop", skill:'Bookbinder',
-  in:[{item:'Paper sheet'}], out:[{item:'Quire'}],
-  note:'A quire is a blank book. Scholars and scribes fill it in a library.' },
+  in:[{item:'Paper sheet'},{item:'Parchment sheet'}], out:[{item:'Quire'}],
+  note:'One sheet, one quire, and nothing else. A quire is a blank book: scholars and scribes fill it in a library.' },
+
+{ id:'scroll', name:'Make a scroll', industry:'paper', workshop:"Craftsdwarf's Workshop", skill:'Bookbinder',
+  in:[{item:'Paper sheet'},{item:'Parchment sheet'},{item:'Scroll roller'}], out:[{item:'Scroll'}],
+  note:'The other form a book can take, and the simpler one — a scroll is finished the moment it is made. It can never become a codex.' },
 
 { id:'write', name:'Write a book', industry:'paper', workshop:'Library', skill:'Writer',
-  in:[{item:'Quire'}], out:[{item:'Written work'}],
-  note:'Books attract scholars and visitors — and occasionally the wrong sort of visitor.' }
+  in:[{item:'Quire'},{item:'Scroll'}], out:[{item:'Written work'}],
+  note:'Books attract scholars and visitors — and occasionally the wrong sort of visitor.' },
+
+{ id:'codex', name:'Bind a codex', industry:'paper', workshop:"Craftsdwarf's Workshop", skill:'Bookbinder',
+  in:[{item:'Written work'},{item:'Book binding'},{item:'Thread'}], out:[{item:'Codex'}],
+  note:'Only a quire that has already been written on. Binding currently throws away some of what the quire was worth, so a fortress chasing wealth leaves its scholars’ work in quire form.' }
 
 ];
+
+/* Optional chip filters for an industry's step list. A facet names a set of
+   options, and each option lists the step ids that belong to it. A facet only
+   speaks for the steps it names: a step no facet claims stays visible whatever
+   is selected, so adding a facet can never silently hide a chain.
+
+   Paper is the one industry that needs this. It forks twice and the forks are
+   independent — you pick a route to a sheet, and separately you pick which of
+   the two forms the finished book takes. Steps that serve both sides of a fork
+   (writing, and making the binding or roller) are listed under both. */
+window.DF_INDUSTRY_FILTERS = {
+  paper: [
+    { key: 'sheet', label: 'Sheet from', options: [
+      { id: 'fibre',     label: 'Plant fibre', steps: ['make-slurry', 'press-paper'] },
+      { id: 'papyrus',   label: 'Papyrus',     steps: ['papyrus-sheet'] },
+      { id: 'parchment', label: 'Parchment',   steps: ['quicklime', 'milk-of-lime', 'parchment'] }
+    ] },
+    { key: 'form', label: 'Finished form', options: [
+      { id: 'codex',  label: 'Codex',  steps: ['quire', 'write', 'codex', 'binding'] },
+      { id: 'scroll', label: 'Scroll', steps: ['scroll', 'write', 'binding'] }
+    ] }
+  ]
+};
 
 /* Extra colour for individual items shown in the detail panel. */
 window.DF_ITEM_NOTES = {
@@ -297,5 +354,17 @@ window.DF_ITEM_NOTES = {
   'Steel bar': 'Iron + pig iron + flux + fuel. The best non-artefact armour material a fortress can mass-produce.',
   'Mechanism': 'Made from any stone. Needed for levers, traps, bridges, and to build a screw press.',
   'Rock pot': 'A stone substitute for a wooden barrel. Holds drinks, syrup and other liquids.',
-  'Jug': 'Carved from stone at the craftsdwarf’s workshop. The screw press will not make oil without one.'
+  'Jug': 'Carved from stone at the craftsdwarf’s workshop. The screw press will not make oil without one.',
+  'Papyrus': 'Papyrus sedge, a surface plant. The only material that becomes a sheet in one job, with no quern, press or bucket in the way.',
+  'Calcium carbonate stone': 'Calcite, chalk, limestone or marble. Every one of them is also flux — and steel is almost always the better thing to do with them.',
+  'Quicklime': 'Burnt calcium carbonate, one bag per unit. It leads to parchment and to nothing else.',
+  'Milk of lime': 'Quicklime slaked in a bucket at the ashery. Its sole use is turning a hide into parchment.',
+  'Paper sheet': 'From plant slurry through the press, or from papyrus in a single job. Interchangeable with parchment from here on.',
+  'Parchment sheet': 'One hide, one sheet, whatever the animal’s size. Cow hide is called vellum; everything else is named after the beast.',
+  'Quire': 'A blank codex. Scholars and scribes fill it in a library, and only then can it be bound.',
+  'Scroll': 'The other form of book: a sheet on a roller, finished the moment it is made. A scroll can never be turned into a codex.',
+  'Book binding': 'Wood or stone at the craftsdwarf’s workshop, metal at the forge, glass at the glass furnace. One per codex.',
+  'Scroll roller': 'Same four materials as a binding, made at the same three buildings. One per scroll.',
+  'Codex': 'A written quire, bound with thread and a binding. Binding currently discards part of what the quire was worth, so a fortress chasing wealth leaves the work in quire form.',
+  'Thread': 'Any unused thread will do, animal hair included — it is one of the three things a codex needs.'
 };

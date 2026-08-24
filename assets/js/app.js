@@ -19,6 +19,7 @@
   const ARMOR_MATS = window.DF_ARMOR_MATS || {};
   const ARMOR      = window.DF_ARMOR || [];
   const ARMOR_TABLES = window.DF_ARMOR_TABLES || [];
+  const IND_FILTERS  = window.DF_INDUSTRY_FILTERS || {};
 
   const main   = document.getElementById('main');
   const search = document.getElementById('search');
@@ -949,24 +950,60 @@
       return;
     }
 
-    const byShop = new Map();
-    rs.forEach((r) => {
-      if (!byShop.has(r.workshop)) byShop.set(r.workshop, []);
-      byShop.get(r.workshop).push(r);
-    });
+    /* An industry with forks in it can carry chip rows to pick a way through
+       them — see DF_INDUSTRY_FILTERS. A facet only speaks for the steps it
+       names, so a step nobody claimed shows whatever is selected. */
+    const facets = IND_FILTERS[id] || [];
+    const sel = {};
+    facets.forEach((f) => (sel[f.key] = 'all'));
+    const claims = facets.map((f) => new Set(f.options.flatMap((o) => o.steps)));
+    const keep = (r) => facets.every((f, i) =>
+      sel[f.key] === 'all' || !claims[i].has(r.id) ||
+      f.options.find((o) => o.id === sel[f.key]).steps.includes(r.id));
 
-    body.innerHTML = [...byShop].map(([shop, list]) => {
-      const skills = [...new Set(list.map((r) => r.skill).filter((s) => s && s !== '—'))].join(' · ');
-      return `<section class="shop-group">
-        <div class="shop-head">
-          <a class="shop-link" href="#/w/${encodeURIComponent(shop)}">
-            ${icon(shop, 'lg')}<h2>${esc(shop)}</h2>
-          </a>
-          ${skills ? `<span class="skill">${esc(skills)}</span>` : ''}
-        </div>
-        <div class="rec-grid">${list.map((r) => recipeCard(r)).join('')}</div>
-      </section>`;
-    }).join('');
+    const chipRow = (f) => `<div class="frow" data-facet="${esc(f.key)}">
+      <span class="flabel">${esc(f.label)}</span>
+      ${[['all', 'All']].concat(f.options.map((o) => [o.id, o.label])).map(([v, label]) =>
+        `<button class="fchip ${v === sel[f.key] ? 'on' : ''}" data-v="${esc(v)}">${esc(label)}</button>`
+      ).join('')}</div>`;
+
+    const steps = (list) => {
+      const byShop = new Map();
+      list.forEach((r) => {
+        if (!byShop.has(r.workshop)) byShop.set(r.workshop, []);
+        byShop.get(r.workshop).push(r);
+      });
+      return [...byShop].map(([shop, group]) => {
+        const skills = [...new Set(group.map((r) => r.skill).filter((k) => k && k !== '—'))].join(' · ');
+        return `<section class="shop-group">
+          <div class="shop-head">
+            <a class="shop-link" href="#/w/${encodeURIComponent(shop)}">
+              ${icon(shop, 'lg')}<h2>${esc(shop)}</h2>
+            </a>
+            ${skills ? `<span class="skill">${esc(skills)}</span>` : ''}
+          </div>
+          <div class="rec-grid">${group.map((r) => recipeCard(r)).join('')}</div>
+        </section>`;
+      }).join('');
+    };
+
+    body.innerHTML =
+      (facets.length ? `<div class="ind-filters">${facets.map(chipRow).join('')}</div>` : '') +
+      '<div id="ind-steps"></div>';
+
+    const list = document.getElementById('ind-steps');
+    const paint = () => { list.innerHTML = steps(rs.filter(keep)); };
+    paint();
+
+    const bar = body.querySelector('.ind-filters');
+    if (bar) bar.addEventListener('click', (ev) => {
+      const chip = ev.target.closest('.fchip');
+      if (!chip) return;
+      const row = chip.closest('.frow');
+      sel[row.dataset.facet] = chip.dataset.v;
+      row.querySelectorAll('.fchip').forEach((c) => c.classList.toggle('on', c === chip));
+      paint();
+    });
   }
 
   function viewItem(name) {

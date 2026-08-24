@@ -240,6 +240,14 @@ td .ingot { margin-right: .4rem; vertical-align: -.28em; }  /* chips use flex ga
 .shop-link .ws-icon { color: var(--accent); }
 .shop-link:hover h2 { color: var(--accent); }
 
+/* Chip rows over an industry's step list — the same chips as the pickers, but
+   standing on the page rather than inside a panel, so they bring their own
+   spacing rather than `.brew-filters`. */
+.ind-filters { margin: -.4rem 0 1.3rem; display: flex; flex-direction: column; gap: .4rem; }
+/* These labels are sentences ("Finished form"), not the one-word ones the
+   pickers use, so they get the room to stay on one line. */
+.ind-filters .flabel { width: 6.1rem; }
+
 .group-note { margin: -.4rem 0 1rem; font-size: .84rem; color: var(--ink-3); max-width: 62ch; }
 
 /* The tier filter reuses the pickers' chips, but it stands on the page rather
