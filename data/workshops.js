@@ -156,7 +156,7 @@ window.DF_WORKSHOPS = {
 /* ── Metal, stone & gems ── */
 
 "Metalsmith's Forge": { kind: 'workshop', tier: 3, keys: 'b-o-i', img: 'metalsmith.png', magma: true, box: '1.6 1.6 28.8 26.8', sw: 1.53,
-  note: 'Bars into weapons, armour and furniture. Needs an anvil in the workshop — and a unit of fuel per job.',
+  note: 'Bars into everything: weapons, armour, furniture, crafts, coins, mechanisms. Six labours share one anvil, and every job but studding burns a unit of fuel.',
   art: `<path d="M3 11h26l-3 5H6z"/><path d="M13 16l1 6h4l1-6z"/>
         <path d="M8 22h16l2 5H6z"/>
         <circle cx="8" cy="7" r="1.4" class="ac"/><circle cx="13" cy="4" r="1" class="ac"/>` },

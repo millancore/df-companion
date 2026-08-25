@@ -449,6 +449,15 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .fchip:hover { border-color: var(--accent); color: var(--ink); }
 .fchip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
 
+/* A facet with too many values to fit a row uses a select instead. It borrows
+   the calculator's appearance below rather than inventing a second one — the
+   only difference is the width, which follows the widest option here instead of
+   filling a column. `on` marks it the way `.fchip.on` marks a chip: a filter
+   that is doing something has to look different from one that is not, or the
+   only clue that the list is short is that the list is short. */
+.frow .fsel { width: auto; min-width: 9rem; max-width: 100%; }
+.frow .fsel.on { border-color: var(--accent); color: var(--ink); font-weight: 600; }
+
 .brew-search {
   width: 100%; padding: .45rem .8rem;
   font: inherit; font-size: .82rem;
@@ -858,4 +867,231 @@ td:first-child { font-weight: 600; white-space: nowrap; }
   /* On one column the figure would otherwise land under a 44-row list. */
   #armor-pick .brew { display: flex; flex-direction: column; }
   #armor-pick .brew-panel { order: -1; }
+}
+
+/* ── build routes ───────────────────────────────────────────────── */
+/* A ladder, not a grid: the whole point of this view is that the rungs happen
+   in an order, and a grid would throw that away to save vertical space. */
+.rt-head { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; margin-bottom: .3rem; }
+.rt-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: .4rem; }
+.rt-head h2 .sym { color: var(--accent); }
+.rt-count {
+  margin-left: auto; font-size: .72rem; font-family: var(--mono);
+  text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3);
+}
+.rt-blurb { margin: 0 0 1rem; color: var(--ink-2); font-size: .88rem; max-width: 66ch; }
+
+/* The route in one line — what you are holding at each stage, start to end. */
+.rt-path {
+  display: flex; align-items: center; gap: .3rem; flex-wrap: wrap;
+  padding: .7rem .8rem; margin-bottom: 1.4rem;
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+}
+.rt-sep { line-height: 0; color: var(--ink-3); flex: none; }
+.rt-sep .arrow-svg { width: 15px; height: 15px; transform: rotate(-90deg); }
+
+.rt-steps { list-style: none; margin: 0; padding: 0; }
+.rt-step { display: flex; gap: .9rem; position: relative; padding-bottom: .9rem; }
+.rt-step:last-child { padding-bottom: 0; }
+
+/* The thread down the left margin. It runs from under one number to the next,
+   so the last rung has none and the ladder ends rather than trailing off. */
+.rt-step:not(:last-child)::before {
+  content: ''; position: absolute; left: 1.05rem; top: 2.3rem; bottom: .2rem;
+  width: 1px; background: var(--line-2);
+}
+.rt-step.aside::before, .rt-step.aside + .rt-step::before { border-left: 1px dashed var(--line-2); background: none; width: 0; }
+
+.rt-num {
+  flex: none; width: 2.1rem; height: 2.1rem; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: .85rem; font-weight: 600;
+  color: var(--accent-ink); background: var(--accent);
+  border: 1px solid var(--accent);
+}
+/* A side job is off the count for a reason — it gets a hollow badge so the
+   numbered spine still reads as 1, 2, 3 at a glance. */
+.rt-step.aside .rt-num { background: var(--panel); color: var(--ink-3); border-color: var(--line-2); }
+.rt-step.opt .rt-num { background: var(--panel-2); color: var(--ink-2); border-color: var(--line-2); }
+
+.rt-step .rec { flex: 1; min-width: 0; margin: 0; }
+.rt-step.aside .rec, .rt-step.opt .rec { border-style: dashed; }
+.rt-where { margin-bottom: .5rem; }
+.rt-io { gap: .3rem; }
+.rt-io .plus { margin: 0 .1rem; }
+
+@media (max-width: 560px) {
+  .rt-step { gap: .6rem; }
+  .rt-step:not(:last-child)::before { left: .85rem; }
+  .rt-num { width: 1.7rem; height: 1.7rem; font-size: .78rem; }
+}
+
+/* ── item sprites ───────────────────────────────────────────────── */
+/* The game's own art, 15–31px wide and never the same shape twice, so every
+   one sits in a fixed box and is scaled to fit rather than to fill — a tall
+   thin amaranth and a squat sweet pod then read at the same visual weight. */
+.sprite {
+  flex: none; width: 22px; height: 22px;
+  object-fit: contain; object-position: center bottom;
+  image-rendering: pixelated;
+}
+/* Reserves the box in a list where only some rows have art, so the names keep
+   one left edge — the same problem the equipment sheet's blank cell solves. */
+.sprite.blank { display: inline-block; }
+.sprite.big { width: 44px; height: 44px; margin-right: .55rem; }
+
+.chip.has-sprite { padding-left: .4rem; gap: .2rem; }
+.chip.has-sprite .sprite { width: 18px; height: 18px; }
+.need .sprite { width: 17px; height: 17px; margin-right: .35em; vertical-align: -.35em; }
+.brew-flow .chip.has-sprite .sprite { width: 24px; height: 24px; }
+
+/* The picker lists put the sprite in its own column ahead of the name. */
+.brew-list button:has(.sprite) { align-items: center; padding-block: .25rem; }
+.brew-list .bi:has(.sprite) { display: flex; align-items: center; gap: .5rem; }
+
+/* In a table the sprite is a marker beside the name, not a column of its own. */
+td .sprite { vertical-align: -.45em; margin-right: .4rem; }
+
+.item-head h1 .sprite { vertical-align: -.1em; }
+
+/* ── The loom, animated ─────────────────────────────────────────── */
+/* Same contract as the still and the quern: the base rules are the FINISHED
+   state — the bolt woven, the shuttle parked — and the keyframes run up to it,
+   so reduced motion gets the finished picture rather than a blank frame. The
+   tone is the fibre's, since telling wool from silk is half of what the
+   picture is for. */
+.weave-anim { --brew: #c8a97e; max-width: 200px; }
+.weave-anim[data-kind="Plant fibre"] { --brew: #c8a97e; }
+.weave-anim[data-kind="Wool"]        { --brew: #ded3bd; }
+.weave-anim[data-kind="Silk"]        { --brew: #cfd9de; }
+.weave-anim[data-kind="Hair"]        { --brew: #8a6a45; }
+.weave-anim[data-kind="Adamantine"]  { --brew: #79cfdd; }
+
+.weave-anim .bolt     { fill: var(--brew); opacity: .85; }
+.weave-anim .warp     { opacity: .34; }
+.weave-anim .shuttle  { fill: var(--ink-2); }
+.weave-anim .ink      { stroke: currentColor; }
+
+@keyframes weave-grow  { from { transform: translateY(12px); } to { transform: none; } }
+@keyframes weave-throw {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(17px); }
+}
+.weave-anim .bolt-wrap { animation: weave-grow 2.4s ease-out both; }
+.weave-anim .shuttle   { animation: weave-throw 1.2s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .weave-anim * { animation: none !important; }
+}
+
+/* The fibre kinds, as chips. Same job as the drink and powder colours above:
+   a row of grey chips makes the reader compare words instead of glancing. */
+.need.kind[data-kind="Plant fibre"] { border-color: #8a9d5c; }
+.need.kind[data-kind="Wool"]        { border-color: #b0a186; }
+.need.kind[data-kind="Silk"]        { border-color: #7d95a8; }
+.need.kind[data-kind="Hair"]        { border-color: #8a6a45; }
+.need.kind[data-kind="Adamantine"]  { border-color: #57b6c6; }
+.need.kind[data-kind="Goods"]       { border-color: var(--line-2); }
+
+/* Four numbers about one fibre, read across rather than down — the armour
+   page's stat block does the same thing and there is no reason for a second
+   layout. */
+.fibre-stats { grid-template-columns: repeat(4, 1fr); }
+
+/* ── The clothier's value calculator ────────────────────────────── */
+/* The controls sit inside the panel rather than beside it, because they are
+   not filters — they do not change which garments are listed, only what the
+   one on screen is worth. Keeping them next to the number they move is what
+   makes that difference legible. */
+/* The heading needs air above it: it sits under the garment's meta chips and
+   without a gap the two read as one block. `.col-head` carries no top margin
+   because everywhere else on the site it opens a section. */
+.calc-head { margin-top: 1.4rem; }
+.calc { margin: .5rem 0 1rem; display: grid; gap: .3rem; }
+.calc-row { display: grid; grid-template-columns: 4.6rem minmax(0, 19rem); gap: .6rem; align-items: center; }
+.calc-row .flabel { margin: 0; }
+
+/* Styled rather than left native: a default select is the one control on the
+   page that would arrive in the browser's colours instead of the theme's, and
+   it sits directly above the number it sets. The chevron is an inline SVG
+   background — a data URI cannot read a custom property, so it is painted in
+   the one grey the two themes very nearly share (--ink-3 is #8b7f6c light and
+   #8a7d68 dark), which is close enough that neither theme needs its own. */
+.calc-sel, .fsel {
+  width: 100%; padding: .3rem 1.6rem .3rem .5rem;
+  font: inherit; font-size: .78rem; line-height: 1.4;
+  color: var(--ink); background: var(--panel-2);
+  border: 1px solid var(--line-2); border-radius: var(--radius);
+  appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%238b7f6c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right .45rem center; background-size: 11px;
+}
+.calc-sel:hover, .fsel:hover { border-color: var(--line-2); background-color: var(--panel); }
+.calc-sel:focus-visible, .fsel:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* The option list is drawn by the OS, so it needs telling twice. */
+.calc-sel option, .fsel option { background: var(--panel); color: var(--ink); }
+.calc-sel:disabled { color: var(--ink-3); background-color: var(--bg-2); cursor: not-allowed; }
+.calc-row.off .flabel { color: var(--ink-3); opacity: .6; }
+
+.calc-out { display: grid; gap: .1rem; margin: 0; }
+.calc-line {
+  display: grid; grid-template-columns: 7.5rem 1fr auto;
+  gap: .5rem; align-items: baseline;
+  padding: .22rem 0; border-bottom: 1px dashed var(--line);
+}
+.calc-line dt { font-size: .74rem; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; }
+.calc-line dd { margin: 0; }
+.calc-sum { font-size: .78rem; color: var(--ink-2); font-family: var(--mono); }
+.calc-val { font-family: var(--mono); font-size: .82rem; color: var(--ink); }
+
+.calc-total {
+  margin: .55rem 0 0; font-family: var(--mono);
+  font-size: 1.5rem; font-weight: 700; color: var(--gold);
+}
+.calc-total .muted { font-size: .8rem; font-weight: 400; }
+
+@media (max-width: 520px) {
+  .fibre-stats { grid-template-columns: repeat(2, 1fr); }
+  .calc-line { grid-template-columns: 1fr auto; }
+  .calc-line dt { grid-column: 1 / -1; }
+}
+
+/* ── The forge's picker ─────────────────────────────────────────── */
+/* Its list is the only one on the site drawing from two sets of art at once:
+   armour comes out of the equipment sheet at 32px a cell, weapons and goods out
+   of their own files at whatever size the wiki ships. One fixed box holds
+   either, so ninety names keep a single left edge instead of stepping in and
+   out — the same problem `.sprite.blank` solves for the plants, one size up. */
+.fg-cell {
+  display: flex; flex: none; width: 32px; height: 32px;
+  align-items: center; justify-content: center;
+}
+.fg-cell .sprite { width: 32px; height: 32px; }
+.brew-list button:has(.fg-cell) { align-items: center; padding-block: .1rem; }
+.brew-list .bi:has(.fg-cell) { display: flex; align-items: center; gap: .5rem; }
+
+/* Fourteen categories is too many to give each its own colour, so only the two
+   that answer a different question get one: what goes on a soldier, and what
+   goes on a caravan. Everything else keeps the default border. */
+.need.kind[data-kind="Weapons"]      { border-color: #a8555a; }
+.need.kind[data-kind="Armor"]        { border-color: #6f8ba8; }
+.need.kind[data-kind="Furniture"]    { border-color: var(--line-2); }
+
+/* Five numbers per attack, read across. Same reasoning as the fibre stats:
+   comparing a war hammer's contact area with a battle axe's is the point, and
+   a column of numbers is the only layout that lets you. */
+.forge-stats { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
+
+table.atk { font-size: .78rem; }
+table.atk .num { font-family: var(--mono); text-align: right; white-space: nowrap; }
+table.atk .num.muted { color: var(--ink-3); }
+table.atk .need { padding: .05rem .4rem; font-size: .68rem; }
+/* Edge cuts, blunt bruises, and which one a weapon does is the first thing you
+   need off the row — so the two are told apart by colour, not by reading. */
+.atk-edge  { border-color: #a8555a; color: var(--ink-2); }
+.atk-blunt { border-color: #7d7f88; color: var(--ink-2); }
+
+@media (max-width: 520px) {
+  .forge-stats { grid-template-columns: repeat(2, 1fr); }
 }

@@ -6,12 +6,15 @@
   const SHOPS      = window.DF_WORKSHOPS || {};
   const METALS     = window.DF_METAL_COLORS || {};
   const ICONS      = window.DF_ICONS || {};
+  const SPRITES    = window.DF_ITEM_SPRITES || {};
   const BREWING    = window.DF_BREWING || [];
   const MILLING    = window.DF_MILLING || [];
   const COLOR_HEX  = window.DF_COLOR_HEX || {};
   const COLOR_FAM  = window.DF_COLOR_FAMILY || {};
   const FAMILY_HEX = window.DF_FAMILY_HEX || {};
   const DYES       = window.DF_DYES || [];
+  const FIBRES     = window.DF_FIBRES || [];
+  const GOODS      = window.DF_CLOTH_GOODS || [];
   const ORES       = window.DF_ORES || [];
   const ALLOYS     = window.DF_ALLOYS || [];
   const BODY       = window.DF_BODY || [];
@@ -19,7 +22,11 @@
   const ARMOR_MATS = window.DF_ARMOR_MATS || {};
   const ARMOR      = window.DF_ARMOR || [];
   const ARMOR_TABLES = window.DF_ARMOR_TABLES || [];
-  const IND_FILTERS  = window.DF_INDUSTRY_FILTERS || {};
+  const WEAPONS      = window.DF_WEAPONS || [];
+  const FORGE_GOODS  = window.DF_FORGE_GOODS || [];
+  const FORGE_METALS = window.DF_FORGE_METALS || [];
+  const FORGE_TABLES = window.DF_FORGE_TABLES || [];
+  const ROUTES       = window.DF_PRODUCT_ROUTES || {};
 
   const main   = document.getElementById('main');
   const search = document.getElementById('search');
@@ -102,6 +109,17 @@
   const eqSprite = (p) => p.sprite
     ? eqCell(p.sprite) + (p.sprite2 ? eqCell(p.sprite2) : '')
     : '<span class="eq blank"></span>';
+
+  /* The item's own art from the game, drawn wherever a metal gets its ingot.
+     The set in data/sprites.js is partial by nature — a fortress makes far more
+     things than the wiki has sprites for — so a list where most rows carry art
+     uses `spriteCell`, which keeps the empty box and with it a single left
+     edge. Anywhere the art is incidental, `sprite` simply draws nothing. */
+  const sprite = (name, cls) => SPRITES[name]
+    ? `<img class="sprite ${cls || ''}" src="assets/img/${SPRITES[name]}"
+         alt="" loading="lazy" decoding="async">`
+    : '';
+  const spriteCell = (name) => sprite(name) || '<span class="sprite blank"></span>';
 
   /* The build-menu path, 'b-o-u-l' → four keycaps. Worth showing: it is the one
      fact about a workshop you need while you are actually looking at the game. */
@@ -205,6 +223,56 @@
   const DYE_BY = new Map(DYE_ROWS.map((d) => [d.dye, d]));
   const dyeStep = () => RECIPES.find((r) => r.id === 'dye-thread');
 
+  /* ── textiles ─────────────────────────────────────────────────── */
+  /* Sixteen ways into one Weave Cloth job, and thirty-one things one unit of
+     cloth can come out as. Same treatment as the dyes: the data files keep the
+     game's facts and the browsing aids are derived here.
+
+     Thread is a base-6 item and cloth a base-7 one, so a row's multiplier is
+     the only number either value needs — which is what keeps the picker, the
+     reference table and the value calculator from ever disagreeing. */
+  const THREAD_VALUE = 6;
+  const CLOTH_VALUE  = 7;
+
+  const FIBRE_ROWS = FIBRES.map((f) => ({
+    ...f,
+    out: f.out,
+    thread: THREAD_VALUE * f.mult,
+    clothValue: CLOTH_VALUE * f.mult,
+    hay: [f.in, f.out, f.cloth || '', f.kind, f.where, f.biome || '', f.ground || '',
+          f.weave ? '' : 'hair no cloth', 'thread fibre fiber'].join(' ').toLowerCase()
+  }));
+  /* Keyed by all three names a fibre goes under, so the source, the thread and
+     the cloth all land on the same panel — asking what pig tail fiber cloth is
+     worth is the same question as asking what pig tails are for. */
+  const FIBRE_BY = new Map();
+  FIBRE_ROWS.forEach((f) => [f.in, f.out, f.cloth].forEach((n) => {
+    if (n && !FIBRE_BY.has(n)) FIBRE_BY.set(n, f);
+  }));
+  const weaveStep = () => RECIPES.find((r) => r.id === 'weave');
+
+  /* The clothier's list needs an `in`/`out` pair like every other picker. `in`
+     is the garment, `out` is what it is worth bare — the one fact the list can
+     usefully sort you towards before the calculator gets involved.
+
+     The row's picture is the same cell of the same equipment sheet the armour
+     picker draws, looked up by name out of DF_ARMOR rather than copied into
+     data/textiles.js: a robe is one thing, and the two pages that list it
+     should not be able to disagree about what it looks like. Where the two
+     tables spell a garment differently the cloth row says so with `as`. A
+     garment the sheet has no cell for — and the three things here that are not
+     clothing at all — keeps the blank cell, so the names stay in one column. */
+  const EQ_BY_NAME = new Map(ARMOR.map((p) => [p.name, p]));
+  const GOODS_ROWS = GOODS.map((g) => ({
+    ...g,
+    sprite: (EQ_BY_NAME.get(g.as || g.name) || {}).sprite,
+    in: g.name,
+    out: g.base ? g.base + '\u263c base' : 'not clothing',
+    hay: [g.name, g.slot, g.kind, g.pair ? 'pair two' : '',
+          g.avail === 'foreign' ? 'foreign elf goblin human' : ''].join(' ').toLowerCase()
+  }));
+  const clothierStep = () => RECIPES.find((r) => r.id === 'clothier');
+
   /* ── armour ───────────────────────────────────────────────────── */
   /* Forty-odd wearables against eleven body parts is a lookup, not a list, so
      the page is the same picker as the Still's — with the body figure standing
@@ -217,8 +285,12 @@
 
   /* Material size ÷ 3, rounded down, minimum one — the game's own formula, so
      a piece only ever states its size and this stays true if one changes.
-     Adamantine is the exception: it costs the size itself, in wafers. */
-  const armorBars = (p) => Math.max(1, Math.floor(p.size / 3));
+     Adamantine is the exception: it costs the size itself, in wafers.
+
+     A handful of things the forge makes have no material size at all — an anvil
+     is flatly three bars, a ballista arrowhead three — and those state `bars`
+     instead. Armour never does, so this is the same function it always was. */
+  const barCost = (r) => (r.bars != null ? r.bars : Math.max(1, Math.floor(r.size / 3)));
 
   const ARMOR_ROWS = ARMOR.map((p) => ({
     ...p,
@@ -271,7 +343,7 @@
   }
 
   function armorResult(p) {
-    const bars   = armorBars(p);
+    const bars   = barCost(p);
     const metal  = p.mats.includes('M');
     const shops  = [...new Set(p.mats.map((c) => (ARMOR_MATS[c] || {}).workshop))];
     const skills = [...new Set(p.mats.map((c) => (ARMOR_MATS[c] || {}).skill))];
@@ -321,6 +393,280 @@
               weapons-grade metal, plus an anvil and a unit of fuel.` : ''}</p>
 
       ${p.note ? `<p class="brew-job">${esc(p.note)}</p>` : ''}
+    </div>`;
+  }
+
+  /* ── the forge ────────────────────────────────────────────────── */
+  /* The widest workshop in the game: six labours, fourteen categories of
+     product and something over ninety items off one anvil. Same treatment as
+     the Still — one generic step in data/recipes.js and a picker here — with
+     one difference. The other pickers read a single table; this one assembles
+     its rows from three files, deliberately. A battle axe belongs to
+     data/weapons.js and a breastplate to data/armor.js, and copying either into
+     data/forge.js would let the forge's page and the Armor page disagree about
+     the same object. So the picker takes every weapon whose `made` list names
+     this building, every wearable that can be made of metal, and everything
+     else out of DF_FORGE_GOODS.
+
+     Three filters on the armour, and each of them is a fact rather than a
+     tidy-up: gear is excluded because the flask is already a metalcrafter's job
+     under its own heading, foreign pieces because dwarves cannot make them, and
+     everything without an M in `mats` because this is a forge. */
+  const FORGE_SHOP = "Metalsmith's Forge";
+
+  /* The wiki's production list, in its own order — which is also the order the
+     chips come out in, since mountPicker reads a facet's values off the rows
+     and the rows below are sorted by this. */
+  const FORGE_CATS = ['Weapons', 'Armor', 'Chains', 'Crafts', 'Goblets', 'Toys',
+    'Instruments', 'Anvils', 'Flasks', 'Coins', 'Studding', 'Furniture',
+    'Animal traps', 'Mechanisms'];
+
+  const forgeMetal = (name) => FORGE_METALS.find((m) => m.metal === name);
+
+  /* What the list's right-hand column says. In a ninety-row list the one fact
+     worth scanning for is what the thing costs — and for the handful that come
+     out in multiples, "×3 from one bar" is the entire point of them. */
+  function forgeCost(r) {
+    const n = barCost(r);
+    const bars = n + (n === 1 ? ' bar' : ' bars');
+    if (r.per)  return `×${r.per} from ${bars}`;
+    if (r.upto) return `1–${r.upto} from ${bars}`;
+    if (r.pair) return `a pair from ${bars}`;
+    return bars;
+  }
+
+  const FORGE_ROWS = [].concat(
+    WEAPONS.filter((w) => (w.made || []).some((m) => m.at === FORGE_SHOP))
+      .map((w) => ({ ...w, cat: 'Weapons', labour: 'Weaponsmith', form: 'weapon',
+        hay: [w.name, 'weapon', w.kind, w.skill, w.hands || '',
+              ...(w.attacks || []).flatMap((a) => [a.name, a.type])].join(' ') })),
+    ARMOR.filter((p) => p.mats.includes('M') && p.kind !== 'Gear' && p.avail !== 'foreign')
+      .map((p) => ({ ...p, cat: 'Armor', labour: 'Armorsmith', form: 'armor',
+        hay: [p.name, 'armour armor', p.kind, p.layer, p.shaped ? 'shaped' : '',
+              ...p.covers.map(partName)].join(' ') })),
+    FORGE_GOODS.map((g) => ({ ...g, form: 'goods',
+      hay: [g.name, g.cat, g.labour, g.noQuality ? 'no quality level' : ''].join(' ') }))
+  ).map((r) => ({
+    ...r, in: r.name, out: forgeCost(r),
+    hay: (r.hay + ' ' + r.labour + ' forge metal bar').toLowerCase()
+  })).sort((a, b) => FORGE_CATS.indexOf(a.cat) - FORGE_CATS.indexOf(b.cat));
+
+  /* Armour brings its cell of the equipment sheet, weapons and goods bring
+     their own sprite file, and about half of the ninety rows have no art at
+     all. One fixed box holds whichever it is, so the names keep a single left
+     edge instead of stepping in and out down the list. */
+  const forgeCell = (r) =>
+    `<span class="fg-cell">${r.sprite ? eqSprite(r) : sprite(r.name)}</span>`;
+
+  /* The game's general item value formula, which is *not* the one the
+     clothier's shop runs — cloth folds its thread and weave in as decorations
+     and uses an older quality ladder. Here it is:
+
+       base value × material × quality multiplier + quality bonus
+
+     and it is applied per item, so a stack counts the bonus once for every
+     item in it. That is the whole reason a masterwork stack of 25 bolts is
+     worth 800☼ and a masterwork minecart 130☼. */
+  const QUALITY_STEPS = [
+    { label: 'Ordinary',         mult: 1,     bonus: 0 },
+    { label: '-well-crafted-',   mult: 1.1,   bonus: 3 },
+    { label: '+finely-crafted+', mult: 1.2,   bonus: 6 },
+    { label: '*superior*',       mult: 1.333, bonus: 10 },
+    { label: '≡exceptional≡', mult: 1.5, bonus: 15 },
+    { label: '☼masterwork☼',  mult: 2,   bonus: 30 },
+    { label: 'Artifact',         mult: 20,    bonus: 300 }
+  ];
+
+  /* Shared by every panel on the page, so changing the metal once re-prices the
+     whole list rather than one row of it. Opens on ordinary iron: the metal a
+     fortress actually has, at the quality an untrained smith actually makes. */
+  const FORGE_CALC = { metal: 'Iron', q: 0 };
+
+  /* Which metals the forge will accept for this job. Not a nicety — it is the
+     single most common reason a job will not run, and listing gold against a
+     battle axe would be teaching the wrong thing. */
+  const GATED = ['Weapons', 'Armor', 'Anvils'];
+  function forgeMetalsFor(r) {
+    if (r.cat === 'Anvils')  return FORGE_METALS.filter((m) => m.anvil);
+    if (r.cat === 'Armor')   return FORGE_METALS.filter((m) => m.grade === 'Weapons & armour');
+    if (r.cat === 'Weapons') return FORGE_METALS.filter((m) =>
+      m.grade === 'Weapons & armour' || m.grade === 'Melee weapons & ammo');
+    return FORGE_METALS.filter((m) => m.grade !== 'Alloying only');
+  }
+
+  const round2 = (n) => Math.round(n * 100) / 100;
+
+  /* Two selects rather than two rows of chips, for the reason the clothier's
+     calculator gives: these are settings, not filters. They do not change what
+     is in the list, only what the row on screen is worth. */
+  function forgeControls(r, allowed) {
+    const row = (key, label, opts, off, why) => `<div class="calc-row${off ? ' off' : ''}">
+      <label class="flabel" for="fcalc-${esc(key)}">${esc(label)}</label>
+      <select class="calc-sel" id="fcalc-${esc(key)}" data-k="${esc(key)}"
+              ${off ? `disabled title="${esc(why)}"` : ''}>
+        ${opts.map((o) => `<option value="${esc(String(o.v))}" ${
+          String(o.v) === String(o.now) ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}
+      </select>
+    </div>`;
+
+    return `<div class="calc">
+      ${row('metal', 'Metal', allowed.map((m) => ({
+        v: m.metal, now: FORGE_CALC.metal, label: `${m.metal} ×${m.value}` })))}
+      ${row('q', 'Smith', QUALITY_STEPS.map((q, i) => ({
+        v: i, now: r.noQuality ? 0 : FORGE_CALC.q,
+        label: `${q.label} ×${q.mult}${q.bonus ? ' +' + q.bonus : ''}` })),
+        r.noQuality, 'This item has no quality level, whoever makes it')}
+    </div>`;
+  }
+
+  /* A weapon is not one attack. Contact area and penetration together are what
+     decide whether a hit cuts, punches through or merely bruises, and reading
+     them side by side is the only way that lands — a war hammer's 10 against a
+     battle axe's 40,000 says more than either page of prose about it. */
+  function attackTable(atks) {
+    return `<div class="table-wrap"><table class="atk">
+      <thead><tr><th>Attack</th><th>Type</th><th>Contact</th><th>Penetration</th><th>Velocity</th></tr></thead>
+      <tbody>${atks.map((a) => `<tr>
+        <td>${esc(a.name)}</td>
+        <td><span class="need atk-${a.type === 'Edge' ? 'edge' : 'blunt'}">${esc(a.type)}</span></td>
+        <td class="num">${a.area.toLocaleString('en')}</td>
+        <td class="num${a.type === 'Blunt' ? ' muted' : ''}">${a.type === 'Blunt'
+          ? '(' + a.pen.toLocaleString('en') + ')' : a.pen.toLocaleString('en')}</td>
+        <td class="num">${a.vel ? a.vel + '×' : '—'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    <p class="brew-job muted">Contact area is how wide the hit lands and penetration how deep it
+      goes; a small area concentrates the same force and gets through armour a wide one bounces
+      off. Penetration is bracketed on blunt attacks because the game ignores it there. Velocity
+      multiplies the momentum outright.</p>`;
+  }
+
+  /* One row of the forge's picker: what it costs in bars, what it gives back at
+     the smelter, what it does when it lands on somebody, and what a caravan
+     would pay for it. */
+  function forgeResult(r) {
+    const allowed = forgeMetalsFor(r);
+    /* Switching from a goblet to a battle axe has to move the metal off gold,
+       because the forge would refuse it. Written back rather than only
+       displayed, so the select and the arithmetic cannot disagree. */
+    if (!allowed.some((m) => m.metal === FORGE_CALC.metal))
+      FORGE_CALC.metal = ((allowed.find((m) => m.metal === 'Iron') || allowed[0] || {}).metal);
+
+    /* Adamantine is priced by material size in wafers rather than size ÷ 3 in
+       bars, so switching the metal to it changes the cost, the unit and — since
+       the melt return does not change — the return percentage with them. That
+       is the whole reason nobody melts adamantine back. */
+    const metal = forgeMetal(FORGE_CALC.metal) || { metal: '—', value: 1 };
+    const adam  = metal.metal === 'Adamantine';
+    const cost  = adam && r.size != null ? r.size : barCost(r);
+    const unit  = adam ? 'wafer' : 'bar';
+    const units = cost + ' ' + unit + (cost === 1 ? '' : 's');
+
+    const q     = r.noQuality ? QUALITY_STEPS[0] : QUALITY_STEPS[FORGE_CALC.q];
+    const count = r.per || (r.pair ? 2 : 1);
+    const each  = r.base == null ? null : r.base * metal.value * q.mult + q.bonus;
+    const total = each == null ? null : each * count;
+
+    const col   = metalColor(metal.metal);
+    const line  = (what, sum, val) => `<div class="calc-line">
+      <dt>${what}</dt><dd class="calc-sum">${sum}</dd><dd class="calc-val">${val}</dd></div>`;
+
+    const covers = (r.covers || []).map((id) =>
+      `<span class="chip flat">${esc(partName(id))}</span>`).join('');
+
+    /* Where else the same thing is made, grouped by building rather than by
+       material — wooden and bone bolts are both a craftsdwarf's job, and naming
+       the workshop twice reads as two different answers. */
+    const elsewhere = [...(r.made || []).filter((m) => m.at !== FORGE_SHOP)
+      .reduce((acc, m) => acc.set(m.at, (acc.get(m.at) || []).concat(m.mat)), new Map())];
+
+    return `<div class="brew-out">
+      <div class="brew-flow">
+        <span class="chip in is-metal">${col ? ingot(col) : ''}${esc(units)}</span>
+        <span class="brew-arrow">${ARROW}</span>
+        ${ITEMS.has(r.name) ? chip(r.name, 'out') : `<span class="chip out flat">${esc(r.name)}</span>`}
+        ${count > 1 ? `<span class="need">× ${count}</span>` : ''}
+        ${r.upto ? `<span class="need">1–${r.upto}</span>` : ''}
+      </div>
+      <div class="brew-meta">
+        <span class="need kind" data-kind="${esc(r.cat)}">${esc(r.cat)}</span>
+        <span class="need">${esc(r.labour)}</span>
+        ${r.kind && r.kind !== r.cat ? `<span class="need">${esc(r.kind)}</span>` : ''}
+        ${r.melt ? `<span class="need">melts to ${r.melt} ${unit}${r.melt === 1 ? '' : 's'}
+          <span class="muted">(${Math.round(r.melt / cost * 100)}%)</span></span>` : ''}
+        ${r.noQuality ? '<span class="need">no quality level</span>' : ''}
+        ${r.shaped ? `<span class="need warnish">${sym('warn')}shaped</span>` : ''}
+        ${r.cat === 'Studding' ? `<span class="need">${sym('flame')}burns no fuel</span>` : ''}
+      </div>
+
+      ${r.form === 'weapon' ? `
+      <dl class="armor-stats forge-stats">
+        ${r.skill && r.skill !== '—'
+          ? `<div><dt>${r.kind === 'Ammo' ? 'Fired with' : 'Wielded with'}</dt>
+               <dd>${esc(r.skill)}</dd></div>` : ''}
+        ${r.hands && r.hands !== '—'
+          ? `<div><dt>Hands</dt><dd>${esc(r.hands)}</dd></div>` : ''}
+        ${r.hits ? `<div><dt>Hits per trigger</dt><dd>${r.hits}</dd></div>` : ''}
+        ${r.vol ? `<div><dt>Volume</dt><dd>${r.vol.toLocaleString('en')} cm³</dd></div>` : ''}
+        ${r.size != null ? `<div><dt>Material size</dt><dd>${r.size}</dd></div>` : ''}
+      </dl>
+      ${r.attacks ? attackTable(r.attacks) : ''}` : ''}
+
+      ${r.form === 'armor' ? `
+      <div class="armor-covers">
+        <span class="flow-label">covers</span>
+        ${covers || '<span class="muted">Nothing — it is held, not worn, and blocks the attack instead.</span>'}
+      </div>
+      <dl class="armor-stats forge-stats">
+        <div><dt>Material size</dt><dd>${r.size}</dd></div>
+        ${r.ls != null ? `<div><dt>Layer size</dt><dd>${r.ls}</dd></div>` : ''}
+        ${r.cov != null ? `<div><dt>Coverage</dt><dd>${r.cov}%</dd></div>` : ''}
+        ${r.block ? `<div><dt>Block chance</dt><dd>${r.block}%</dd></div>` : ''}
+        ${r.level ? `<div><dt>Armour level</dt><dd>${esc(String(r.level))}</dd></div>` : ''}
+      </dl>
+      <p class="brew-job"><a class="chip" href="#/armor/${esc(r.id)}">See ${esc(r.name.toLowerCase())}
+        on the dwarf</a> for layers, permits and what it leaves bare.</p>` : ''}
+
+      ${total == null ? '' : `
+      <p class="col-head calc-head">Worth</p>
+      ${forgeControls(r, allowed)}
+      <dl class="calc-out">
+        ${line('Base', esc(r.name.toLowerCase()), round2(r.base))}
+        ${line('× metal', `${round2(r.base)} × ${esc(metal.metal)} ${metal.value}`,
+               round2(r.base * metal.value))}
+        ${line('× quality', `${round2(r.base * metal.value)} × ${esc(q.label)} ${q.mult}`,
+               round2(r.base * metal.value * q.mult))}
+        ${line('+ bonus', q.bonus ? '+' + q.bonus : 'none', round2(each))}
+        ${count > 1 ? line('× stack', `${round2(each)} × ${count}`, round2(total)) : ''}
+      </dl>
+      <p class="calc-total">${round2(total)}☼
+        <span class="muted">${count > 1 ? `for the ${count}` : ''}${
+          count > 1 && cost > 1 ? ', ' : ''}${
+          cost > 1 ? `${round2(total / cost)}☼ per ${unit}` : ''}</span></p>`}
+
+      <p class="brew-job">One <strong>${esc(r.labour)}</strong> job at
+        <a class="chip shop" href="#/w/${encodeURIComponent(FORGE_SHOP)}">
+          ${icon(FORGE_SHOP)}${esc(FORGE_SHOP)}</a>, which needs an anvil in it${
+          r.cat === 'Studding'
+            ? ' — and is the one job here that burns no fuel at all.'
+            : ' and a unit of fuel, unless it is the magma version.'}
+        ${GATED.includes(r.cat)
+          ? ` The metal list above is only what the forge will accept for this${
+              r.cat === 'Anvils' ? ': an anvil has to be fire-safe.'
+              : r.cat === 'Armor' ? ': armour must be weapons-grade, and black bronze never is.'
+              : ': weapons must be weapons-grade, and silver only for the melee ones.'}` : ''}</p>
+
+      ${elsewhere.length ? `<p class="brew-job">Also made
+        ${elsewhere.map(([at, mats]) =>
+          `in ${esc(mats.join(' or ').toLowerCase())} at
+           <a class="chip shop" href="#/w/${encodeURIComponent(at)}">${icon(at)}${esc(at)}</a>`
+        ).join(', and ')}.</p>` : ''}
+
+      ${r.mats && r.mats.length > 1 ? `<p class="brew-job">Also made of
+        ${r.mats.filter((c) => c !== 'M').map((c) => esc(matName(c).toLowerCase())).join(', ')}
+        — see the Armor page for which building works which.</p>` : ''}
+
+      ${r.note ? `<p class="brew-job">${esc(r.note)}</p>` : ''}
     </div>`;
   }
 
@@ -374,13 +720,47 @@
     if (!touch(d.dye).usedIn.includes(step)) touch(d.dye).usedIn.push(step);
   });
 
+  /* The fibres register against two steps, not one: the job that makes the
+     thread — which differs per source, so it is read off the row — and the
+     weave that eats it. Without the first half, "where does wool come from?"
+     has no answer; without the second, thirteen kinds of cloth do not exist. */
+  const link = (list, step, item) => {
+    if (step && item && !list(item).includes(step)) list(item).push(step);
+  };
+  FIBRE_ROWS.forEach((f) => {
+    const src = RECIPES.find((r) => r.id === f.job);
+    link((i) => touch(i).usedIn, src, f.in);
+    link((i) => touch(i).madeBy, src, f.out);
+    if (!f.weave) return;
+    const step = weaveStep();
+    link((i) => touch(i).usedIn, step, f.out);
+    link((i) => touch(i).madeBy, step, f.cloth);
+  });
+  /* Every garment is a real item the fortress can hold, and the clothier's step
+     only says "Clothing" — so without this a route's Robe chip leads nowhere. */
+  GOODS_ROWS.forEach((g) => {
+    const step = RECIPES.find((r) => r.id === (g.shop ? 'cloth-crafts' : 'clothier'));
+    link((i) => touch(i).madeBy, step, g.name);
+  });
+
+  /* Same for the forge: its one step says "Weapons" and "Armour", so without
+     this a search for a war hammer would find the wiki's word for it and no
+     page. Studding is left out because it is a decoration applied to something
+     else — there is no studding sitting in a stockpile. */
+  FORGE_ROWS.forEach((r) => {
+    if (r.cat === 'Studding') return;
+    link((i) => touch(i).madeBy, RECIPES.find((x) => x.id === 'forge'), r.name);
+  });
+
   /* ── components ───────────────────────────────────────────────── */
   function chip(entry, kind) {
     const item = typeof entry === 'string' ? { item: entry } : entry;
     const qty = item.qty ? `<span class="qty">×${item.qty}</span>` : '';
     const col = metalColor(item.item);
-    return `<a class="chip ${kind} ${col ? 'is-metal' : ''}"
-      href="#/item/${encodeURIComponent(item.item)}">${col ? ingot(col) : ''}${esc(item.item)}${qty}</a>`;
+    const art = col ? ingot(col) : sprite(item.item);
+    const mark = col ? 'is-metal' : (art ? 'has-sprite' : '');
+    return `<a class="chip ${kind} ${mark}"
+      href="#/item/${encodeURIComponent(item.item)}">${art}${esc(item.item)}${qty}</a>`;
   }
 
   function recipeCard(r, opts) {
@@ -639,7 +1019,7 @@
       <div class="brew-meta">
         <span class="need kind" data-fam="${esc(COLOR_FAM[d.color] || '')}">${esc(COLOR_FAM[d.color] || 'Colour')}</span>
         ${valueTag(d.value)}
-        <span class="need">${d.part === 'Whole plant'
+        <span class="need">${sprite(d.from)}${d.part === 'Whole plant'
           ? 'from ' + esc(d.from.toLowerCase())
           : esc(d.part.toLowerCase()) + ' of ' + esc(d.from.toLowerCase())}</span>
         <span class="need">${d.milled ? 'Milled at a quern' : 'Other job'}</span>
@@ -657,6 +1037,268 @@
     </div>`;
   }
 
+  /* The loom at work: the warp is strung on the frame, the shuttle runs across
+     it, and the cloth grows up from the beam in the fibre's own tone. Drawn
+     rather than described for the same reason the still is — "what do I get"
+     is a picture. The clip id is per-render, since two of these can share a
+     page. */
+  function weaveAnim(f) {
+    const id = 'weave-clip-' + (++animSeq);
+    /* Seven warp threads strung between the two beams, the woven bolt rising
+       from the bottom one, and the shuttle running along the top of it. */
+    const warp = [0, 1, 2, 3, 4, 5, 6].map((i) =>
+      `<path d="M${11 + i * 3} 8.5v18"/>`).join('');
+    return `<svg class="brew-anim weave-anim" data-kind="${esc(f.kind)}" viewBox="4 3 32 30"
+      role="img" aria-label="${esc(f.out)} woven into ${esc(f.cloth || 'cloth')} at the loom">
+      <defs><clipPath id="${id}-c"><rect x="10" y="8.5" width="20" height="18"/></clipPath></defs>
+
+      <g class="warp" fill="none" stroke="currentColor" stroke-width=".8"
+         stroke-linecap="round">${warp}</g>
+      <g clip-path="url(#${id}-c)">
+        <g class="bolt-wrap"><rect class="bolt" x="10" y="15" width="20" height="12"/></g>
+        <g class="shuttle"><rect x="4.5" y="13.4" width="8" height="3" rx="1.5"/></g>
+      </g>
+
+      <g class="ink" fill="none" stroke="currentColor" stroke-width="1.6"
+         stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 4.5v24M31 4.5v24"/>
+        <path d="M7 8.5h26M7 26.5h26"/>
+      </g>
+    </svg>`;
+  }
+
+  /* ── the clothier's value calculator ──────────────────────────── */
+  /* Thirty-one garments that differ only in one number would be a table. What
+     nobody can do from a table is the arithmetic, and the arithmetic is the
+     whole question the textile industry exists to answer: is a second robe
+     worth more than a better dye, is giant cave spider silk worth the corpses.
+
+     This is the wiki's own formula for a cloth item, minus the embroidery
+     terms — those are left out because embroidering is almost always the wrong
+     move and putting it in the calculator would suggest otherwise. Written the
+     way the wiki simplifies it:
+
+       material × (type × item quality + 10 × cloth quality + 10) + dye × dye quality
+
+     Note where the material multiplier sits: outside the bracket, so it scales
+     the garment, the weave and the thread all at once — and note that the dye
+     sits outside it, so a good dye is worth the same on pig tail as on silk. */
+  const clothValue = (g, c) => g.base == null ? null
+    : c.mult * (g.base * c.itemQ + 10 * c.clothQ + 10) + c.dye * c.dyeQ;
+
+  /* Quality modifiers, worst to best. The game's own ladder: an ordinary item
+     multiplies by 1 and every grade after it by one more, until masterwork
+     jumps to 12 and an artifact to 120. Cloth and dye stop at masterwork —
+     only the finished garment can be an artifact. */
+  const QUALITIES = [
+    { v: 1,   label: 'Ordinary' },
+    { v: 2,   label: '-well-crafted-' },
+    { v: 3,   label: '+finely-crafted+' },
+    { v: 4,   label: '*superior*' },
+    { v: 5,   label: '≡exceptional≡' },
+    { v: 12,  label: '☼masterwork☼' },
+    { v: 120, label: 'Artifact', itemOnly: true }
+  ];
+
+  /* Every material a loom will actually produce cloth in, collapsed to the
+     distinct multipliers — four chips rather than sixteen, because a garment
+     cannot tell hemp from jute. Read off the fibre table so a new fibre with a
+     new multiplier turns up here without being added twice.
+
+     Naming a multiplier is the awkward part: "Silk" is worth ×1 as a vermin
+     spider's and ×4 as a giant cave spider's, so the kind alone would put the
+     same word on two chips with a fourfold gap between them. A kind names its
+     chip only when it sits at exactly one multiplier; where it does not, the
+     cloths name themselves and the ambiguity goes away. */
+  const WEAVABLE = FIBRE_ROWS.filter((f) => f.weave);
+  const kindMults = (kind) =>
+    new Set(WEAVABLE.filter((f) => f.kind === kind).map((f) => f.mult)).size;
+
+  const CLOTH_MATS = [...new Set(WEAVABLE.map((f) => f.mult))]
+    .sort((a, b) => a - b)
+    .map((mult) => {
+      const here = WEAVABLE.filter((f) => f.mult === mult);
+      const kinds = [...new Set(here.map((f) => f.kind))];
+      const label = kinds.every((k) => kindMults(k) === 1)
+        ? kinds.join(' / ')
+        : [...new Set(here.map((f) => f.cloth.replace(/ cloth$/, '')))].join(' / ');
+      return { mult, label };
+    });
+
+  /* Dye is a flat addition rather than a multiplier, so only its milled value
+     matters and the seventy-two dyes collapse to two numbers. */
+  const CLOTH_DYES = [
+    { v: 0,  label: 'Undyed' },
+    { v: 10, label: 'Redroot' },
+    { v: 20, label: 'Dimple / emerald / sliver' }
+  ];
+
+  /* Shared by every garment panel on the page, so changing the material once
+     re-prices the whole list rather than one row of it. Opens on plain cloth,
+     undyed: the dye is the one term a fortress can leave out entirely, so it
+     starts at nothing and the reader adds it and watches what it does. */
+  const CALC = { mult: 2, itemQ: 12, clothQ: 12, dye: 0, dyeQ: 12 };
+
+  /* Five choices, and four of them are the same seven-rung quality ladder — as
+     rows of chips that came to twenty-six buttons wrapping over five lines,
+     which is a lot of furniture around one number. A select states the current
+     value in one line and hides the rest until asked, which is what these are:
+     settings, not filters. The picker's own facet chips stay chips, because
+     those do change what is in the list. */
+  function calcControls() {
+    /* The dyer's grade multiplies the dye's value, so with no dye there is
+       nothing for it to multiply. Disabled rather than hidden: a row that
+       vanishes takes with it the fact that a dyer matters at all, and moves
+       everything below it while the reader is looking at the total. */
+    const row = (key, label, opts, off) => `<div class="calc-row${off ? ' off' : ''}">
+      <label class="flabel" for="calc-${esc(key)}">${esc(label)}</label>
+      <select class="calc-sel" id="calc-${esc(key)}" data-k="${esc(key)}"
+              ${off ? 'disabled title="Nothing to colour — pick a dye first"' : ''}>
+        ${opts.map((o) => `<option value="${o.v}" ${
+          o.v === CALC[key] ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}
+      </select>
+    </div>`;
+
+    const grades = (key) => QUALITIES
+      .filter((q) => !q.itemOnly || key === 'itemQ')
+      .map((q) => ({ v: q.v, label: q.label }));
+
+    return `<div class="calc">
+      ${row('mult', 'Cloth', CLOTH_MATS.map((m) => ({ v: m.mult, label: m.label + ' ×' + m.mult })))}
+      ${row('itemQ', 'Clothier', grades('itemQ'))}
+      ${row('clothQ', 'Weaver', grades('clothQ'))}
+      ${row('dye', 'Dye', CLOTH_DYES)}
+      ${row('dyeQ', 'Dyer', grades('dyeQ'), !CALC.dye)}
+    </div>`;
+  }
+
+  /* One row of the clothier's picker: what the garment is, and what the
+     fortress you just described would get for it. The breakdown is shown term
+     by term because the interesting answer is rarely the total — it is which
+     of the four numbers is carrying it. */
+  function garmentResult(g, opts) {
+    const compact = !!(opts && opts.compact);
+    const step  = clothierStep();
+    const shop  = g.shop || (step && step.workshop) || "Clothier's Shop";
+    const total = clothValue(g, CALC);
+    const grade = (v) => (QUALITIES.find((q) => q.v === v) || {}).label || v;
+
+    const line = (what, sum, val) => `<div class="calc-line">
+      <dt>${what}</dt><dd class="calc-sum">${sum}</dd><dd class="calc-val">${val}</dd></div>`;
+
+    const bracket = g.base == null ? null
+      : g.base * CALC.itemQ + 10 * CALC.clothQ + 10;
+
+    return `<div class="brew-out${compact ? ' beside' : ''}">
+      <div class="brew-flow">
+        <span class="chip in flat">1 × cloth</span>
+        <span class="brew-arrow">${ARROW}</span>
+        ${ITEMS.has(g.name) ? chip(g.name, 'out') : `<span class="chip out flat">${esc(g.name)}</span>`}
+        ${g.pair ? '<span class="need">× 2</span>' : ''}
+      </div>
+      <div class="brew-meta">
+        <span class="need kind" data-kind="${esc(g.kind)}">${esc(g.kind)}</span>
+        <span class="need">${esc(g.slot)}</span>
+        ${g.base ? `<span class="need">base ${g.base}☼</span>` : ''}
+        ${g.pair ? '<span class="need">two from one cloth</span>' : ''}
+        ${g.avail === 'foreign'
+          ? `<span class="need warnish">${sym('warn')}dwarves cannot make it</span>` : ''}
+      </div>
+
+      ${total == null ? `<p class="brew-job">${esc(g.note || '')}</p>` : `
+      <p class="col-head calc-head">Worth</p>
+      ${calcControls()}
+      <dl class="calc-out">
+        ${line('Item', `${g.base} × ${esc(String(grade(CALC.itemQ)))}`, g.base * CALC.itemQ)}
+        ${line('Cloth quality', `10 × ${esc(String(grade(CALC.clothQ)))}`, 10 * CALC.clothQ)}
+        ${line('Thread', '10', 10)}
+        ${line('Subtotal × cloth', `${bracket} × ${CALC.mult}`, CALC.mult * bracket)}
+        ${line('Dye', CALC.dye
+          ? `${CALC.dye} × ${esc(String(grade(CALC.dyeQ)))}` : 'undyed', CALC.dye * CALC.dyeQ)}
+      </dl>
+      <p class="calc-total">${total}☼${g.pair
+        ? ` <span class="muted">each, ${total * 2}☼ for the pair</span>` : ''}</p>
+      `}
+
+      <p class="brew-job">One <strong>${esc(g.shop ? 'Make cloth crafts' : 'Clothier')}</strong>
+        job at <a class="chip shop" href="#/w/${encodeURIComponent(shop)}">
+        ${icon(shop)}${esc(shop)}</a>, eating one whole unit of cloth whatever the size of
+        what it makes.${g.pair ? ' This one comes out two at a time, so the cloth, the '
+        + 'weave and the dye are all paid for once and counted twice.' : ''}</p>
+
+      ${g.note ? `<p class="brew-job">${esc(g.note)}</p>` : ''}
+      ${g.base ? `<p class="brew-job muted">Dye cannot be applied to finished clothing — the
+        thread or the cloth has to be dyed first, and dyed things cannot be redyed.</p>` : ''}
+    </div>`;
+  }
+
+  /* One row of the Loom's picker: where the thread comes from, what it is worth
+     at each of the two stages, and — for hair — that it never reaches the second
+     one at all. */
+  function fibreResult(f, opts) {
+    const compact = !!(opts && opts.compact);
+    const step   = weaveStep();
+    const source = RECIPES.find((r) => r.id === f.job);
+    const known  = (n) => n && ITEMS.has(n);
+    const link   = (name, kind) => known(name)
+      ? chip(name, kind)
+      : `<span class="chip ${kind} flat">${esc(name)}</span>`;
+    const other  = compact ? [] : RECIPES.filter((r) => r !== step && r !== source &&
+      (r.in || []).some((x) => x.item === f.in));
+
+    const seasons = f.seasons
+      ? (f.seasons.length === 4 ? 'Grows all year' : 'Grows in ' + f.seasons.join(' and '))
+      : null;
+
+    return `<div class="brew-out${compact ? ' beside' : ''}">
+      ${weaveAnim(f)}
+      <div class="brew-flow">
+        ${link(f.in, 'in')}
+        <span class="brew-arrow">${ARROW}</span>
+        ${link(f.out, 'in')}
+        ${f.weave
+          ? `<span class="brew-arrow">${ARROW}</span>${link(f.cloth, 'out')}`
+          : `<span class="need warnish">${sym('warn')}no loom will take it</span>`}
+      </div>
+      <div class="brew-meta">
+        <span class="need kind" data-kind="${esc(f.kind)}">${esc(f.kind)}</span>
+        <span class="need">${esc(f.where)}</span>
+        ${f.ground ? `<span class="need">${esc(f.ground)}</span>` : ''}
+        ${f.biome ? `<span class="need">${esc(f.biome)}</span>` : ''}
+        ${seasons ? `<span class="need">${esc(seasons)}</span>` : ''}
+      </div>
+
+      <dl class="armor-stats fibre-stats">
+        <div><dt>Material</dt><dd>×${f.mult}</dd></div>
+        <div><dt>Thread</dt><dd>${f.thread}☼</dd></div>
+        <div><dt>Cloth</dt><dd>${f.weave ? f.clothValue + '☼' : '—'}</dd></div>
+        <div title="A masterwork robe from masterwork cloth, masterfully dyed with a 20☼ dye — the best this fibre can do short of an artifact"><dt>Best robe</dt><dd>${f.weave
+          ? clothValue({ base: 33 }, { mult: f.mult, itemQ: 12, clothQ: 12, dye: 20, dyeQ: 12 }) + '☼'
+          : '—'}</dd></div>
+      </dl>
+
+      <p class="brew-job">${source
+        ? `<strong>${esc(source.name)}</strong> at
+           <a class="chip shop" href="#/w/${encodeURIComponent(source.workshop)}">
+             ${icon(source.workshop)}${esc(source.workshop)}</a>
+           ${source.skill && source.skill !== '—' ? 'by a ' + esc(source.skill.toLowerCase()) : ''}
+           gives the thread.` : ''}
+        ${f.weave ? `One <strong>Weave Cloth</strong> job at the loom then turns one thread into
+          one cloth, and the material carries through unchanged. Non-hair thread queues itself
+          for weaving — turn that off under standing orders if you would rather dye it first.`
+        : ''}</p>
+
+      ${f.note ? `<p class="brew-job">${esc(f.note)}</p>` : ''}
+      ${f.also ? `<p class="brew-job muted">${esc(f.also)}</p>` : ''}
+
+      ${other.length ? `<div class="brew-else">
+        <p class="col-head">${esc(f.in)} is also</p>
+        <div class="flow-row">${other.map((r) =>
+          `<a class="chip" href="#/i/${r.industry}#r-${esc(r.id)}">${esc(r.name)}</a>`).join('')}</div>
+      </div>` : ''}
+    </div>`;
+  }
+
   function millResult(m, opts) {
     const step = millStep();
     const other = (opts && opts.compact) ? [] : RECIPES.filter((r) => r !== step &&
@@ -664,9 +1306,9 @@
     return `<div class="brew-out${(opts && opts.compact) ? ' beside' : ''}">
       ${millAnim(m)}
       <div class="brew-flow">
-        <a class="chip in" href="#/item/${encodeURIComponent(m.in)}">${esc(m.in)}</a>
+        ${chip(m.in, 'in')}
         <span class="brew-arrow">${ARROW}</span>
-        <a class="chip out" href="#/item/${encodeURIComponent(m.out)}">${esc(m.out)}</a>
+        ${chip(m.out, 'out')}
       </div>
       <div class="brew-meta">
         <span class="need kind" data-kind="${esc(m.kind)}">${esc(m.kind)}</span>
@@ -697,9 +1339,9 @@
     return `<div class="brew-out${(opts && opts.compact) ? ' beside' : ''}">
       ${brewAnim(b)}
       <div class="brew-flow">
-        <a class="chip in" href="#/item/${encodeURIComponent(b.in)}">${esc(b.in)}</a>
+        ${chip(b.in, 'in')}
         <span class="brew-arrow">${ARROW}</span>
-        <a class="chip out" href="#/item/${encodeURIComponent(b.out)}">${esc(b.out)}</a>
+        ${chip(b.out, 'out')}
       </div>
       <div class="brew-meta">
         <span class="need kind" data-kind="${esc(b.kind)}">${esc(b.kind)}</span>
@@ -741,6 +1383,20 @@
         data-f="${esc(f.key)}" data-v="${esc(v)}">${
           v === 'all' || !f.chip ? '' : f.chip(v)}${
           esc(v !== 'all' && f.chipLabel ? f.chipLabel(label) : label)}</button>`).join('');
+    /* A facet with more values than a row will hold reads better as a select.
+       The forge has fifteen categories and seven labours: as chips they wrap
+       over three lines and become furniture around a control nobody is looking
+       at, which is the same argument the clothier's calculator makes about its
+       five settings. Opt-in per facet rather than automatic on a count, so a
+       facet that puts a colour square in front of its values — a select cannot
+       draw one — stays chips however long it gets. */
+    const dropdown = (f) => `<select class="fsel ${sel[f.key] === 'all' ? '' : 'on'}"
+      data-f="${esc(f.key)}" aria-label="${esc(f.label)}">${
+      [['all', 'All']].concat(values(f).map((v) => [v, v])).map(([v, label]) =>
+        `<option value="${esc(v)}" ${v === sel[f.key] ? 'selected' : ''}>${
+          esc(v !== 'all' && f.chipLabel ? f.chipLabel(label) : label)}</option>`).join('')}
+    </select>`;
+
     const rowIn  = cfg.rowIn  || (() => '');
     const rowOut = cfg.rowOut || (() => '');
 
@@ -753,8 +1409,8 @@
       <div class="brew">
         <div class="brew-pick">
           ${drawn.length ? `<div class="brew-filters">
-            ${drawn.map((f) =>
-              `<div class="frow"><span class="flabel">${esc(f.label)}</span>${chips(f)}</div>`).join('')}
+            ${drawn.map((f) => `<div class="frow"><span class="flabel">${esc(f.label)}</span>${
+              f.select ? dropdown(f) : chips(f)}</div>`).join('')}
           </div>` : ''}
           <input class="brew-search" type="search" placeholder="${esc(cfg.placeholder)}"
                  autocomplete="off" spellcheck="false" aria-label="${esc(cfg.placeholder)}">
@@ -805,16 +1461,29 @@
         sel[key] = v;
         host.querySelectorAll(`.fchip[data-f="${key}"]`).forEach((x) =>
           x.classList.toggle('on', x.dataset.v === v));
+        const drop = host.querySelector(`.fsel[data-f="${key}"]`);
+        if (drop) { drop.value = v; drop.classList.toggle('on', v !== 'all'); }
         paint();
       },
-      select(row) { pick = row; paint(); }
+      select(row) { pick = row; paint(); },
+      /* Rebuild the panel even though the choice did not change. The panel is
+         normally only redrawn on a new pick, so that a keystroke in the filter
+         does not restart the animation — but a panel with a control of its own
+         has a second reason to change, and this is it. */
+      refresh() { shown = null; paint(); }
     };
 
     const filters = host.querySelector('.brew-filters');
-    if (filters) filters.addEventListener('click', (ev) => {
-      const b = ev.target.closest('.fchip');
-      if (b) api.set(b.dataset.f, b.dataset.v);
-    });
+    if (filters) {
+      filters.addEventListener('click', (ev) => {
+        const b = ev.target.closest('.fchip');
+        if (b) api.set(b.dataset.f, b.dataset.v);
+      });
+      filters.addEventListener('change', (ev) => {
+        const d = ev.target.closest('.fsel');
+        if (d) api.set(d.dataset.f, d.value);
+      });
+    }
 
     search.addEventListener('input', () => { q = search.value.trim().toLowerCase(); paint(); });
 
@@ -826,6 +1495,8 @@
 
     if (cfg.start) pick = rows.find((r) => r.id === cfg.start) || pick;
     paint();
+    /* For a caller that has to wire up something inside the panel it drew. */
+    if (cfg.onReady) cfg.onReady(api, host);
     return api;
   }
 
@@ -838,12 +1509,14 @@
     { step: 'brew', title: 'Brewing', noun: 'brewable ingredients',
       rows: BREWING, result: brewResult,
       facets: [{ key: 'kind', label: 'Drink' }, { key: 'source', label: 'Source' }],
+      rowIn: (r) => spriteCell(r.in),
       placeholder: 'Filter ingredients…', listLabel: 'Brewing ingredients',
       empty: 'No ingredient matches those filters.' },
 
     { step: 'mill', title: 'Milling', noun: 'millable plants',
       rows: MILLING, result: millResult,
       facets: [{ key: 'kind', label: 'Product' }, { key: 'source', label: 'Source' }],
+      rowIn: (r) => spriteCell(r.in),
       placeholder: 'Filter plants…', listLabel: 'Millable plants',
       empty: 'No plant matches those filters.' },
 
@@ -857,6 +1530,48 @@
       rowOut: (r) => swatch(COLOR_HEX[r.color]),
       placeholder: 'Filter dyes…', listLabel: 'Dyes',
       empty: 'No dye matches those filters.' },
+
+    { step: 'weave', title: 'Thread sources', noun: 'thread sources',
+      rows: FIBRE_ROWS, result: fibreResult,
+      facets: [{ key: 'kind', label: 'Fibre' }, { key: 'where', label: 'From' }],
+      rowIn: (r) => spriteCell(r.in),
+      placeholder: 'Filter thread sources…', listLabel: 'Thread sources',
+      empty: 'Nothing gives thread under those filters.' },
+
+    /* The one picker whose panel is not just a lookup: the chips inside it are
+       a fortress you are describing, and every row of the list is repriced when
+       you change one. That is why it needs `refresh` — the choice has not
+       changed, but the answer has. */
+    { step: 'clothier', title: 'Cloth goods', noun: 'things made from cloth',
+      rows: GOODS_ROWS, result: garmentResult,
+      rowIn: eqSprite,
+      facets: [{ key: 'slot', label: 'Worn on' }, { key: 'kind', label: 'Kind' }],
+      placeholder: 'Filter cloth goods…', listLabel: 'Things made from cloth',
+      empty: 'Nothing matches those filters.',
+      onReady: (api, host) => host.addEventListener('change', (ev) => {
+        const sel = ev.target.closest('.calc-sel');
+        if (!sel) return;
+        CALC[sel.dataset.k] = Number(sel.value);
+        api.refresh();
+      }) },
+
+    /* The forge's rows come from three data files rather than one, and its
+       chips are the wiki's own production list. `tables` is the other thing
+       only this picker and the armour page have: notes that belong under the
+       picker rather than in any row of it. */
+    { step: 'forge', title: 'What the forge makes', noun: 'things a forge makes',
+      rows: FORGE_ROWS, result: forgeResult, tables: FORGE_TABLES,
+      rowIn: forgeCell,
+      facets: [{ key: 'cat', label: 'Makes', select: true },
+               { key: 'labour', label: 'Labour', select: true }],
+      placeholder: 'Filter what the forge makes…', listLabel: 'Things the forge makes',
+      empty: 'The forge makes nothing matching those filters.',
+      onReady: (api, host) => host.addEventListener('change', (ev) => {
+        const sel = ev.target.closest('.calc-sel');
+        if (!sel) return;
+        FORGE_CALC[sel.dataset.k] = sel.dataset.k === 'metal' ? sel.value : Number(sel.value);
+        api.refresh();
+      }) },
 
     { step: 'smelt-ore', title: 'Ores', noun: 'ores',
       rows: ORE_ROWS, result: oreResult,
@@ -917,6 +1632,11 @@
     if (!ind) return viewHome();
     const rs = recipesOf(id);
 
+    /* Steps means "the jobs of this industry" — for most industries that is the
+       full list grouped by the building they happen in, because there is no
+       order to tell. Paper has one, and knowing it is the whole point of the
+       page, so there Steps is the ordered route to the thing you picked. */
+    const routeCfg = ROUTES[id];
     const tabs = `<div class="view-tabs">
       <button data-mode="list" class="${mode !== 'map' ? 'on' : ''}">Steps</button>
       <button data-mode="map" class="${mode === 'map' ? 'on' : ''}">Chain map</button>
@@ -950,22 +1670,7 @@
       return;
     }
 
-    /* An industry with forks in it can carry chip rows to pick a way through
-       them — see DF_INDUSTRY_FILTERS. A facet only speaks for the steps it
-       names, so a step nobody claimed shows whatever is selected. */
-    const facets = IND_FILTERS[id] || [];
-    const sel = {};
-    facets.forEach((f) => (sel[f.key] = 'all'));
-    const claims = facets.map((f) => new Set(f.options.flatMap((o) => o.steps)));
-    const keep = (r) => facets.every((f, i) =>
-      sel[f.key] === 'all' || !claims[i].has(r.id) ||
-      f.options.find((o) => o.id === sel[f.key]).steps.includes(r.id));
-
-    const chipRow = (f) => `<div class="frow" data-facet="${esc(f.key)}">
-      <span class="flabel">${esc(f.label)}</span>
-      ${[['all', 'All']].concat(f.options.map((o) => [o.id, o.label])).map(([v, label]) =>
-        `<button class="fchip ${v === sel[f.key] ? 'on' : ''}" data-v="${esc(v)}">${esc(label)}</button>`
-      ).join('')}</div>`;
+    if (routeCfg) return viewRoutes(body, routeCfg, ind);
 
     const steps = (list) => {
       const byShop = new Map();
@@ -987,21 +1692,128 @@
       }).join('');
     };
 
-    body.innerHTML =
-      (facets.length ? `<div class="ind-filters">${facets.map(chipRow).join('')}</div>` : '') +
-      '<div id="ind-steps"></div>';
+    body.innerHTML = steps(rs);
+  }
 
-    const list = document.getElementById('ind-steps');
-    const paint = () => { list.innerHTML = steps(rs.filter(keep)); };
+  /* ── build routes: the order to run the jobs in ───────────────── */
+  /* The step list and the chain map both answer "what exists". Neither answers
+     "I want a codex — what do I queue, and in what order", which for paper is a
+     genuinely awkward question: three of the jobs belong to other industries,
+     two of them feed the last step sideways rather than in line, and which
+     input the quire job wants depends on the sheet you started from.
+
+     A route in data/recipes.js is that order. Everything else on a rung —
+     workshop, skill, containers, fuel — is read off the step itself, so the
+     ladder cannot drift away from the step list it is quoting. */
+  const recipeById = (rid) => RECIPES.find((r) => r.id === rid);
+
+  function resolveRoute(cfg, sheetId, prodId) {
+    const sheet = cfg.sheets.find((s) => s.id === sheetId) || cfg.sheets[0];
+    const prod  = cfg.products.find((p) => p.id === prodId) || cfg.products[0];
+    const swap  = (v) => (v === '@sheet' ? sheet.gives : v);
+
+    const steps = sheet.steps.concat(prod.steps).map((st) => {
+      const r = recipeById(st.ref) || { name: st.ref, workshop: '—', in: [], out: [] };
+      const use = st.use == null ? (r.in || []).map((x) => x.item) : [].concat(st.use);
+      return {
+        r, title: st.title || r.name, note: st.note || r.note,
+        use: use.map(swap), gives: swap(st.gives || ((r.out || [])[0] || {}).item),
+        aside: !!st.aside, optional: !!st.optional
+      };
+    });
+
+    /* The main line is numbered; a side job is not, because it has no place in
+       the count — it can be queued at any point before the rung that eats what
+       it made. Naming that rung turns "also do this some time" into a deadline. */
+    let n = 0;
+    steps.forEach((st) => { if (!st.aside) st.n = ++n; });
+    steps.forEach((st, i) => {
+      if (!st.aside) return;
+      const eater = steps.find((o, j) => j > i && !o.aside && o.use.includes(st.gives));
+      st.feeds = eater ? eater.n : null;
+    });
+
+    return { sheet, prod, steps };
+  }
+
+  function viewRoutes(body, cfg, ind) {
+    const sel = { product: cfg.products[0].id, sheet: cfg.sheets[0].id };
+
+    /* Same chips as the step list's filters, minus the All: a route has to
+       start somewhere and has to end as something, so neither row can be off. */
+    const row = (key, label, opts) => `<div class="frow" data-facet="${esc(key)}">
+      <span class="flabel">${esc(label)}</span>
+      ${opts.map((o) => `<button class="fchip ${o.id === sel[key] ? 'on' : ''}"
+        data-v="${esc(o.id)}">${esc(o.label || o.name)}</button>`).join('')}</div>`;
+
+    const sep = `<span class="rt-sep">${ARROW}</span>`;
+
+    /* The whole route on one line, side jobs and optional rungs left out: what
+       the fortress is actually holding at each stage, start to finish. */
+    const ribbon = (route) => {
+      const line = route.steps.filter((s) => !s.aside && !s.optional);
+      const items = [line[0].use[0]].concat(line.map((s) => s.gives));
+      return items.map((it, i) =>
+        (i ? sep : '') + chip(it, i === items.length - 1 ? 'out' : 'in')).join('');
+    };
+
+    const rung = (st) => `<li class="rt-step${st.aside ? ' aside' : ''}${st.optional ? ' opt' : ''}">
+      <span class="rt-num">${st.aside ? '+' : st.n}</span>
+      <article class="rec">
+        <h3>${esc(st.title)}</h3>
+        <div class="flow-row rt-where">
+          <a class="chip shop" href="#/w/${encodeURIComponent(st.r.workshop)}">
+            ${icon(st.r.workshop)}${esc(st.r.workshop)}</a>
+          ${st.r.skill && st.r.skill !== '—' ? `<span class="need">${esc(st.r.skill)}</span>` : ''}
+          ${st.aside ? `<span class="need warnish">side job${
+            st.feeds ? ` · ready by step ${st.feeds}` : ''}</span>` : ''}
+          ${st.optional ? '<span class="need">optional</span>' : ''}
+        </div>
+        <div class="flow-row rt-io">
+          ${st.use.map((i) => chip(i, 'in')).join('<span class="plus">+</span>')}
+          ${sep}${chip(st.gives, 'out')}
+        </div>
+        ${(st.r.needs || []).length ? `<div class="needs">${st.r.needs.map(needBadge).join('')}</div>` : ''}
+        ${st.note ? `<p class="note">${esc(st.note)}</p>` : ''}
+      </article>
+    </li>`;
+
+    body.innerHTML = `
+      <p class="group-note">${esc(cfg.blurb)}</p>
+      <div class="ind-filters">
+        ${row('product', cfg.productLabel, cfg.products)}
+        ${row('sheet', cfg.sheetLabel, cfg.sheets)}
+      </div>
+      <div id="rt-body"></div>`;
+
+    const host = body.querySelector('#rt-body');
+
+    const paint = () => {
+      const route = resolveRoute(cfg, sel.sheet, sel.product);
+      /* Side jobs count — they are real jobs somebody has to run. Optional
+         rungs do not, which is what makes them optional. */
+      const jobs = route.steps.filter((s) => !s.optional).length;
+      host.innerHTML = `
+        <section class="rt">
+          <div class="rt-head">
+            <h2>${sym(ind.icon)}${esc(route.prod.name)}</h2>
+            ${route.prod.tag ? `<span class="need kind">${esc(route.prod.tag)}</span>` : ''}
+            <span class="rt-count">${jobs} job${jobs === 1 ? '' : 's'} · ${
+              esc(route.sheet.label.toLowerCase())}</span>
+          </div>
+          <p class="rt-blurb">${esc(route.prod.blurb)}</p>
+          <div class="rt-path">${ribbon(route)}</div>
+          <ol class="rt-steps">${route.steps.map(rung).join('')}</ol>
+        </section>`;
+    };
     paint();
 
-    const bar = body.querySelector('.ind-filters');
-    if (bar) bar.addEventListener('click', (ev) => {
-      const chip = ev.target.closest('.fchip');
-      if (!chip) return;
-      const row = chip.closest('.frow');
-      sel[row.dataset.facet] = chip.dataset.v;
-      row.querySelectorAll('.fchip').forEach((c) => c.classList.toggle('on', c === chip));
+    body.querySelector('.ind-filters').addEventListener('click', (ev) => {
+      const chipEl = ev.target.closest('.fchip');
+      if (!chipEl) return;
+      const frow = chipEl.closest('.frow');
+      sel[frow.dataset.facet] = chipEl.dataset.v;
+      frow.querySelectorAll('.fchip').forEach((c) => c.classList.toggle('on', c === chipEl));
       paint();
     });
   }
@@ -1019,6 +1831,7 @@
     const brew = BREW_IN.get(name) || BREW_OUT.get(name);
     const mill = MILL_IN.get(name) || MILL_OUT.get(name);
     const dye  = DYE_BY.get(name);
+    const fibre = FIBRE_BY.get(name);
     const ore  = ORE_BY.get(name);
     /* Bars are named "Steel bar" as items but "Steel" in the tables. */
     const asMetal = name.replace(/\s+bars?$/i, '');
@@ -1032,12 +1845,15 @@
     main.innerHTML = `
       <a class="back" href="#/">${sym('back')}All industries</a>
       <div class="item-head">
-        <h1>${metalColor(name) ? ingot(metalColor(name), 'big') : ''}${esc(name)}</h1>
+        <h1>${metalColor(name)
+          ? ingot(metalColor(name), 'big')
+          : sprite(name, 'big')}${esc(name)}</h1>
         ${note ? `<p class="item-note">${esc(note)}</p>` : ''}
       </div>
       ${brew ? `<p class="col-head">At the Still</p>${brewResult(brew, { compact: true })}` : ''}
       ${mill ? `<p class="col-head">At the quern</p>${millResult(mill, { compact: true })}` : ''}
       ${dye ? `<p class="col-head">At the dyer's shop</p>${dyeResult(dye, { compact: true })}` : ''}
+      ${fibre ? `<p class="col-head">At the loom</p>${fibreResult(fibre, { compact: true })}` : ''}
       ${ore ? `<p class="col-head">At the smelter</p>${oreResult(ore, { compact: true })}` : ''}
       ${alloy ? `<p class="col-head">At the smelter</p>${alloyResult(alloy, { compact: true })}` : ''}
       ${(!ore && fromOre.length) ? `<p class="col-head">Smelted from <span class="n">${fromOre.length}</span></p>
@@ -1130,6 +1946,10 @@
     const steps = RECIPES.filter((r) => r.workshop === name);
     if (!steps.length) return viewWorkshops();
 
+    /* A picker may bring reference tables of its own, and they anchor back to
+       this page rather than to the Reference one. */
+    const route = 'w/' + encodeURIComponent(name);
+
     const meta = SHOPS[name] || {};
     const kind = shopKind(name);
     const skills = [...new Set(steps.map((r) => r.skill).filter((x) => x && x !== '—'))];
@@ -1164,7 +1984,8 @@
       </div>
       ${picks.map((p, i) => `
         <p class="col-head">${esc(p.title)} <span class="n">${p.rows.length}</span></p>
-        <div id="pick-${i}"></div>`).join('')}
+        <div id="pick-${i}"></div>
+        ${p.tables ? refToc(p.tables, route) + refBlocks(p.tables) : ''}`).join('')}
       ${jobs.length ? `<p class="col-head">Jobs <span class="n">${jobs.length}</span></p>
                        <div class="rec-grid">${jobs.map((r) => recipeCard(r)).join('')}</div>` : ''}`;
 
@@ -1176,6 +1997,7 @@
   function refCell(text, col, table) {
     const how = table.decorate && table.decorate[col];
     if (how === 'color') return swatch(COLOR_HEX[String(text).trim()]) + esc(text);
+    if (how === 'sprite') return spriteCell(String(text).trim()) + esc(text);
     if (how !== 'metal') return esc(text);
     return String(text).split('+').map((part) => {
       const name = part.trim();
@@ -1272,10 +2094,11 @@
       <div class="prose">
         <p>DF Companion is a static, dependency-free reference for the industry chains in
         <a href="https://www.bay12games.com/dwarves/" target="_blank" rel="noopener">Dwarf Fortress</a>.
-        Every page on this site is generated from ten data files, so extending it means editing
-        JavaScript objects rather than HTML. Nothing is loaded from the network. Every icon
-        here, down to the back arrow, is inline SVG; the only bitmaps are the pixel-art
-        workshop plates and the equipment sheet the armour list reads its sprites from.</p>
+        Every page on this site is generated from fifteen data files, so extending it means
+        editing JavaScript objects rather than HTML. Nothing is loaded from the network. Every
+        icon here, down to the back arrow, is inline SVG; the only bitmaps are the game's own
+        pixel art — the workshop plates, the equipment sheet the armour list reads its sprites
+        from, and the item sprites <code>data/sprites.js</code> maps by name.</p>
 
         <h2>Adding a step</h2>
         <p>Open <code>data/recipes.js</code> and add an entry to <code>window.DF_RECIPES</code>:</p>
@@ -1306,21 +2129,39 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         <p>A workshop with no entry still works — it falls back to a generic building icon.</p>
 
         <h2>One step, many ingredients</h2>
-        <p>Four workshops do not get a list of job cards. The Still runs a single job —
+        <p>Seven workshops do not get a list of job cards. The Still runs a single job —
         Brew Drink — against 77 ingredients, the quern runs Mill Plants against 33, the
-        dyer's shop runs Dye against 72, and the smelter smelts 17 ores and alloys 14
-        recipes. Cards that differ only in which thing went in say the same thing dozens of
-        times, so each is one generic step in <code>data/recipes.js</code> plus a table of
-        its own: <code>data/brewing.js</code>, <code>data/milling.js</code>,
-        <code>data/dyes.js</code> and <code>data/smelting.js</code>.</p>
+        dyer's shop runs Dye against 72, the loom weaves 16 kinds of thread, the clothier's
+        shop cuts 31 things out of one unit of cloth, the smelter smelts 17 ores and alloys
+        14 recipes, and the forge turns a bar into any one of 69 things. Cards that differ
+        only in which thing went in say the same thing dozens of times, so each is one
+        generic step in <code>data/recipes.js</code> plus a table of its own:
+        <code>data/brewing.js</code>, <code>data/milling.js</code>,
+        <code>data/dyes.js</code>, <code>data/textiles.js</code>,
+        <code>data/smelting.js</code>, <code>data/weapons.js</code> and
+        <code>data/forge.js</code>.</p>
         <p>The <code>PICKERS</code> table lists them, keyed by the generic step each one
         replaces. The workshop list reads that same table to put a mark in the corner of
         those cards, so it cannot claim something the page does not do. Only the list is
         marked — on the workshop's own page the picker is right there.</p>
+        <p>The forge's picker is the one that assembles its rows from more than one file. A
+        battle axe belongs to <code>data/weapons.js</code> and a breastplate to
+        <code>data/armor.js</code>; copying either into <code>data/forge.js</code> would let
+        the forge's page and the Armor page disagree about the same object, so instead it
+        takes every weapon whose <code>made</code> list names the forge, every wearable that
+        can be made of metal, and everything else from <code>DF_FORGE_GOODS</code>. A picker
+        may also carry <code>tables</code> — reference tables in the
+        <code>data/reference.js</code> shape that belong under it rather than in any row of
+        it, rendered by the same code as the Armor page's notes and anchored back to the
+        workshop's own page.</p>
         <p>A picker facet can read a list instead of a single value, which is how one ore
         sits under three different rock types and one alloy under each metal it contains.
         The smelter's bars are tinted with the metal's own colour from
-        <code>data/metals.js</code>.</p>
+        <code>data/metals.js</code>. A facet marked <code>select: true</code> draws a
+        dropdown rather than a row of chips — the forge's fifteen categories and seven
+        labours wrapped over three lines as chips, which is a lot of furniture around a
+        control nobody is looking at. It is opt-in rather than automatic on a count,
+        because a select cannot draw the colour square the dyer's tone chips carry.</p>
         <pre><code>{ in: 'Sun berry', out: 'Sunshine', kind: 'Other', value: 5,
   type: 'Plant', source: 'Surface crop' }
 
@@ -1476,6 +2317,23 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
     href: '#/armor#' + t.id
   }));
 
+  FORGE_TABLES.forEach((t) => INDEX.push({
+    kind: 'table', label: t.title, sub: t.blurb,
+    hay: [t.title, t.blurb, ...t.rows.flat()].join(' '),
+    href: `#/w/${encodeURIComponent(FORGE_SHOP)}#${t.id}`
+  }));
+
+  /* A weapon or a goblet is a searchable thing in its own right, the same way a
+     piece of armour is — "menacing spike" should land on the forge, not on a
+     table that happens to mention it. The armour rows are left out here because
+     they are already indexed against the Armor page, which knows more about
+     them than this one does. */
+  FORGE_ROWS.filter((r) => r.form !== 'armor').forEach((r) => INDEX.push({
+    kind: 'forge', label: r.name, sub: `${r.cat} · ${r.out}`,
+    hay: r.hay,
+    href: '#/w/' + encodeURIComponent(FORGE_SHOP)
+  }));
+
   /* A piece is a searchable thing in its own right — "greaves" should land on
      the greaves, not on a table that happens to mention them. */
   ARMOR_ROWS.forEach((p) => INDEX.push({
@@ -1487,7 +2345,7 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
 
   INDEX.forEach((e) => (e.hay = e.hay.toLowerCase()));
 
-  const KIND_RANK = { item: 0, armor: 1, industry: 2, shop: 3, table: 4, step: 5 };
+  const KIND_RANK = { item: 0, armor: 1, forge: 2, industry: 3, shop: 4, table: 5, step: 6 };
   let cursor = -1, hits = [];
 
   function runSearch(q) {

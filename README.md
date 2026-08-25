@@ -4,22 +4,31 @@ An interactive, dependency-free reference for **Dwarf Fortress** industry workfl
 what turns into what, at which workshop, with which skill, and which missing barrel is
 quietly stalling the whole chain.
 
-Ten industries and 59 production steps across 31 workshops, each with hand-drawn
-SVG artwork. Four of those workshops — the Still, the quern, the dyer's shop and
-the smelter — run one job against a long list of ingredients, so instead of a
-wall of near-identical cards they get a picker: 77 brewable plants, 33 millable
-ones, 72 dyes, 17 ores and 14 alloy recipes, filtered and searched, each showing
-what comes out and a small animation of the job. Plus a shared symbol set
-covering every other icon on the site, colour-coded metal ingots, an
-auto-laid-out chain map per industry, a cross-linked item index (“made by” /
-“used in”) derived from the recipe graph, fuzzy search over items, workshops,
-skills and tables, and ten reference tables.
+Ten industries and 68 production steps across 31 workshops, each with hand-drawn
+SVG artwork. Seven of those workshops — the Still, the quern, the dyer's shop,
+the loom, the clothier's shop, the smelter and the metalsmith's forge — run one
+job against a long list of things, so instead of a wall of near-identical cards
+they get a picker: 77 brewable plants, 33 millable ones, 72 dyes, 16 thread
+sources, 31 cloth goods, 17 ores, 14 alloy recipes and the 69 things a bar of
+metal can become, filtered and searched, each showing what comes out and — where
+there is one — a small animation of the job. Plus a shared symbol set covering
+every other icon on the site, colour-coded metal ingots, an auto-laid-out chain
+map per industry, a cross-linked item index (“made by” / “used in”) derived from
+the recipe graph, fuzzy search over items, workshops, skills and tables, and ten
+reference tables.
 
 An **Armor** page turns the same picker inside out: the panel holds a clickable
 dwarf, and choosing a body part filters 43 wearables down to the ones that
 actually reach it. Choose a piece instead and the figure lights up everything it
 covers — which is the fastest way to see that a breastplate leaves the arms bare
 and a mail shirt does not.
+
+The **forge** gets the other kind of picker: filter by what you want to make —
+weapons, armour, chains, crafts, goblets, toys, instruments, anvils, flasks,
+coins, studding, furniture, animal traps, mechanisms — and every row prices
+itself. Pick the metal and the smith's skill and it runs the game's own value
+formula in front of you, term by term, alongside the bar cost, what melting it
+back returns and, for a weapon, its whole attack table.
 
 ## Running it
 
@@ -222,17 +231,106 @@ from the coverage table. It is also the game's UBSTEP / LBSTEP / UPSTEP tokens
 already resolved, because "LBSTEP:1" is not an answer to "does this protect my
 dwarf's legs". Bar cost is *not* stored — it is material size ÷ 3, rounded down,
 minimum one, and `app.js` computes it, so a piece only ever states its size.
-`window.DF_ARMOR_TABLES` holds the notes under the picker in exactly the
-`data/reference.js` shape, and the two pages share one renderer.
+`base` *is* stored, because it cannot be computed from what is here: the game
+derives an item's base value from the same UBSTEP / LBSTEP / UPSTEP tokens this
+file has already resolved into `covers`. `pair` marks the hand- and footwear that
+comes two at a time from one unit of material, which is why gauntlets and high
+boots melt back at 120%. `window.DF_ARMOR_TABLES` holds the notes under the
+picker in exactly the `data/reference.js` shape, and the two pages share one
+renderer.
+
+**`data/weapons.js`** — `window.DF_WEAPONS`, every manufactured weapon in the
+game: the seven a dwarf can forge, the ammunition and trap components off the
+same anvil, the three wooden training weapons, and the fourteen foreign types
+that only ever arrive in somebody else's hands. The foreign ones are here for the
+same reason the foreign clothing is in `data/textiles.js` — you meet them, and
+"what is coming at me" is the same question with the numbers read backwards.
+
+```js
+{ id:'war-hammer', name:'War hammer', kind:'Melee', skill:'Hammer', hands:'one',
+  vol:400, size:3, base:9, melt:0.9,
+  made:[{ mat:'Metal', at:"Metalsmith's Forge", by:'Weaponsmith' }],
+  attacks:[{ name:'Bash', type:'Blunt', area:10, pen:200, vel:2.0 }],
+  note:'…' }
+```
+
+Two different numbers are called "size" in this game and both matter, so they get
+separate fields. `vol` is volume in cm³ — what drives momentum, and the first
+term of the value formula: base value is `(vol / 50) + 1`, doubled if the weapon
+has any EDGE attack, or a flat 10 for a ranged one. Every `base` in the file
+checks out against that. `size` is material size, which is what the forge charges
+for, under the same rule as armour. A few items have no real material size and a
+fixed cost instead; those state `bars` and leave `size` out.
+
+`attacks` is the whole attack list rather than a summary, because a weapon is not
+one attack — a short sword slashes, stabs, slaps and pommel-strikes, and the
+reason it is a jack of all trades is only visible when all four are on screen
+together. `pen` on a blunt attack renders bracketed, since the game ignores it
+there; the attack's own `type` is what says to bracket it, so the two cannot
+disagree.
+
+`made` is written out per weapon rather than looked up from a material code,
+because the material does not determine the building: a wooden crossbow is a
+bowyer's job, a wooden corkscrew a carpenter's and a wooden bolt a wood crafter's,
+and one "Wood" code would have to lie about two of the three. Foreign weapons
+carry no `made` at all — nothing you can build makes them.
+
+**`data/forge.js`** — three tables behind the forge's picker.
+
+`window.DF_FORGE_GOODS` is everything the forge makes that is not a weapon or a
+piece of armour. Those two are deliberately not repeated here: the picker reads
+them out of `data/weapons.js` and `data/armor.js`, filtered to the metal
+versions, because a battle axe is one thing and the pages that list it must not
+be able to disagree about it.
+
+```js
+{ name:'Goblet', cat:'Goblets', labour:'Metal crafter',
+  bars:1, per:3, melt:0.6, base:10, note:'…' }
+```
+
+`cat` is the wiki's own production list, verbatim and in its order, and it is
+what the chips filter on. A few things the forge makes are not on that list —
+blocks, and the tools a metalcrafter turns out — and rather than invent a
+fifteenth chip they sit under Furniture, where the in-game menu puts them, with
+their own labour on the row. `labour` is which of the forge's six labours does
+the job, which is the second facet and the answer to "why is nobody working in
+there".
+
+Three numbers mean the same thing here and in `data/weapons.js`: `bars` is what
+one job eats, `per` is how many items it produces, and `melt` is what the whole
+output of one job gives back at the smelter. So efficiency is always `melt ÷
+bars`, and the reason a fortress forges leggings and menacing spikes for a living
+falls straight out of it. `base` is the item type's own value before material and
+quality; `noQuality` marks blocks and coins, the two things a smith cannot make
+well or badly.
+
+`window.DF_FORGE_METALS` is every metal a fortress can hold, its value
+multiplier, and what the forge will accept it for. The second half is the one
+that gets fortresses killed: black bronze is worth more than steel and will not
+go on a soldier, and silver makes a superb mace and no armour at all. The picker
+lists only the metals a given job allows, so it cannot price something the forge
+would refuse.
+
+`window.DF_FORGE_TABLES` holds the notes under the picker, in the
+`data/reference.js` shape again.
+
+The calculator runs the game's general item value formula — `base × material ×
+quality multiplier + quality bonus`, applied per item so a stack counts the bonus
+once for every item in it. That is *not* the formula the clothier's shop runs:
+cloth folds its thread and weave in as decorations and the wiki states it with an
+older quality ladder. Both are the wiki's, and the forge's "How the value is
+worked out" table says which is which.
 
 ## One step, many ingredients
 
-Four workshops run a single job against a long list of ingredients — the
-Still's Brew Drink, the quern's Mill Plants, the dyer's shop's Dye, and the
-smelter's Smelt Ore and alloy reactions (two tables, two pickers on one page). Listing
-those out as one card per ingredient says the same thing dozens of times and
-clutters the chain map with parallel strands that carry no information, so each
-is one generic step in `data/recipes.js` plus a table in its own data file.
+Seven workshops run a single job against a long list of things — the Still's
+Brew Drink, the quern's Mill Plants, the dyer's shop's Dye, the loom's Weave
+Cloth, the clothier's Sew Clothing, the smelter's Smelt Ore and alloy reactions
+(two tables, two pickers on one page), and the forge, which is six labours and
+fourteen categories of product on one anvil. Listing those out as one card per
+ingredient says the same thing dozens of times and clutters the chain map with
+parallel strands that carry no information, so each is one generic step in
+`data/recipes.js` plus a table in its own data file.
 The `PICKERS` table in `assets/js/app.js` lists them, keyed by the generic step
 each one replaces, and `mountPicker()` turns one into the filter chips, search
 and result panel. The Armor page uses the same function with two extras: a facet
@@ -252,7 +350,28 @@ carrying a `chip(value)` to put something in front of the chips or a
 dyer's tone chips read "Blues" but select `Blue`. A facet marked `multi: true`
 reads a list rather than a single value, so one row can sit under several chips:
 galena is igneous, metamorphic and sedimentary at once, and bronze contains both
-copper and tin.
+copper and tin. A facet marked `select: true` draws a dropdown instead of a row
+of chips, for the case where there are too many values to fit a line — the
+forge's fifteen categories and seven labours wrapped over three rows and became
+furniture around a control nobody was looking at. It is opt-in per facet rather
+than automatic on a count, because a select cannot draw the colour square the
+dyer's tone chips put in front of their values. A picker may also carry `tables` — reference tables that belong
+under it rather than in any row of it, rendered by the same code as the Armor
+page's notes and anchored back to the workshop's own page.
+
+The forge's is the one picker whose rows come from three files rather than one,
+assembled in `app.js`: every weapon whose `made` list names the forge, every
+wearable that can be made of metal and is neither gear nor foreign, and all of
+`DF_FORGE_GOODS`. The rows are then sorted by `FORGE_CATS`, which is what makes
+the chips come out in the wiki's order — `mountPicker()` reads a facet's values
+off the rows in the order it finds them.
+
+Two of the pickers keep a shared settings object rather than a per-row one: the
+clothier's `CALC` and the forge's `FORGE_CALC`. Changing the metal re-prices the
+whole list, not one row of it, so a picker with settings in its panel also needs
+`refresh()` — the panel is normally only redrawn on a new pick, so that a
+keystroke in the filter does not restart an animation, and a panel with a control
+of its own has a second reason to change.
 
 Collapsing them would otherwise strand the ingredients and products outside the
 recipe graph, so the tables are bridged back into the item index and the search
@@ -270,6 +389,8 @@ that field existed the textiles page lost its only dye source.
 index.html            page shell
 assets/css/style.css  theme tokens, light + dark
 assets/img/*.png      a pixel-art plate per workshop: 96x128, or 32x64 for a 1x1
+assets/img/plants/    the game's own plant sprites, keyed by name in sprites.js
+assets/img/forge/     the same, for what comes off the forge's anvil
 assets/js/graph.js    layered DAG layout + SVG renderer with pan/zoom
 assets/js/app.js      hash router, views, search, theme toggle
 data/recipes.js       industries + production steps
@@ -282,6 +403,8 @@ data/icons.js         the shared symbol set
 data/metals.js        one colour per metal, for the ingot icon
 data/reference.js     reference tables
 data/armor.js         43 wearables, the body figure and the armour notes
+data/weapons.js       31 weapons with their full attack tables
+data/forge.js         44 forge goods, 26 metals and the forge's notes
 ```
 
 ## Credits

@@ -100,6 +100,7 @@ window.DF_REFERENCE = [
   icon: 'mushroom',
   blurb: 'The seven cave plants and what each one is actually for.',
   columns: ['Crop', 'Brew', 'Mill', 'Process', 'Eat'],
+  decorate: { 0: 'sprite' },
   rows: [
     ['Plump helmet', 'Dwarven wine', '—', '—', 'Raw or cooked'],
     ['Cave wheat', 'Dwarven beer', 'Flour', '—', 'Cooked'],
@@ -160,6 +161,44 @@ window.DF_REFERENCE = [
     ['Hides vanished', 'Raw hides rot — tan them immediately']
   ]
 },
+
+/* All three built from data/textiles.js, so the fibre and garment lists live in
+   exactly one place. Thread is a base-6 item and cloth a base-7 one, so both
+   columns are the row's own multiplier and neither number is stored twice. */
+{ id: 'fibres', title: 'Thread Sources', icon: 'textiles',
+  blurb: 'Every way a fortress gets a length of thread, and what that thread is worth. ' +
+         'The multiplier is the number the whole industry turns on: it sets the thread, ' +
+         'the cloth and the first term of the finished garment\u2019s value. Hair is the ' +
+         'one thread no loom will take.',
+  columns: ['Source', 'Gives', 'Where', 'Material', 'Thread', 'Cloth', 'Weaves?'],
+  decorate: { 0: 'sprite' },
+  rows: (window.DF_FIBRES || []).map((f) =>
+    [f.in, f.out, f.where, '×' + f.mult, 6 * f.mult + '\u263c',
+     f.weave ? 7 * f.mult + '\u263c' : '\u2014',
+     f.weave ? 'Yes' : 'No — thread only']) },
+
+{ id: 'fibre-crops', title: 'Fibre Crops', icon: 'mushroom',
+  blurb: 'The eight crops one Process Plants job turns into thread. They are worth exactly ' +
+         'the same as each other, so the only questions are where the plant will grow and ' +
+         'what else it is good for. Rope reed and hemp are the only two that grow outside ' +
+         'the tropics.',
+  columns: ['Crop', 'Grows', 'Biome', 'Seasons', 'Also good for'],
+  decorate: { 0: 'sprite' },
+  rows: (window.DF_FIBRES || []).filter((f) => f.kind === 'Plant fibre').map((f) =>
+    [f.in, f.ground, f.biome,
+     f.seasons.length === 4 ? 'All year' : f.seasons.join(' · '),
+     f.also || 'Thread only']) },
+
+{ id: 'cloth-goods', title: 'Cloth Goods', icon: 'quality',
+  blurb: 'What one unit of cloth becomes at the clothier\u2019s shop, and the item\u2019s own ' +
+         'value before material, quality or dye are counted. Every job eats one whole unit ' +
+         'whatever it makes \u2014 so a robe and a thong cost the same cloth and are worth 33 ' +
+         'and 5. The pairs are the exception worth knowing: two items out of the one unit.',
+  columns: ['Item', 'Worn on', 'Base value', 'Notes'],
+  rows: (window.DF_CLOTH_GOODS || []).map((g) => [
+    g.name, g.slot, g.base ? g.base + '\u263c' : '\u2014',
+    g.note || [g.pair ? 'Made two at a time from one cloth' : '',
+               g.avail === 'foreign' ? 'Dwarves cannot make it' : ''].filter(Boolean).join(' \u00b7 ')]) },
 
 /* Built from data/dyes.js so the dye list lives in exactly one place. */
 { id: 'dyes', title: 'Dyes', icon: 'textiles',
