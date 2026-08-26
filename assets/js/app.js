@@ -2771,10 +2771,12 @@
   const refToc = (tables, route) => `<div class="toc">${tables.map((tb) =>
     `<a href="#/${route}#${tb.id}">${sym(tb.icon)} ${esc(tblTitle(tb))}</a>`).join('')}</div>`;
 
+  /* A table whose rows say it themselves carries no blurb, and an empty
+     paragraph over them would only be a gap in the wrong place. */
   const refBlocks = (tables) => tables.map((tb) => `
     <section class="ref-block" id="${tb.id}">
       <h2>${sym(tb.icon)} ${esc(tblTitle(tb))}</h2>
-      <p>${esc(tblBlurb(tb))}</p>
+      ${tblBlurb(tb) ? `<p>${esc(tblBlurb(tb))}</p>` : ''}
       <div class="table-wrap"><table>
         <thead><tr>${tblCols(tb).map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>
         <tbody>${tb.rows.map((row) =>
@@ -3113,7 +3115,9 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
   }));
 
   const tableEntry = (tb, href) => ({
-    kind: 'table', label: tblTitle(tb), sub: tblBlurb(tb),
+    /* The columns stand in for the blurb a table without one would have given
+       the search result to say what it holds. */
+    kind: 'table', label: tblTitle(tb), sub: tblBlurb(tb) || tblCols(tb).join(' · '),
     hay: [tblTitle(tb), tblBlurb(tb), tb.title, tb.blurb, ...tb.rows.flat()].join(' '),
     href
   });

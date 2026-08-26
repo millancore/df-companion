@@ -133,14 +133,10 @@ window.DF_ALLOYS = [
 
 window.DF_SMELT_TABLES = [
 
+/* No blurb: the three rows in order are the answer, and a paragraph over them
+   only says the same thing in prose. A table without one renders as its heading
+   and its rows. */
 { id: 'steel', title: 'How steel is made', icon: 'flux',
-  blurb: 'Three jobs, all of them at this building, run in this order. Two iron bars come back ' +
-         'as two bars of steel, so one boulder of iron ore is four bars of it — if the map gave ' +
-         'you flux. Limestone, dolomite, chalk, calcite and marble are the flux stones, and ' +
-         'without one of them under your fortress there is no steel however much iron you dig. ' +
-         'Pig iron is the middle step and nothing else: it arms nobody. Every reaction also ' +
-         'burns a unit of fuel as carbon and another to heat the furnace, and a magma smelter ' +
-         'covers only the heat.',
   columns: ['Job', 'It eats', 'It gives', 'Bars'],
   decorate: { 2: 'metal' },
   rows: [
