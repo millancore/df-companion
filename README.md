@@ -72,7 +72,7 @@ Everything on the site is generated from the data files.
 ```
 
 An item exists as soon as a recipe mentions it — item pages, the search index and the
-chain maps all rebuild themselves. `qty` on an input or output is optional and renders
+industry maps all rebuild themselves. `qty` on an input or output is optional and renders
 as `×n`. Valid `needs` values: `fuel`, `flux`, `bag`, `barrel`, `jug`, `bucket`, `shop`.
 
 **`data/workshops.js`** — `window.DF_WORKSHOPS`, keyed by the exact `workshop` string
@@ -328,7 +328,7 @@ Brew Drink, the quern's Mill Plants, the dyer's shop's Dye, the loom's Weave
 Cloth, the clothier's Sew Clothing, the smelter's Smelt Ore and alloy reactions
 (two tables, two pickers on one page), and the forge, which is six labours and
 fourteen categories of product on one anvil. Listing those out as one card per
-ingredient says the same thing dozens of times and clutters the chain map with
+ingredient says the same thing dozens of times and clutters the industry map with
 parallel strands that carry no information, so each is one generic step in
 `data/recipes.js` plus a table in its own data file.
 The `PICKERS` table in `assets/js/app.js` lists them, keyed by the generic step
@@ -383,6 +383,133 @@ A step may name a second industry with `also: ['textiles']`. Milling needs it:
 its flour belongs to the food chain and its dyes to the textiles one, and before
 that field existed the textiles page lost its only dye source.
 
+## One industry, one view
+
+Every industry is one page: the step list and the chain map drawn as the same
+picture, by `viewFlow()` in `assets/js/app.js`. They used to be two tabs —
+Steps, which listed the jobs grouped by the building they happen in, and Chain
+map, which drew the same jobs as a graph — and each answered half a question.
+The list said what a job wants, where it happens and which empty bucket will
+stop it, but not what feeds what; the map said what feeds what, then shrank it
+to fit a box and asked to be dragged around.
+
+The map that replaced them runs down the page rather than across it, with the
+step cards themselves as the nodes — workshop plate, building name, job, skill,
+containers, fuel and note, all on the thing the wires connect. Running downwards
+is what buys it out of pan and zoom entirely: the page already scrolls, so the
+map has no viewport of its own to be trapped inside, and the only control on it
+is a row of chips.
+
+### What a card carries
+
+Every card in a row stands the same height, because flexbox already knows which
+is tallest and `align-self: stretch` asks it. What used to break that was the
+note — three sentences on one card and none on the one beside it — so the note
+lives behind a chevron pushed to the foot of the card, and the chevrons on a row
+line up whatever is above them.
+
+Two more things are drawn rather than written, for the same reason: at 258px a
+card has no room to repeat itself. A step's containers and fuel are the symbol
+alone with the words in the tooltip — `needBadge(n, true)` — while a workshop
+page, which has the width, still spells them out. And the end of a branch is a
+filled circle, the way a transit map marks the end of a line. Only the end
+carries one; a dashed box is already saying that what is in it comes from
+somewhere off the map.
+
+Where neighbouring jobs on a row run at the same building, the building gets one
+card and its jobs get a second beside it. A glass furnace makes green glass,
+clear glass, crystal glass and glass goods, and drawing that as four cards is
+the same plate four times over for jobs that share one hearth. Every wire on
+that stretch of the chain lands on the building's card; the card next to it says
+what the building can be told to do, and the chips light the one line of it that
+is on the path. They are two cards rather than two halves of one because the
+wires belong to the first and not to the second, and a single border around both
+would claim otherwise. Where every job under that roof wants the same skill and
+the same containers — all four glass jobs want a glassmaker and a unit of fuel —
+the badges are hoisted onto the building and said once.
+
+A job inside a card of types has that card's whole width, so it is a row rather
+than a column and its note stands open beside it: what the job is on the left,
+what the wiki says about it on the right. The chevron is for a card standing on
+its own, where the note is what would otherwise leave one card twice the height
+of the one next to it. Under the narrow breakpoint the two columns stack and the
+note drops under the job it belongs to.
+
+Grouping only ever merges jobs that are already neighbours — barycentre ordering
+puts same-building jobs together on its own, because they tend to share inputs —
+so nothing is reordered to make a group, and a building whose jobs land apart
+simply draws two cards.
+
+### What a flow declares
+
+`DF_INDUSTRY_FLOWS` in `data/recipes.js` names the jobs and nothing else.
+
+`steps` may borrow a job from another industry, and most of them do. An ash
+chain that stopped at the ashery's own jobs would begin and end in mid-air; a
+forge with no mine above it starts with ore nobody dug. A borrowed job carries
+the name of the industry it came from.
+
+`joins` folds one item name into another for the length of one map. The recipes
+are written at the altitude each industry needs and the two do not always meet:
+the loom eats "Thread" while five jobs make a "… thread", the forge eats an
+"Iron bar" while the smelter makes "Metal bars". Renaming on the way in is what
+turns those into one node with wires into it rather than a row of orphans above
+a row of things nobody supplies. It is a display join and nothing else — the
+steps keep the names the game uses. The joined name has to be an item the data
+already knows, or its node leads nowhere.
+
+`paths` are the chips. Each is a main line through the map — the jobs you queue
+to end up holding one thing — and picking one numbers those rungs 1..n and fades
+the rest, detail and all, so the line you asked for is not separated by a page of
+greyed-out paragraphs. That is the step list, without leaving the picture that
+shows what it skipped; hovering a faded card brings it back. A path may override
+a step's `titles` and `notes`, because a job can read differently depending on
+the line it stands in: "Grow a crop" is "Grow pig tails" on the pig tail route,
+and the season it wants is worth saying there and nowhere else. The chips write
+themselves into the URL with `replaceState` rather than a hash assignment — they
+are a control on the page, not navigation away from it, and letting the router
+run again would rebuild the map and throw the reader back to the top.
+
+### How the picture is worked out
+
+Nothing in the layout knows what an ashery is, which is what stops the picture
+drifting away from the steps the way a hand-drawn diagram would.
+
+`flowModel()` builds the nodes, applies the joins, and then collapses dead ends:
+a carpenter's workshop that finishes in furniture, a barrel, a bin, a bucket and
+a cage is five nodes wide and says one thing, so where a job's outputs are all
+the end of the line they become the one node they amount to. Anything another
+job wants keeps its own node, because that is the node a wire has to leave from.
+
+`flowBreakCycles()` cuts the loops first. Some chains genuinely close — a crop
+grows from seeds and hands the seeds back — and a layering pass that tries to
+honour that wire drags the whole industry out of order, putting the farm plot
+below the job that recovers what it planted. A depth-first walk marks the one
+edge of each cycle that closes it; layering ignores those and the map draws them
+as returns, routed out through the margin beside the rows.
+
+`flowLayer()` then puts a job on the row below the last of its inputs, by
+relaxation rather than a topological sort, and drops any item nothing on the map
+makes — a log, a tub of tallow — to just above the job that wants it, rather
+than leaving it at the top trailing a wire the length of the page.
+
+`flowWires()` gives a wire that skips a row an invisible waypoint in each row it
+crosses. Those are ordered along with everything else, so a long wire claims a
+lane between the cards instead of disappearing under them. `flowOrder()` sweeps
+barycentres up and down — downwards only settles the top of the map and leaves
+the bottom in whatever order the recipes were written in — and `flowUncross()`
+finishes with adjacent swaps, because an average is blind to the swap that
+improves nothing but the crossing count.
+
+The wires themselves are measured off the boxes the browser actually produced,
+after layout, so nothing has to agree with flexbox about where anything is.
+That is also what makes the responsive behaviour free: a row too wide for the
+page wraps, a narrow screen collapses the whole map into one column, the boxes
+move, and the wires are redrawn to wherever they landed.
+
+An industry with no flow still gets a page — the old grouped step list, which
+needs no configuration beyond the steps themselves.
+
 ## Layout
 
 ```
@@ -391,9 +518,8 @@ assets/css/style.css  theme tokens, light + dark
 assets/img/*.png      a pixel-art plate per workshop: 96x128, or 32x64 for a 1x1
 assets/img/plants/    the game's own plant sprites, keyed by name in sprites.js
 assets/img/forge/     the same, for what comes off the forge's anvil
-assets/js/graph.js    layered DAG layout + SVG renderer with pan/zoom
-assets/js/app.js      hash router, views, search, theme toggle
-data/recipes.js       industries + production steps
+assets/js/app.js      hash router, views, the industry map, search, theme toggle
+data/recipes.js       industries, production steps, industry maps
 data/brewing.js       the Still's 77 brewable ingredients
 data/milling.js       the quern's 33 millable plants
 data/dyes.js          all 72 dyes, plus the colour name lookups

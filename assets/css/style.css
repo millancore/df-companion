@@ -332,41 +332,235 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .toc a:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── Graph ────────────────────────────────────────────────────── */
-.view-tabs { display: inline-flex; gap: .2rem; padding: .2rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: 0; margin-bottom: 1.2rem; }
-.view-tabs button {
-  padding: .32rem .85rem; border: 0; border-radius: 0;
-  background: none; color: var(--ink-2); font: inherit; font-size: .82rem; cursor: pointer;
-}
-.view-tabs button.on { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+/* ── Industry map ─────────────────────────────────────────────── */
+/* One view where there used to be two tabs. Full step cards, wired together,
+   running down the page rather than across it — which is what buys it out of
+   pan and zoom entirely: the page already scrolls, so the map has no viewport
+   of its own to be trapped inside and no controls beyond the chips.
 
-.graph-shell {
-  position: relative; border: 1px solid var(--line); border-radius: 0;
-  background: var(--panel); overflow: hidden; height: min(70vh, 640px);
+   Rows are laid out by flexbox and the wires are drawn afterwards from the
+   boxes the browser actually produced, so nothing here has to agree with the
+   layout twice. That is also what makes the mobile fallback free: rows wrap,
+   the boxes move, the wires are redrawn to wherever they landed. */
+/* What the chips settled on, named above the map it redraws. */
+.fm-head { margin: 1.4rem 0 0; }
+.fm-bar { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; margin-bottom: .3rem; }
+.fm-bar h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: .4rem; }
+.fm-bar h2 .sym { color: var(--accent); }
+.fm-count {
+  margin-left: auto; white-space: nowrap;
+  font-size: .72rem; font-family: var(--mono);
+  text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3);
 }
-.graph-shell svg { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
-.graph-shell svg.drag { cursor: grabbing; }
-.graph-hint {
-  position: absolute; bottom: .6rem; left: .7rem;
-  font-size: .72rem; color: var(--ink-3); pointer-events: none;
-  background: color-mix(in srgb, var(--panel) 80%, transparent); padding: .2rem .5rem; border-radius: 0;
-}
-.graph-tools { position: absolute; top: .6rem; right: .6rem; display: flex; gap: .3rem; }
-.graph-tools button {
-  width: 28px; height: 28px; border: 1px solid var(--line-2); border-radius: 0;
-  background: var(--panel); color: var(--ink-2); cursor: pointer; font-size: .85rem; line-height: 1;
-}
-.graph-tools button:hover { color: var(--accent); border-color: var(--accent); }
+.fm-blurb { margin: .35rem 0 0; color: var(--ink-2); font-size: .88rem; max-width: 66ch; }
+/* `.need` sets its own display, which outranks the browser's rule for the
+   hidden attribute — without this the empty badge still draws its border. */
+.fm-tag[hidden] { display: none; }
+.fm-legend { margin: 1.4rem 0 0; font-size: .78rem; color: var(--ink-3); max-width: 66ch; }
 
-.n-item rect { fill: var(--panel-2); stroke: var(--line-2); }
-.n-item:hover rect { stroke: var(--accent); }
-.n-item text { fill: var(--ink); font-size: 11px; font-family: var(--sans); }
-.n-job rect { fill: color-mix(in srgb, var(--c, var(--accent)) 20%, var(--panel)); stroke: var(--c, var(--accent)); }
-.n-job text { fill: var(--ink); font-size: 10.5px; font-family: var(--sans); }
-.n-job .sub { fill: var(--ink-3); font-size: 9px; font-family: var(--mono); }
-.edge { fill: none; stroke: var(--line-2); stroke-width: 1.4; }
-.edge.hot { stroke: var(--accent); stroke-width: 2.2; }
-.node.dim { opacity: .25; }
-.node { cursor: pointer; }
+.fmap { position: relative; margin-top: 1.2rem; }
+/* The wires sit under the cards and take no pointer events, so a card is still
+   a card: hovering, clicking and tabbing all behave as if the SVG weren't there. */
+.fmap-wires {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 0; overflow: visible;
+}
+.fmap-row {
+  position: relative; z-index: 1;
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start;
+  gap: 1.6rem; padding-bottom: 2.6rem;
+}
+.fmap-row:last-child { padding-bottom: 0; }
+
+/* A waypoint is not drawn — it is a claim on horizontal space. A wire that
+   skips a row passes through one of these, so it gets a lane of its own
+   between the cards instead of running underneath them. */
+.f-way { width: 0; align-self: stretch; flex: none; }
+
+/* No arrowheads: the map runs down the page, so every wire on it means "next"
+   already, and a tip on each one only crowded the top edge of the card it
+   landed on. The one wire that does not mean next draws dashed instead. */
+.fm-wire { fill: none; stroke: var(--line-2); stroke-width: 1.6; transition: stroke .12s, opacity .12s; }
+.fm-wire.hot { stroke: var(--c, var(--accent)); stroke-width: 2.4; }
+.fm-wire.lit { stroke: var(--accent); stroke-width: 2.4; }
+/* A chain that closes on itself — seeds back out of the crop they grew — draws
+   dashed, because it is the one wire on the map that does not mean "next". */
+.fm-wire.back { stroke-dasharray: 5 4; }
+.fmap.picked .fm-wire:not(.hot):not(.lit) { opacity: .22; }
+
+/* Items are the spine: what the fortress is holding between one job and the
+   next. They stay small so the workshops are what the eye lands on. */
+.f-item {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .34rem .7rem; text-decoration: none;
+  background: var(--panel-2); border: 1px solid var(--line-2);
+  font-size: .92rem; font-weight: 600; color: var(--ink);
+  transition: border-color .12s, background .12s;
+}
+.f-item:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); }
+.f-item .sprite { width: 18px; height: 18px; }
+.fi-link { display: inline-flex; align-items: center; gap: .4rem; color: inherit; text-decoration: none; }
+.fi-link:hover { color: var(--accent); }
+/* A job whose products are all dead ends collapses into one node listing them.
+   It wraps at a readable measure rather than stretching its row to the width of
+   whatever the carpenter can make. */
+.f-many { display: flex; flex-wrap: wrap; gap: .1rem .7rem; max-width: 21rem; font-weight: 500; }
+.f-many .fi-link::after { content: '·'; color: var(--ink-3); margin-left: .7rem; }
+.f-many .fi-link:last-of-type::after { content: none; }
+/* Dashed means it comes from outside this map; gold means the branch stops
+   here. Between them they mark every point where a reader has to look
+   somewhere else, which is the whole job of the tags. */
+.f-item.src { border-style: dashed; font-weight: 500; color: var(--ink-2); background: var(--bg-2); }
+.f-item.end { border-color: color-mix(in srgb, var(--gold) 60%, var(--line-2)); box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--gold) 40%, transparent); }
+.fi-tag { display: inline-flex; line-height: 0; margin-left: .1rem; }
+.fi-tag .sym { width: 1.1em; height: 1.1em; }
+.fi-tag.src { color: var(--ink-3); }
+.fi-tag.end { color: var(--gold); }
+.fm-legend .sym { width: 1.15em; height: 1.15em; vertical-align: -.22em; }
+
+/* The step card. Everything the old Steps tab put on a recipe — workshop,
+   skill, containers, fuel, the note — on the node itself, so picking a path
+   does not mean reading a second list somewhere else on the page. */
+/* `align-self: stretch` is what makes a row of cards one height: flexbox
+   already knows which is tallest, so nothing has to measure anything. The note
+   is what used to break it — three sentences on one card and none on the one
+   beside it — so it lives behind the chevron, and the card is a column with the
+   chevron pushed to the foot by `margin-top: auto`, which is what keeps the
+   chevrons on a row lined up whatever is above them. */
+.f-job {
+  position: relative; flex: none; width: 258px; max-width: 100%;
+  align-self: stretch; display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line);
+  padding: 1rem .9rem; text-align: center;
+  transition: border-color .15s, box-shadow .15s, opacity .15s, filter .15s;
+}
+.f-job:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+/* The building's name caps the card above its own artwork, so it reads as the
+   plate's label. It carries no icon: the plate underneath is already the
+   picture of the building, and a second miniature of the same thing an inch
+   above it only halves the room the name has to be read in. It is a link to the
+   workshop page but is not styled as a chip — at the top of a card a bordered
+   pill would compete with the step number sitting in the same corner. */
+.fjob-shop {
+  display: block; margin: -.15rem 0 .6rem; padding-bottom: .55rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 1rem; font-weight: 600; letter-spacing: -.01em;
+  color: var(--ink); text-decoration: none;
+}
+.fjob-shop:hover { color: var(--accent); }
+.fjob-art { display: flex; justify-content: center; color: var(--ink-2); margin-bottom: .6rem; }
+.f-job:hover .fjob-art, .f-group:hover .fjob-art { color: var(--accent); }
+.fjob-txt { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.f-job h3 { margin: 0 0 .55rem; font-size: .92rem; }
+.f-job .needs { justify-content: center; }
+.f-job .needs:empty { display: none; }
+
+/* The note is what used to break the equal heights — three sentences on one
+   card and none on the one beside it — so it lives behind a chevron, pushed to
+   the foot of the card by `margin-top: auto`, which is what keeps the chevrons
+   on a row lined up whatever is above them. */
+.fjob-more { margin-top: auto; }
+.fjob-more > summary {
+  display: flex; align-items: center; justify-content: center;
+  list-style: none; cursor: pointer; color: var(--ink-3);
+  margin-top: .8rem; padding-top: .5rem; border-top: 1px dashed var(--line);
+}
+.fjob-more > summary::marker,
+.fjob-more > summary::-webkit-details-marker { display: none; content: none; }
+.fjob-more > summary:hover { color: var(--accent); }
+.fjob-more > summary .sym { width: 1.15rem; height: 1.15rem; transition: transform .15s; }
+.fjob-more[open] > summary .sym { transform: rotate(180deg); }
+.f-job .note {
+  margin: .5rem 0 0;
+  font-size: .76rem; line-height: 1.5; color: var(--ink-2); text-align: left;
+}
+
+/* On a step card a spelled-out badge is most of the card's width, so the map
+   draws the symbol alone and leaves the words to the tooltip. Everywhere else
+   — a workshop page, an item page — has the room and keeps them. */
+.need.only-sym { padding: .12rem .32rem; }
+.need.only-sym .sym { width: 1.25em; height: 1.25em; }
+
+/* One building, several jobs. A glass furnace makes green glass, clear glass,
+   crystal glass and glass goods, and four cards of it is the same plate four
+   times over for jobs that share one hearth. So the building gets one card and
+   its jobs get another beside it: every wire on that stretch of the chain lands
+   on the building, and the card next to it says what the building can be told
+   to do. The two are separate cards rather than two halves of one, because the
+   wires belong to the first and not to the second, and a single border around
+   both would claim otherwise. */
+.f-group {
+  align-self: stretch; flex: none; max-width: 100%;
+  display: flex; align-items: stretch; gap: .8rem;
+}
+.f-shopcard, .f-types {
+  background: var(--panel); border: 1px solid var(--line);
+  transition: border-color .15s, box-shadow .15s, opacity .15s, filter .15s;
+}
+.f-group:hover .f-shopcard, .f-group:hover .f-types {
+  border-color: var(--accent); box-shadow: var(--shadow);
+}
+.f-shopcard {
+  position: relative; flex: none; width: 158px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 1rem .8rem; text-align: center;
+}
+.f-shopcard .fjob-shop { width: 100%; }
+/* The building card stretches to whatever the card of types beside it needs,
+   so the plate takes the middle of that room rather than leaving all of it
+   underneath. */
+.f-shopcard .fjob-art { flex: 1; align-items: center; margin: 0; }
+/* Where every job under this roof wants the same skill and the same containers,
+   the badges say so once, at the foot of the building rather than on four lines
+   that would each repeat it. */
+.f-shopcard .needs { justify-content: center; margin-top: .7rem; }
+.f-types {
+  list-style: none; margin: 0; padding: 1rem;
+  flex: none; width: 430px; max-width: 100%; text-align: left;
+}
+.f-types > li + li { margin-top: .7rem; padding-top: .7rem; border-top: 1px solid var(--line); }
+
+/* Inside the card of types a job is a line, not a card: no border, no
+   background, the number beside the name rather than hanging off a corner it
+   would have to share with its neighbour. */
+.f-job.in-list {
+  width: auto; border: 0; background: none; padding: 0; box-shadow: none;
+  flex-direction: row; align-items: flex-start; gap: .5rem; text-align: left;
+}
+.f-job.in-list:hover { box-shadow: none; }
+.f-job.in-list .fnum {
+  position: static; flex: none; width: 1.45rem; height: 1.45rem; font-size: .74rem;
+}
+.f-job.in-list .fnum:empty { display: none; }
+.f-job.in-list h3 { margin: 0 0 .35rem; }
+.f-job.in-list .needs { justify-content: flex-start; }
+/* Two columns to a line: what the job is on the left, what the wiki says about
+   it on the right. A card of types has the width for both, so the note stands
+   open here rather than behind the chevron a lone card needs. */
+.f-job.in-list .fjob-txt { flex: none; width: 152px; }
+.f-job.in-list .note {
+  flex: 1; min-width: 0; margin: 0;
+  font-size: .74rem; line-height: 1.5; color: var(--ink-2);
+}
+.f-job.in-list .note[hidden] { display: none; }
+/* Faded by the chips only when the path skips every job under this roof. */
+.f-group.dim .f-shopcard { opacity: .32; filter: grayscale(1); }
+
+.fnum {
+  position: absolute; top: -.72rem; left: -.72rem;
+  width: 1.75rem; height: 1.75rem; display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-ink);
+  font-family: var(--mono); font-size: .82rem; font-weight: 600;
+}
+.fnum:empty { display: none; }
+
+/* Picking a path fades what it skipped rather than removing it: the point of
+   keeping the map is that you can still see the branch you did not take. The
+   detail on those cards goes, though — a page of greyed-out paragraphs between
+   step 2 and step 3 is a page the reader has to scroll past to follow the line
+   they actually asked for. Hovering one brings it back. */
+.fmap.picked .fnode:not(.on) { opacity: .32; filter: grayscale(1); }
+.fmap.picked .fnode:not(.on):hover { opacity: .85; filter: none; }
 
 /* ── About ────────────────────────────────────────────────────── */
 .prose { max-width: 68ch; }
@@ -391,7 +585,6 @@ td:first-child { font-weight: 600; white-space: nowrap; }
   .topnav { margin-left: auto; }
   .topnav a { padding: .4rem .5rem; font-size: .82rem; }
   .search-wrap { order: 3; flex-basis: 100%; max-width: none; margin-inline: 0; }
-  .graph-shell { height: min(65vh, 460px); }
   .page-head h1, .item-head h1 { font-size: 1.35rem; }
   .ws-head { gap: .8rem; }
   .ws-icon.xxl { width: 44px; height: 44px; }
@@ -399,6 +592,22 @@ td:first-child { font-weight: 600; white-space: nowrap; }
   .ws-pic { width: 48px; height: 64px; gap: 4px; }
   .ws-pic img { width: 48px; height: 64px; }
   .ws-pic.small img { width: 32px; height: 64px; }
+  /* The map falls back to a single column: the rows already wrap, and a card
+     narrow enough to sit two-up here would have no room for its note. */
+  .f-job { width: 100%; }
+  .fmap-row { gap: 1rem; padding-bottom: 2rem; }
+  /* A building and its card of types stay side by side — they are one thing
+     read across — but at their own widths rather than the desktop's, or the
+     pair hangs off the edge and the page scrolls sideways. */
+  .f-group { width: 100%; gap: .6rem; }
+  .f-shopcard { width: 96px; padding: .8rem .5rem; }
+  .f-shopcard .fjob-shop { font-size: .82rem; }
+  .f-types { flex: 1; width: auto; min-width: 0; padding: .8rem; }
+  /* No room for two columns here, so the note drops under the job it belongs
+     to rather than being squeezed into a gutter beside it. */
+  .f-job.in-list { flex-wrap: wrap; }
+  .f-job.in-list .fjob-txt { width: auto; flex: 1; }
+  .f-job.in-list .note { flex-basis: 100%; margin-top: .45rem; }
 }
 
 /* ── Symbols ──────────────────────────────────────────────────── */
@@ -870,61 +1079,16 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 }
 
 /* ── build routes ───────────────────────────────────────────────── */
-/* A ladder, not a grid: the whole point of this view is that the rungs happen
-   in an order, and a grid would throw that away to save vertical space. */
-.rt-head { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; margin-bottom: .3rem; }
-.rt-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: .4rem; }
-.rt-head h2 .sym { color: var(--accent); }
-.rt-count {
-  margin-left: auto; font-size: .72rem; font-family: var(--mono);
-  text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3);
-}
-.rt-blurb { margin: 0 0 1rem; color: var(--ink-2); font-size: .88rem; max-width: 66ch; }
 
-/* The route in one line — what you are holding at each stage, start to end. */
-.rt-path {
-  display: flex; align-items: center; gap: .3rem; flex-wrap: wrap;
-  padding: .7rem .8rem; margin-bottom: 1.4rem;
-  background: var(--panel); border: 1px solid var(--line);
-  border-left: 3px solid var(--accent);
-}
-.rt-sep { line-height: 0; color: var(--ink-3); flex: none; }
-.rt-sep .arrow-svg { width: 15px; height: 15px; transform: rotate(-90deg); }
-
-.rt-steps { list-style: none; margin: 0; padding: 0; }
-.rt-step { display: flex; gap: .9rem; position: relative; padding-bottom: .9rem; }
-.rt-step:last-child { padding-bottom: 0; }
 
 /* The thread down the left margin. It runs from under one number to the next,
    so the last rung has none and the ladder ends rather than trailing off. */
-.rt-step:not(:last-child)::before {
-  content: ''; position: absolute; left: 1.05rem; top: 2.3rem; bottom: .2rem;
-  width: 1px; background: var(--line-2);
-}
-.rt-step.aside::before, .rt-step.aside + .rt-step::before { border-left: 1px dashed var(--line-2); background: none; width: 0; }
 
-.rt-num {
-  flex: none; width: 2.1rem; height: 2.1rem; z-index: 1;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono); font-size: .85rem; font-weight: 600;
-  color: var(--accent-ink); background: var(--accent);
-  border: 1px solid var(--accent);
-}
 /* A side job is off the count for a reason — it gets a hollow badge so the
    numbered spine still reads as 1, 2, 3 at a glance. */
-.rt-step.aside .rt-num { background: var(--panel); color: var(--ink-3); border-color: var(--line-2); }
-.rt-step.opt .rt-num { background: var(--panel-2); color: var(--ink-2); border-color: var(--line-2); }
 
-.rt-step .rec { flex: 1; min-width: 0; margin: 0; }
-.rt-step.aside .rec, .rt-step.opt .rec { border-style: dashed; }
-.rt-where { margin-bottom: .5rem; }
-.rt-io { gap: .3rem; }
-.rt-io .plus { margin: 0 .1rem; }
 
 @media (max-width: 560px) {
-  .rt-step { gap: .6rem; }
-  .rt-step:not(:last-child)::before { left: .85rem; }
-  .rt-num { width: 1.7rem; height: 1.7rem; font-size: .78rem; }
 }
 
 /* ── item sprites ───────────────────────────────────────────────── */

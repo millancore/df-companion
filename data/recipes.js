@@ -345,158 +345,353 @@ window.DF_RECIPES = [
 
 ];
 
-/* Ordered build routes. The steps above say what every job does, but not what
-   order to run them in to end up holding a book — and paper is the one industry
-   where that order is not obvious, because two of the three things it makes
-   need a side job finished before the last step can run at all.
+/* ── Industry maps ───────────────────────────────────────────────
+   Every industry is one view: the step list and the chain map drawn as the same
+   picture. A flow names the jobs and nothing else — the layout works the order
+   out from what each job eats and makes, so the map cannot drift away from the
+   steps above it the way a hand-drawn diagram would.
 
-   A route is that order: one entry per finished form, written as a chain of
-   step ids with the chosen sheet route spliced in at the front. An industry
-   with routes shows them in place of the usual step list, so every step it
-   owns has to appear in at least one of them.
+   `steps` may borrow a job from another industry, and most of them have to. An
+   ash chain that stopped at the ashery's own jobs would begin and end in
+   mid-air; a forge with no mine above it starts with ore nobody dug. A borrowed
+   job carries the name of the industry it came from.
 
-   `use` and `gives` name which of a step's listed inputs and outputs this
-   particular route touches — the quire job takes a paper sheet or a parchment
-   sheet, and which one turns up depends on the sheet route picked. '@sheet'
-   stands for whatever that route produced.
-   `aside` marks a step that feeds the chain sideways: it makes something the
-   main line consumes later, so it can be queued any time before that step.
-   `optional` marks a step the finished item does not require. */
-window.DF_PRODUCT_ROUTES = {
-  /* Textiles is a route industry for the opposite reason to paper: not because
-     the order is awkward, but because there are six different ways in and the
-     first two rungs are the only thing that changes between them. Pick the
-     fibre you actually have and the ladder rewrites itself; the last rung is
-     the same job every time. */
+   `joins` folds one item name into another for the length of one map. The
+   recipes are written at the altitude each industry needs and the two do not
+   always meet: the loom eats "Thread" while five different jobs make a "…
+   thread", the forge eats an "Iron bar" while the smelter makes "Metal bars".
+   Renaming on the way in is what turns those into one node with wires into it
+   rather than a row of orphans above a row of things nobody supplies. It is a
+   display join and nothing else — the steps keep the names the game uses, and
+   the joined name has to be an item the data already knows, or its node leads
+   nowhere.
+
+   `paths` are the chips over the map. Each is a main line through it — the jobs
+   you queue to end up holding one thing — and picking it numbers those rungs
+   1..n and fades the rest. The first path is what the page opens on and is
+   normally the whole picture, which carries no step list of its own. A path may
+   also override a step's `titles` and `notes`: "Grow a crop" is "Grow pig
+   tails" on the pig tail line, and the season it wants is worth saying there
+   and nowhere else. */
+window.DF_INDUSTRY_FLOWS = {
+
+  fuel: {
+    blurb: 'Everything else on this site burns something this industry makes. One tree, and then a choice about what to do with the log.',
+    steps: ['fell-tree', 'make-charcoal', 'make-ash', 'coke-bituminous', 'coke-lignite',
+            'carpenter', 'bowyer'],
+    paths: [
+      { id: 'all', label: 'Everything',
+        blurb: 'Two ways to fuel a furnace and three other things to do with a log. Nothing here needs fuel to run except the coke jobs, which is the whole reason the wood furnace exists.' },
+
+      { id: 'charcoal', label: 'Charcoal', tag: 'Fuel',
+        steps: ['fell-tree', 'make-charcoal'],
+        blurb: 'One log, one charcoal, and the wood furnace burns nothing to do it. Slow and wasteful of trees, but it is the only fuel a fortress with no coal and no magma can start from.' },
+
+      { id: 'coke', label: 'Coke', tag: 'Fuel',
+        steps: ['coke-bituminous'],
+        blurb: 'Nine coke from one bituminous coal, less the one unit the smelter burns running the job — a net eight, or all nine at a magma smelter. Lignite gives five for the same work, so use it only if that is the coal your map has.' },
+
+      { id: 'ash', label: 'Ash', tag: 'Soap & glass',
+        steps: ['fell-tree', 'make-ash'],
+        blurb: 'The other thing a wood furnace does with a log, and the head of the soap, potash, fertiliser and pearlash chains. Ash is worth burning trees for long after you have stopped needing charcoal.' },
+
+      { id: 'wood', label: 'Barrels & buckets', tag: 'Containers',
+        steps: ['fell-tree', 'carpenter'],
+        blurb: 'The quiet bottleneck of half the fortress: no barrel, no booze; no bucket, no lye and no well. Put a standing order on the carpenter early and forget about it.' }
+    ]
+  },
+
+  farming: {
+    blurb: 'Seeds in, plants out, and the seeds come back — the only chain on the site that closes a loop. Fertiliser is the one branch off it.',
+    steps: ['gather-plants', 'farm-plot', 'seeds-recovery', 'make-ash', 'make-potash-ash', 'fertilise'],
+    paths: [
+      { id: 'all', label: 'Everything',
+        blurb: 'The dashed wire is the point of the whole industry: brewing, milling, threshing and eating raw all hand the seeds back, so a plot that started with five seeds keeps running forever. Cooking is the exception, and it is a permanent one.' },
+
+      { id: 'grow', label: 'Grow a crop', tag: 'Start here',
+        steps: ['gather-plants', 'farm-plot'],
+        blurb: 'Seeds come off a caravan, out of a gatherer’s bag, or back from anything that processes a plant. After that a plot on muddy ground runs on its own.',
+        notes: {
+          'farm-plot': 'Underground plots need a muddy floor, and a soil layer already counts — dig into one and no irrigation is needed. Plump helmets grow in all four seasons and can be eaten raw, which makes them the crop to start with.'
+        } },
+
+      { id: 'seeds', label: 'Keep your seeds', tag: 'The loop',
+        steps: ['farm-plot', 'seeds-recovery'],
+        blurb: 'Eating raw, brewing, milling and threshing all return the seed. Cooking does not — a plant cooked into a meal takes its seeds with it, permanently. Never let a cook near the last of anything.' },
+
+      { id: 'fertiliser', label: 'Fertiliser',
+        steps: ['make-ash', 'make-potash-ash', 'fertilise'],
+        blurb: 'Two jobs away from a log. Fertilising raises yields and is entirely optional, so it is for surface crops and for fields you are pushing rather than for the plump helmets that grow fine in plain mud.' }
+    ]
+  },
+
+  food: {
+    blurb: 'Everything a dwarf eats or drinks passes through one of these four buildings. Pick what you want to end up holding and the map numbers the jobs that get you there.',
+    steps: ['butcher', 'brew', 'mill', 'mill-paste', 'process-leaves', 'process-syrup',
+            'clean-fish', 'render-fat', 'press-oil', 'cook-meals'],
+    /* The quern's output is written generically because one job grinds
+       thirty-three plants; the kitchen names the two powders it cooks with.
+       Joining them is what puts a wire between the two. */
+    joins: { 'Cave wheat flour': 'Powder', 'Dwarven sugar': 'Powder' },
+    paths: [
+      { id: 'all', label: 'Everything',
+        blurb: 'Almost every job here hands the seeds back, and almost every one wants an empty container first. The kitchen is the only building that consumes seeds outright.' },
+
+      { id: 'booze', label: 'Booze', tag: 'Build this first',
+        steps: ['brew'],
+        blurb: 'One job, seventy-seven ingredients, one empty barrel each time. Dwarves work slower and get miserable without drink, and this is the shortest chain on the whole site — one plant, one Still, done.' },
+
+      { id: 'flour', label: 'Flour & sugar',
+        steps: ['mill'],
+        blurb: 'The same job that grinds dyes for the loom. Every run needs an empty bag, and what comes out depends entirely on the plant that went in — cave wheat gives flour, sweet pods give sugar, dimple cups give dye.' },
+
+      { id: 'oil', label: 'Oil', tag: 'Soap & cooking',
+        steps: ['mill-paste', 'press-oil'],
+        blurb: 'The one milling job that does not want a bag, and the only reason to build a screw press outside the paper industry. Oil is the plant half of the soap recipe as well as a cooking ingredient.' },
+
+      { id: 'meals', label: 'Meals', tag: 'Kitchen',
+        steps: ['butcher', 'render-fat', 'cook-meals'],
+        blurb: 'Easy meals take two ingredients, fine three, lavish four, and the value follows both the ingredients and the cook. Variety matters more than quantity — dwarves tire of eating the same thing.' }
+    ]
+  },
+
   textiles: {
-    blurb: 'Pick the fibre you have and what you want to end up holding, and the chain below is the order to run the jobs in. The dye rungs are optional — and they are also where most of the value comes from.',
-    sheetLabel: 'Fibre from',
-    productLabel: 'Make',
+    blurb: 'Every route in this industry meets at one node, and that node is the loom. Pick the fibre you actually have and the map numbers the jobs from it to a finished garment.',
+    steps: ['mill', 'process-thread', 'shear', 'spin', 'collect-webs', 'extract-strands',
+            'weave', 'dye-thread', 'clothier', 'cloth-crafts', 'embroider'],
+    /* The loom takes "Thread" whatever made it, so every job that makes one
+       feeds the same node — which is the shape of the industry: six routes in,
+       one building, one route out. Hair thread is deliberately left out of the
+       join, because a loom will not take it. What the quern is here for is dye,
+       not flour, so its generic Powder is named for the use this map has. */
+    joins: {
+      'Plant fiber thread': 'Thread', 'Yarn thread': 'Thread',
+      'Silk thread': 'Thread', 'Adamantine strands': 'Thread',
+      'Powder': 'Dye'
+    },
+    paths: [
+      { id: 'all', label: 'Everything',
+        blurb: 'Six jobs make thread and one weaves it, which is why the map narrows to a single node in the middle. Everything above that node is a choice about what you have; everything below it is a choice about what it is worth.' },
 
-    sheets: [
-      { id: 'pigtail', label: 'Pig tail', gives: 'Pig tail fiber cloth', steps: [
-        { ref: 'farm-plot', title: 'Grow pig tails', use: 'Seeds', gives: 'Pig tail',
-          note: 'Summer and autumn, on any muddy underground floor. Soil layers are already muddy, so a plot dug into one needs no irrigation.' },
-        { ref: 'process-thread', use: 'Pig tail', gives: 'Pig tail fiber thread' },
-        { ref: 'weave', use: 'Pig tail fiber thread', gives: 'Pig tail fiber cloth' }
-      ] },
+      { id: 'plant', label: 'Plant fibre',
+        steps: ['process-thread', 'weave', 'clothier'],
+        blurb: 'Pig tail underground, or rope reed, hemp, flax, cotton, kenaf, jute and ramie above it. One job threshes all eight and the thread is worth the same whichever it was — what differs is the season and the ground it needs.',
+        notes: {
+          'clothier': 'One unit of cloth, one garment, whatever its size — so make the expensive ones. A robe is worth 33 before anything else is counted and a thong 5. Shoes, socks, gloves and mittens come out two at a time from that same one unit.'
+        } },
 
-      { id: 'surface', label: 'Above-ground crop', gives: 'Rope reed fiber cloth', steps: [
-        { ref: 'farm-plot', title: 'Grow a surface fibre crop', use: 'Seeds', gives: 'Rope reed',
-          note: 'Rope reed and hemp grow outside the tropics; flax wants grassland or savanna; cotton, kenaf, jute and ramie are tropical. All of them grow in all four seasons, and all of them need seeds off a caravan or a gatherer first.' },
-        { ref: 'process-thread', use: 'Rope reed', gives: 'Rope reed fiber thread' },
-        { ref: 'weave', use: 'Rope reed fiber thread', gives: 'Rope reed fiber cloth' }
-      ] },
+      { id: 'wool', label: 'Wool',
+        steps: ['shear', 'spin', 'weave', 'clothier'],
+        blurb: 'No farm plot, no seeds and no season — just sheep, llamas or alpacas, once every 300 days each. Wool is the one fibre that needs spinning before a loom will look at it.' },
 
-      { id: 'wool', label: 'Wool', gives: 'Wool cloth', steps: [
-        { ref: 'shear', use: 'Sheep', gives: 'Wool' },
-        { ref: 'spin', title: 'Spin the wool into yarn', use: 'Wool', gives: 'Wool yarn thread' },
-        { ref: 'weave', use: 'Wool yarn thread', gives: 'Wool cloth' }
-      ] },
+      { id: 'silk', label: 'Silk',
+        steps: ['collect-webs', 'weave', 'clothier'],
+        blurb: 'Web is already thread by the time it reaches the loom, so this is the shortest route to cloth in the game. Vermin silk is free and worth little; giant cave spider silk is worth twenty-four a length and is collected in the caverns, at real risk.',
+        notes: {
+          'collect-webs': 'An idle loom queues this by itself. Cats hunt vermin spiders to extinction, so shut them away if you want the free silk — and set standing orders to ignore webs until the cavern is cleared, or a gatherer will walk into it alone.'
+        } },
 
-      { id: 'silk', label: 'Spider silk', gives: 'Silk cloth', steps: [
-        { ref: 'collect-webs', use: 'Spider web', gives: 'Silk thread' },
-        { ref: 'weave', use: 'Silk thread', gives: 'Silk cloth' }
-      ] },
+      { id: 'adamantine', label: 'Adamantine', tag: 'The expensive one',
+        steps: ['extract-strands', 'weave', 'clothier'],
+        blurb: 'The loom treats strands like any other thread. What comes off it is worth about 150 times pig tail cloth — and wears out just as fast, which is why almost everybody smelts the strands into wafers instead.' },
 
-      { id: 'gcs', label: 'Giant cave spider silk', gives: 'Giant cave spider silk cloth', steps: [
-        { ref: 'collect-webs', title: 'Collect giant cave spider webs',
-          use: 'Giant cave spider web', gives: 'Giant cave spider silk thread',
-          note: 'The shortest route on this page and the most dangerous. Send an escort, or clear the cavern first.' },
-        { ref: 'weave', use: 'Giant cave spider silk thread', gives: 'Giant cave spider silk cloth' }
-      ] },
+      { id: 'dye', label: 'Dye', tag: 'Where the value is',
+        steps: ['mill', 'dye-thread'],
+        blurb: 'The biggest single lever on what a garment is worth: a masterful dyer adds 240☼ where a poor one adds 20. Dye the thread before the loom or the cloth after — both work, and neither can be undone, because dyed things cannot be redyed.',
+        notes: {
+          'mill': 'Dimple cups grow underground in all four seasons and give the most valuable dye in the game, tied with emerald and sliver. One plant makes one unit of dye, which colours one unit of thread or cloth, and the whole stack lands in a single bag.'
+        } }
+    ]
+  },
 
-      { id: 'adamantine', label: 'Adamantine', gives: 'Adamantine cloth', steps: [
-        { ref: 'extract-strands', use: 'Raw adamantine', gives: 'Adamantine strands' },
-        { ref: 'weave', use: 'Adamantine strands', gives: 'Adamantine cloth',
-          note: 'The loom treats strands like any other thread. What comes off it is worth 150 times pig tail cloth — and wears out just as fast.' }
-      ] }
-    ],
+  metal: {
+    blurb: 'Everything on this map happens at a smelter or a forge, and every job at both burns a unit of fuel unless the building stands over magma. Pick an end product and the map numbers the jobs that get you there.',
+    steps: ['mine', 'smelt-ore', 'make-alloy', 'extract-strands', 'adamantine-wafer', 'forge'],
+    /* The forge names the seven bars it will take; the smelter makes "Metal
+       bars" and the alloy job "Alloy bars". Folding the named bars back into
+       the two nodes that actually produce them is what closes the gap between
+       the anvil and the furnace feeding it. */
+    joins: {
+      'Iron bar': 'Metal bars', 'Copper bar': 'Metal bars',
+      'Gold bar': 'Metal bars', 'Silver bar': 'Metal bars',
+      'Steel bar': 'Alloy bars', 'Bronze bar': 'Alloy bars'
+    },
+    paths: [
+      { id: 'all', label: 'Everything',
+        blurb: 'One mine, one smelter and one forge, with adamantine running down the side on its own track. The fuel every furnace here burns is not on this map — it comes off the wood and coal chain.' },
 
-    products: [
-      { id: 'clothes', name: 'Clothing', tag: 'The point of the industry',
-        blurb: 'One unit of cloth, one garment, whatever its size — so make the expensive ones. A robe is worth 33 before anything else is counted, a thong 5. Shoes, socks, gloves and mittens come out two at a time from that same one unit.',
-        steps: [
-          { ref: 'mill', title: 'Mill a dye plant', use: 'Dimple cup', gives: 'Dimple dye', aside: true,
-            note: 'Dimple cups grow underground in all four seasons and give the most valuable dye in the game, tied with emerald and sliver. One plant makes one unit of dye, which colours one unit of thread or cloth, and the whole stack lands in a single bag.' },
-          { ref: 'dye-thread', title: 'Dye the cloth', use: ['@sheet', 'Dimple dye'], gives: 'Dyed cloth', optional: true,
-            note: 'Optional, and the biggest single lever on the final value: a masterful dyer adds 240☼ where a poor one adds 20. Dye the thread before the loom or the cloth after — both work, and neither can be undone, because dyed things cannot be redyed.' },
-          { ref: 'clothier', title: 'Sew the garment', use: '@sheet', gives: 'Robe',
-            note: 'Takes the cloth dyed or plain — it is the same job either way. Set the shop to take only dyed cloth from a linked stockpile and put your best clothier on it. Value follows three skills — weaver, dyer, clothier — and the material underneath all three.' }
-        ] },
+      { id: 'bars', label: 'Bars', tag: 'Start here',
+        steps: ['mine', 'smelt-ore'],
+        blurb: 'Seventeen ores, and several of them give a second metal as a bonus. Check what your map has before planning anything downstream — a fortress with no iron and no flux is not making steel however many smelters it builds.' },
 
-      { id: 'bag', name: 'Bag', tag: 'Container',
-        blurb: 'The quiet bottleneck: no bag, no flour, no sugar, no dye, no sand. Cheap to make and worth keeping a standing order for.',
-        steps: [
-          { ref: 'clothier', title: 'Sew a bag', use: '@sheet', gives: 'Bag',
-            note: 'A leather works makes these too, from a tanned hide — whichever material you have spare.' }
-        ] },
+      { id: 'steel', label: 'Steel', tag: 'Weapons-grade',
+        steps: ['mine', 'smelt-ore', 'make-alloy'],
+        blurb: 'Iron, pig iron, flux and fuel, twice over. It is the best armour material a fortress can mass-produce, and the flux stone it needs is limestone, dolomite, chalk, calcite or marble — the same stones the kiln wants for quicklime.' },
 
-      { id: 'rope', name: 'Rope', tag: 'Gear',
-        blurb: 'For restraints, traction benches, rollers and wells. A metal chain does the same job, so make rope only if cloth is the thing you have going spare.',
-        steps: [
-          { ref: 'clothier', title: 'Make a rope', use: '@sheet', gives: 'Rope' }
-        ] },
+      { id: 'goods', label: 'Weapons & armour',
+        steps: ['mine', 'smelt-ore', 'forge'],
+        blurb: 'One anvil, six labours and fourteen categories of product. What a piece is worth follows the metal underneath it and the smith swinging the hammer, in that order.' },
 
-      { id: 'crafts', name: 'Cloth crafts', tag: 'Trade good',
-        blurb: 'A different building at the end of the same chain. Worth knowing about, rarely worth doing — the same unit of cloth sewn into a robe is worth several times as much.',
-        steps: [
-          { ref: 'cloth-crafts', use: '@sheet', gives: 'Cloth crafts' }
-        ] }
+      { id: 'adamantine', label: 'Adamantine', tag: 'If you find it',
+        steps: ['extract-strands', 'adamantine-wafer', 'forge'],
+        blurb: 'Raw adamantine is useless as mined. Strands are extracted at a craftsdwarf’s workshop and then melted into wafers at a smelter — the loom is the other option, and almost nobody takes it.' }
+    ]
+  },
+
+  soap: {
+    blurb: 'One job makes ash and everything below it is a choice about what to do with it. Pick an end product and the map numbers the jobs that get you there.',
+    steps: ['make-ash', 'make-lye', 'make-potash-ash', 'make-potash-lye',
+            'make-soap', 'make-pearlash', 'fertilise'],
+    paths: [
+      { id: 'all', label: 'Everything',
+        blurb: 'Every job the ash chain can run. Ash splits three ways at the ashery, and lye splits again at the soap maker’s — nothing below the wood furnace is compulsory.' },
+
+      { id: 'soap', label: 'Soap', tag: 'Hospital',
+        steps: ['make-ash', 'make-lye', 'make-soap'],
+        blurb: 'The short line the industry is named for. Keep a bucket free for the ashery and any fat in reach of the soap maker — wounds washed with soap get infected far less often.' },
+
+      { id: 'potash', label: 'Potash', tag: 'Fertiliser',
+        steps: ['make-ash', 'make-potash-ash', 'fertilise'],
+        blurb: 'Ash straight to potash, no bucket and no lye in the way. Fertilising is entirely optional — plump helmets grow perfectly well in plain mud — so this line is for surface crops and for fields you are pushing.' },
+
+      { id: 'pearlash', label: 'Pearlash', tag: 'Clear glass',
+        steps: ['make-ash', 'make-potash-ash', 'make-pearlash'],
+        blurb: 'The same potash, fired again at a kiln. Pearlash exists almost entirely to turn green glass into clear, and the kiln burns a unit of fuel doing it unless it stands over magma.' }
+    ]
+  },
+
+  animal: {
+    blurb: 'One animal, six things off it, and four buildings that each take one of them somewhere different. Nothing here is optional if you want leather.',
+    steps: ['butcher', 'milk', 'tan', 'cheese', 'bonecarve', 'leatherworks', 'parchment'],
+    paths: [
+      { id: 'all', label: 'Everything',
+        blurb: 'The butcher’s shop is the head of five separate chains at once, which is why everything below it fans out. A raw hide rots if it is not tanned, so put the tanner’s shop next to the butcher and link them.' },
+
+      { id: 'leather', label: 'Leather',
+        steps: ['butcher', 'tan', 'leatherworks'],
+        blurb: 'Tan the hide before it rots. Leather armour is the cheapest armour worth wearing and the leather works also makes the backpacks and waterskins a squad needs before it can leave the fortress.' },
+
+      { id: 'meat', label: 'Meat & fat', tag: 'Kitchen',
+        steps: ['butcher'],
+        blurb: 'One job, and what comes off depends entirely on the animal. Fat is the half of this that matters longest — rendered into tallow it feeds both the kitchen and the soap maker.' },
+
+      { id: 'bone', label: 'Bone & shell',
+        steps: ['butcher', 'bonecarve'],
+        blurb: 'Free crossbow ammunition and free trade goods out of what would otherwise rot. Bone bolts are as good as wooden ones and cost a job nobody else is queuing for.' },
+
+      { id: 'dairy', label: 'Milk & cheese',
+        steps: ['milk', 'cheese'],
+        blurb: 'Renewable food from an animal you do not have to kill, at the cost of an empty bucket each time. Both jobs run at the farmer’s workshop.' },
+
+      { id: 'parchment', label: 'Parchment', tag: 'Books',
+        steps: ['butcher', 'parchment'],
+        blurb: 'One hide, one sheet, whatever the animal’s size — so use the small ones. The milk of lime it needs comes off the quicklime chain in the paper industry.' }
+    ]
+  },
+
+  stone: {
+    blurb: 'What the miners bring up, and the five buildings that turn it into something. Stone is the one material a fortress never runs out of.',
+    steps: ['mine', 'mason', 'stonecraft', 'mechanisms', 'cut-gem', 'encrust',
+            'clay', 'quicklime', 'make-pearlash'],
+    paths: [
+      { id: 'all', label: 'Everything',
+        blurb: 'Mining feeds four workshops and two furnaces. The kiln jobs are the only ones here that burn fuel, and the gems are the only ones that need something the map has to have put there.' },
+
+      { id: 'blocks', label: 'Stone goods', tag: 'Furniture',
+        steps: ['mine', 'mason'],
+        blurb: 'Blocks build faster and prettier than raw boulders and one stone makes four of them. A mason’s workshop next to the stockpile is usually the second workshop a fortress builds.' },
+
+      { id: 'mech', label: 'Mechanisms', tag: 'Levers & traps',
+        steps: ['mine', 'mechanisms'],
+        blurb: 'Any stone will do. Levers, bridges, traps and the screw press all want them, and every one of those is two mechanisms rather than one — keep a standing order running.' },
+
+      { id: 'gems', label: 'Gems',
+        steps: ['mine', 'cut-gem', 'encrust'],
+        blurb: 'Rough gems come out of the walls wherever the map put them. Cutting multiplies what they are worth; encrusting moves that value onto something a noble will look at.' },
+
+      { id: 'ceramics', label: 'Ceramics',
+        steps: ['clay', 'quicklime'],
+        blurb: 'Clay is dug out of a soil layer and fired at a kiln, which costs a unit of fuel. The same kiln burns calcium carbonate into quicklime — the first step of the parchment chain, and its only other use.' }
+    ]
+  },
+
+  glass: {
+    blurb: 'On a sandy map with magma under it, this replaces the whole metal industry — no mine, no ore, no flux. Pick what you want out of the furnace and the map numbers the jobs that get you there.',
+    steps: ['collect-sand', 'make-pearlash', 'green-glass', 'clear-glass',
+            'crystal-glass', 'glass-goods'],
+    paths: [
+      { id: 'all', label: 'Everything',
+        blurb: 'Every job at the glass furnace burns a unit of fuel unless the furnace stands over magma, and every bag of sand needs an empty bag first. Those two constraints are the whole difficulty of the industry.' },
+
+      { id: 'green', label: 'Green glass', tag: 'Start here',
+        steps: ['collect-sand', 'green-glass'],
+        blurb: 'Sand and nothing else. Green glass is worth about as much as stone, but it is unlimited on a sandy map and it needs no mine, no ore and no flux.' },
+
+      { id: 'clear', label: 'Clear glass',
+        steps: ['make-pearlash', 'collect-sand', 'clear-glass'],
+        blurb: 'The same sand plus a unit of pearlash, which the ash chain makes at a kiln. Ten times the value of green glass for one extra ingredient — this is what the whole potash chain exists to feed.' },
+
+      { id: 'crystal', label: 'Crystal glass', tag: 'If you have the crystal',
+        steps: ['make-pearlash', 'crystal-glass'],
+        blurb: 'Pearlash and rough rock crystal, and no sand at all. Cut crystals bought from a caravan will not do. About the value of silver, if your map has the crystal in it.' },
+
+      { id: 'goods', label: 'Furniture & blocks',
+        steps: ['collect-sand', 'glass-goods'],
+        blurb: 'Windows, blocks, furniture and the serrated discs a weapon trap wants. All of it from the same bag of sand, and none of it needing a single bar of metal.' }
     ]
   },
 
   paper: {
-    blurb: 'Pick what you want to end up holding and where the sheet comes from, and the chain below is the order to run the jobs in.',
-    sheetLabel: 'Sheet from',
-    productLabel: 'Make',
+    blurb: 'The deepest chain on the site, and the one where the order is least obvious: two of the jobs feed the last step sideways rather than in line. Pick a sheet route or a finished book and the map numbers what to queue.',
+    steps: ['make-slurry', 'press-paper', 'papyrus-sheet', 'quicklime', 'milk-of-lime',
+            'parchment', 'binding', 'quire', 'scroll', 'write', 'codex'],
+    /* Slurry lists four cloth plants and threshing lists the crop generically,
+       but all eight work at either job — so the map says so once. */
+    joins: {
+      'Pig tail': 'Fibre crop', 'Rope reed': 'Fibre crop',
+      'Hemp': 'Fibre crop', 'Flax': 'Fibre crop'
+    },
+    paths: [
+      { id: 'all', label: 'Everything',
+        blurb: 'Three separate chains converge on a sheet, and from there the two forms a book can take split apart again. Paper and parchment are interchangeable from the sheet down, so pick the one whose materials you have.' },
 
-    sheets: [
-      { id: 'fibre', label: 'Plant fibre', gives: 'Paper sheet', steps: [
-        { ref: 'make-slurry', use: 'Pig tail', gives: 'Plant slurry' },
-        { ref: 'press-paper', use: 'Plant slurry', gives: 'Paper sheet' }
-      ] },
-      { id: 'papyrus', label: 'Papyrus', gives: 'Paper sheet', steps: [
-        { ref: 'papyrus-sheet', use: 'Papyrus', gives: 'Paper sheet' }
-      ] },
-      { id: 'parchment', label: 'Parchment', gives: 'Parchment sheet', steps: [
-        { ref: 'quicklime', use: 'Calcium carbonate stone', gives: 'Quicklime' },
-        { ref: 'milk-of-lime', use: 'Quicklime', gives: 'Milk of lime' },
-        { ref: 'parchment', use: ['Raw hide', 'Milk of lime'], gives: 'Parchment sheet' }
-      ] }
-    ],
+      { id: 'fibre', label: 'Paper from plants',
+        steps: ['make-slurry', 'press-paper', 'quire'],
+        blurb: 'The long way to a sheet and the one most fortresses use, because it needs nothing but a cloth plant. The screw press costs two mechanisms to build and is the only other thing that wants one.',
+        notes: {
+          'make-slurry': 'Any cloth plant works — rope reed and pig tail underground, hemp, flax, cotton, ramie, jute and kenaf on the surface. The job wants an empty bucket, not a bag.'
+        } },
 
-    products: [
-      { id: 'quire', name: 'Quire', item: 'Quire', tag: 'Blank book',
-        blurb: 'One sheet, one job, and you are done. A quire is a book with nothing in it yet — a scholar or a scribe fills it later in a library, and a fortress chasing wealth stops right here rather than binding it.',
-        steps: [
-          { ref: 'quire', use: '@sheet', gives: 'Quire' },
-          { ref: 'write', use: 'Quire', gives: 'Written work', optional: true,
-            note: 'Not a job you queue: assign a scholar or a scribe to a library and the quire fills itself. A written quire is the only thing a codex can be bound from.' }
-        ] },
+      { id: 'papyrus', label: 'Papyrus', tag: 'One job',
+        steps: ['papyrus-sheet', 'quire'],
+        blurb: 'Papyrus sedge is a surface plant and the only material that becomes a sheet in a single job — no quern, no press and no bucket in the way. Get the seeds off a caravan.' },
 
-      { id: 'scroll', name: 'Scroll', item: 'Scroll', tag: 'Finished at the bench',
+      { id: 'parchment', label: 'Parchment',
+        steps: ['quicklime', 'milk-of-lime', 'parchment', 'quire'],
+        blurb: 'Three jobs across three buildings before you have a sheet, and the only route that needs an animal. One hide makes one sheet whatever the animal’s size, so butcher the small ones for this.',
+        notes: {
+          'quicklime': 'Calcite, chalk, limestone or marble, one bag per unit — and every one of them is also flux. Steel is almost always the better thing to do with them.',
+          'milk-of-lime': 'Quicklime slaked in a bucket at the ashery. Its sole use is turning a hide into parchment.'
+        } },
+
+      { id: 'scroll', label: 'Scroll', tag: 'Finished at the bench',
+        steps: ['papyrus-sheet', 'binding', 'scroll', 'write'],
         blurb: 'A sheet wound onto a roller. The simpler of the two forms and the only one finished the moment it leaves the workshop — but a scroll can never become a codex.',
-        steps: [
-          { ref: 'binding', title: 'Make a scroll roller', use: 'Log', gives: 'Scroll roller', aside: true,
-            note: 'Wood or stone here, metal at the forge, glass at the glass furnace. One roller per scroll.' },
-          { ref: 'scroll', use: ['@sheet', 'Scroll roller'], gives: 'Scroll' },
-          { ref: 'write', use: 'Scroll', gives: 'Written work', optional: true,
-            note: 'The scroll is a finished item without this. Writing on it is what makes it worth reading — and worth a visiting scholar’s trip.' }
-        ] },
+        titles: { 'binding': 'Make a scroll roller' },
+        notes: {
+          'binding': 'Wood or stone here, metal at the forge, glass at the glass furnace. One roller per scroll, so make it before you queue the scroll.',
+          'write': 'The scroll is a finished item without this. Writing on it is what makes it worth reading — and worth a visiting scholar’s trip.'
+        } },
 
-      { id: 'codex', name: 'Codex', item: 'Codex', tag: 'Bound book',
-        blurb: 'The long way round: a quire, a scholar to fill it, and then a binding and a thread to hold the whole thing shut. Two side jobs feed the last step, so start them early.',
-        steps: [
-          { ref: 'quire', use: '@sheet', gives: 'Quire' },
-          { ref: 'write', use: 'Quire', gives: 'Written work',
-            note: 'Required here, and not a job you queue: a scholar or a scribe working in a library fills the quire. An empty quire will not take a binding.' },
-          { ref: 'binding', title: 'Make a book binding', use: 'Log', gives: 'Book binding', aside: true,
-            note: 'Wood or stone here, metal at the forge, glass at the glass furnace. One binding per codex.' },
-          { ref: 'process-thread', title: 'Get a length of thread', use: 'Pig tail', gives: 'Thread', aside: true,
-            note: 'Any unused thread will do — plant thread from the farmer’s workshop, yarn spun from wool, silk off a web, animal hair. The codex takes one.' },
-          { ref: 'codex', use: ['Written work', 'Book binding', 'Thread'], gives: 'Codex' }
-        ] }
+      { id: 'codex', label: 'Codex', tag: 'Bound book',
+        steps: ['make-slurry', 'press-paper', 'quire', 'write', 'binding', 'codex'],
+        blurb: 'The long way round: a sheet, a quire, a scholar to fill it, and then a binding and a length of thread to hold the whole thing shut. Two of those feed the last step sideways, so start them early.',
+        titles: { 'binding': 'Make a book binding' },
+        notes: {
+          'write': 'Not a job you queue: assign a scholar or a scribe to a library and the quire fills itself. An empty quire will not take a binding.',
+          'binding': 'Wood or stone here, metal at the forge, glass at the glass furnace. One binding per codex.',
+          'codex': 'The thread can be any unused length — plant thread, spun yarn, silk off a web, even animal hair, which is good for nothing else. Binding currently throws away part of what the quire was worth, so a fortress chasing wealth stops at the quire.'
+        } }
     ]
   }
 };

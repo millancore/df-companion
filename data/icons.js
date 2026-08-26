@@ -170,6 +170,20 @@ window.DF_ICONS = {
 'back':     { box: '3.6 6.6 24.8 18.8', sw: 1.32,
   art: `<path d="M27 16H5"/><path d="M13 8 5 16l8 8"/>` },
 
+/* The end of a branch, marked the way a transit map marks the end of a line.
+   Drawn rather than written because it sits on a good half of the nodes, and a
+   caps label that long doubles the width of the chip it is glued to. Only the
+   end carries one: what you bring from elsewhere is already saying so with a
+   dashed box. */
+'terminus': { box: '4.9 4.9 22.2 22.2', sw: 1.8,
+  art: `<circle cx="16" cy="16" r="10.2"/>
+        <circle cx="16" cy="16" r="4.4" fill="currentColor" stroke="none"/>` },
+
+/* The disclosure on a step card. It points down when the note is shut and is
+   flipped in CSS when it opens, so one drawing does both states. */
+'chevron':  { box: '7.2 11.2 17.6 9.6', sw: 1.7,
+  art: `<path d="M8 12l8 8 8-8"/>` },
+
 
 'theme':    { box: '3.6 3.6 24.8 24.8', sw: 1.32,
   art: `<circle cx="16" cy="16" r="11"/>

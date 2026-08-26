@@ -26,7 +26,7 @@
   const FORGE_GOODS  = window.DF_FORGE_GOODS || [];
   const FORGE_METALS = window.DF_FORGE_METALS || [];
   const FORGE_TABLES = window.DF_FORGE_TABLES || [];
-  const ROUTES       = window.DF_PRODUCT_ROUTES || {};
+  const FLOWS        = window.DF_INDUSTRY_FLOWS || {};
 
   const main   = document.getElementById('main');
   const search = document.getElementById('search');
@@ -34,8 +34,10 @@
 
   /* A `needs` flag is a real input — it just isn't a material that gets consumed
      into the product. Mapping it to an item keeps "what is my Barrel used for?"
-     answerable. The chain maps deliberately only draw fuel and flux, since drawing
-     every container turns the food map into a hairball. */
+     answerable. The industry maps deliberately draw none of them: an empty
+     barrel is a real constraint but it is not a stage of the chain, so it says
+     so on the card that needs one rather than adding a node every second job
+     would have a wire to. */
   const NEED_ITEM = {
     fuel: 'Fuel', flux: 'Flux stone', bag: 'Bag',
     barrel: 'Barrel', jug: 'Jug', bucket: 'Bucket'
@@ -44,19 +46,33 @@
   /* Split into a symbol and its words: the badge draws the symbol, the search
      index takes the words. A single string could not serve both once the icon
      stopped being a character. */
+  /* `hint` is the badge with room to finish its sentence. The map draws these
+     as the symbol alone — a step card is 258px wide and three spelled-out
+     badges wrap it to three lines — so the words have to survive somewhere,
+     and a tooltip can say more than the label ever fitted. */
   const NEED_LABEL = {
-    fuel:   { icon: 'flame',  text: 'consumes fuel' },
-    flux:   { icon: 'flux',   text: 'flux stone' },
-    bag:    { icon: 'bag',    text: 'needs a bag' },
-    barrel: { icon: 'barrel', text: 'barrel or pot' },
-    jug:    { icon: 'jug',    text: 'needs a jug' },
-    bucket: { icon: 'bucket', text: 'needs a bucket' },
-    shop:   { icon: 'shop',   text: 'shop & specialist' }
+    fuel:   { icon: 'flame',  text: 'consumes fuel',
+              hint: 'Burns a unit of fuel — free at a magma furnace' },
+    flux:   { icon: 'flux',   text: 'flux stone',
+              hint: 'Consumes a flux stone: limestone, dolomite, chalk, calcite or marble' },
+    bag:    { icon: 'bag',    text: 'needs a bag',
+              hint: 'The output goes into an empty bag' },
+    barrel: { icon: 'barrel', text: 'barrel or pot',
+              hint: 'The output goes into an empty barrel or large pot' },
+    jug:    { icon: 'jug',    text: 'needs a jug',
+              hint: 'The output goes into an empty jug' },
+    bucket: { icon: 'bucket', text: 'needs a bucket',
+              hint: 'Needs an empty bucket' },
+    shop:   { icon: 'shop',   text: 'shop & specialist',
+              hint: 'Needs the workshop built and a dwarf with the labour enabled' }
   };
 
-  const needBadge = (n) => {
+  const needBadge = (n, compact) => {
     const m = NEED_LABEL[n];
-    return `<span class="need">${m ? sym(m.icon) + esc(m.text) : esc(n)}</span>`;
+    if (!m) return `<span class="need">${esc(n)}</span>`;
+    return compact
+      ? `<span class="need only-sym" title="${esc(m.hint)}">${sym(m.icon)}</span>`
+      : `<span class="need" title="${esc(m.hint)}">${sym(m.icon)}${esc(m.text)}</span>`;
   };
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
@@ -1502,7 +1518,7 @@
 
   /* ── the pickers, and which workshops carry one ───────────────── */
   /* Each entry replaces the generic step it names: the step stays in the recipe
-     graph so the chain map is honest, and its page shows this instead. The
+     graph so the industry map is honest, and its page shows this instead. The
      workshop list reads the same table to mark the buildings that are
      interactive, so the badge cannot drift from what the page actually does. */
   const PICKERS = [
@@ -1627,20 +1643,19 @@
       <div class="ind-grid">${cards}</div>`;
   }
 
+  /* An industry is one view. It used to be two tabs — Steps, which listed the
+     jobs grouped by the building they happen in, and Chain map, which drew the
+     same jobs as a graph — and each answered half a question. The map in
+     `viewFlow` is both, so there is nothing left to switch between.
+
+     `mode` is the third segment of the URL. It used to say which tab; it now
+     names the path the map should open on, which is what makes a route
+     linkable. An old `/map` bookmark matches no path and lands on the whole
+     picture, which is what that tab drew anyway. */
   function viewIndustry(id, mode) {
     const ind = industry(id);
     if (!ind) return viewHome();
     const rs = recipesOf(id);
-
-    /* Steps means "the jobs of this industry" — for most industries that is the
-       full list grouped by the building they happen in, because there is no
-       order to tell. Paper has one, and knowing it is the whole point of the
-       page, so there Steps is the ordered route to the thing you picked. */
-    const routeCfg = ROUTES[id];
-    const tabs = `<div class="view-tabs">
-      <button data-mode="list" class="${mode !== 'map' ? 'on' : ''}">Steps</button>
-      <button data-mode="map" class="${mode === 'map' ? 'on' : ''}">Chain map</button>
-    </div>`;
 
     main.innerHTML = `
       <a class="back" href="#/">${sym('back')}All industries</a>
@@ -1650,28 +1665,15 @@
           <p>${esc(ind.blurb)}</p>
         </div>
       </div>
-      ${tabs}
       <div id="ind-body"></div>`;
-
-    main.querySelector('.view-tabs').addEventListener('click', (ev) => {
-      const b = ev.target.closest('button');
-      if (b) location.hash = `#/i/${id}` + (b.dataset.mode === 'map' ? '/map' : '');
-    });
 
     const body = document.getElementById('ind-body');
 
-    if (mode === 'map') {
-      body.innerHTML = '<div class="graph-shell" id="graph"></div>';
-      window.DFGraph.render(
-        document.getElementById('graph'), rs, ind.color,
-        (item) => { location.hash = '#/item/' + encodeURIComponent(item); },
-        metalColor
-      );
-      return;
-    }
+    if (FLOWS[id]) return viewFlow(body, FLOWS[id], ind, mode);
 
-    if (routeCfg) return viewRoutes(body, routeCfg, ind);
-
+    /* Every industry has a map. An industry added without one still gets a
+       page rather than a blank panel: the old grouped list, which needs no
+       configuration beyond the steps themselves. */
     const steps = (list) => {
       const byShop = new Map();
       list.forEach((r) => {
@@ -1695,127 +1697,619 @@
     body.innerHTML = steps(rs);
   }
 
-  /* ── build routes: the order to run the jobs in ───────────────── */
-  /* The step list and the chain map both answer "what exists". Neither answers
-     "I want a codex — what do I queue, and in what order", which for paper is a
-     genuinely awkward question: three of the jobs belong to other industries,
-     two of them feed the last step sideways rather than in line, and which
-     input the quire job wants depends on the sheet you started from.
-
-     A route in data/recipes.js is that order. Everything else on a rung —
-     workshop, skill, containers, fuel — is read off the step itself, so the
-     ladder cannot drift away from the step list it is quoting. */
   const recipeById = (rid) => RECIPES.find((r) => r.id === rid);
 
-  function resolveRoute(cfg, sheetId, prodId) {
-    const sheet = cfg.sheets.find((s) => s.id === sheetId) || cfg.sheets[0];
-    const prod  = cfg.products.find((p) => p.id === prodId) || cfg.products[0];
-    const swap  = (v) => (v === '@sheet' ? sheet.gives : v);
+  /* ── the industry map: the step list and the chain, in one view ─ */
+  /* Steps and Chain map were two tabs answering half a question each: the list
+     said what every job wants and where it happens but not what feeds what;
+     the map said what feeds what but shrank the answer to fit a viewport and
+     then asked to be dragged around. This is both at once — full step cards,
+     wired together, running down the page instead of across it, so the only
+     control it needs is the scrollbar.
 
-    const steps = sheet.steps.concat(prod.steps).map((st) => {
-      const r = recipeById(st.ref) || { name: st.ref, workshop: '—', in: [], out: [] };
-      const use = st.use == null ? (r.in || []).map((x) => x.item) : [].concat(st.use);
-      return {
-        r, title: st.title || r.name, note: st.note || r.note,
-        use: use.map(swap), gives: swap(st.gives || ((r.out || [])[0] || {}).item),
-        aside: !!st.aside, optional: !!st.optional
-      };
-    });
+     The layout is worked out from the recipes rather than drawn: a job lands on
+     the row below the last of its inputs, so a job that eats what the row above
+     made sits directly under it. Nothing in here knows what an ashery is, which
+     is what stops the picture drifting away from data/recipes.js. */
 
-    /* The main line is numbered; a side job is not, because it has no place in
-       the count — it can be queued at any point before the rung that eats what
-       it made. Naming that rung turns "also do this some time" into a deadline. */
-    let n = 0;
-    steps.forEach((st) => { if (!st.aside) st.n = ++n; });
-    steps.forEach((st, i) => {
-      if (!st.aside) return;
-      const eater = steps.find((o, j) => j > i && !o.aside && o.use.includes(st.gives));
-      st.feeds = eater ? eater.n : null;
-    });
+  function flowModel(cfg) {
+    const nodes = new Map();
+    const edges = [];
 
-    return { sheet, prod, steps };
-  }
-
-  function viewRoutes(body, cfg, ind) {
-    const sel = { product: cfg.products[0].id, sheet: cfg.sheets[0].id };
-
-    /* Same chips as the step list's filters, minus the All: a route has to
-       start somewhere and has to end as something, so neither row can be off. */
-    const row = (key, label, opts) => `<div class="frow" data-facet="${esc(key)}">
-      <span class="flabel">${esc(label)}</span>
-      ${opts.map((o) => `<button class="fchip ${o.id === sel[key] ? 'on' : ''}"
-        data-v="${esc(o.id)}">${esc(o.label || o.name)}</button>`).join('')}</div>`;
-
-    const sep = `<span class="rt-sep">${ARROW}</span>`;
-
-    /* The whole route on one line, side jobs and optional rungs left out: what
-       the fortress is actually holding at each stage, start to finish. */
-    const ribbon = (route) => {
-      const line = route.steps.filter((s) => !s.aside && !s.optional);
-      const items = [line[0].use[0]].concat(line.map((s) => s.gives));
-      return items.map((it, i) =>
-        (i ? sep : '') + chip(it, i === items.length - 1 ? 'out' : 'in')).join('');
+    /* `joins` folds one item name into another for the length of this map.
+       The recipes are written at the altitude each industry needs and the two
+       do not always meet: the loom eats "Thread" while five jobs make a "…
+       thread", the forge eats an "Iron bar" while the smelter makes "Metal
+       bars". Renaming on the way in is what turns those into one node with
+       wires into it, instead of a row of orphans above a row of things nobody
+       supplies. It is a display join and nothing else — data/recipes.js keeps
+       the names the game uses. */
+    const joins = cfg.joins || {};
+    const addItem = (raw) => {
+      const name = joins[raw] || raw;
+      const k = 'i:' + name;
+      if (!nodes.has(k)) nodes.set(k, { key: k, kind: 'item', name, layer: 0 });
+      return k;
     };
 
-    const rung = (st) => `<li class="rt-step${st.aside ? ' aside' : ''}${st.optional ? ' opt' : ''}">
-      <span class="rt-num">${st.aside ? '+' : st.n}</span>
-      <article class="rec">
-        <h3>${esc(st.title)}</h3>
-        <div class="flow-row rt-where">
-          <a class="chip shop" href="#/w/${encodeURIComponent(st.r.workshop)}">
-            ${icon(st.r.workshop)}${esc(st.r.workshop)}</a>
-          ${st.r.skill && st.r.skill !== '—' ? `<span class="need">${esc(st.r.skill)}</span>` : ''}
-          ${st.aside ? `<span class="need warnish">side job${
-            st.feeds ? ` · ready by step ${st.feeds}` : ''}</span>` : ''}
-          ${st.optional ? '<span class="need">optional</span>' : ''}
-        </div>
-        <div class="flow-row rt-io">
-          ${st.use.map((i) => chip(i, 'in')).join('<span class="plus">+</span>')}
-          ${sep}${chip(st.gives, 'out')}
-        </div>
-        ${(st.r.needs || []).length ? `<div class="needs">${st.r.needs.map(needBadge).join('')}</div>` : ''}
-        ${st.note ? `<p class="note">${esc(st.note)}</p>` : ''}
-      </article>
-    </li>`;
+    const steps = cfg.steps.map(recipeById).filter(Boolean);
+    steps.forEach((r) => {
+      const k = 'j:' + r.id;
+      nodes.set(k, { key: k, kind: 'job', r, layer: 0 });
+      (r.in  || []).forEach((x) => edges.push({ from: addItem(x.item), to: k, job: k }));
+      (r.out || []).forEach((x) => edges.push({ from: k, to: addItem(x.item), job: k }));
+    });
+
+    return collapseEnds(nodes, dedupe(edges), steps);
+  }
+
+  /* Two inputs that join to the same node — the forge's iron and copper bars —
+     are one wire, not two drawn on top of each other. */
+  function dedupe(edges) {
+    const seen = new Set();
+    return edges.filter((e) => {
+      const k = e.from + '>' + e.to;
+      return seen.has(k) ? false : (seen.add(k), true);
+    });
+  }
+
+  /* A carpenter's workshop that ends in furniture, a barrel, a bin, a bucket
+     and a cage is five nodes wide and says one thing. Where a job's outputs are
+     the end of the line — nothing else on the map makes them, nothing on it
+     eats them — they collapse into the one node they amount to: what this job
+     gives you. Anything another job wants keeps its own node, because that is
+     the node a wire has to leave from. */
+  function collapseEnds(nodes, edges, steps) {
+    const eaten = new Set(edges.filter((e) => e.to[0] === 'j').map((e) => e.from));
+    const makers = new Map();
+    edges.filter((e) => e.from[0] === 'j')
+      .forEach((e) => makers.set(e.to, (makers.get(e.to) || 0) + 1));
+
+    steps.forEach((r) => {
+      const k = 'j:' + r.id;
+      const ends = edges.filter((e) => e.from === k && !eaten.has(e.to) && makers.get(e.to) === 1);
+      if (ends.length < 2) return;
+      const mk = 'm:' + r.id;
+      nodes.set(mk, {
+        key: mk, kind: 'item', layer: 0,
+        name: nodes.get(ends[0].to).name,
+        names: ends.map((e) => nodes.get(e.to).name)
+      });
+      ends.forEach((e) => { nodes.delete(e.to); e.to = mk; });
+    });
+
+    return { nodes, edges: dedupe(edges) };
+  }
+
+  /* Some chains genuinely close. A crop grows from seeds and hands the seeds
+     back; the wire that closes that loop cannot point downwards, and a layering
+     pass that tries to honour it drags the whole industry out of order — the
+     farm plot ends up below the job that recovers what it planted.
+
+     So the loop is cut first. A depth-first walk from the jobs in the order the
+     flow lists them marks any edge that reaches a node already on the stack:
+     that is the one edge of the cycle a reader is least surprised to see drawn
+     as a return, because everything before it read forwards. Layering ignores
+     the marked edges entirely and the map draws them as loops. */
+  function flowBreakCycles(nodes, edges) {
+    const out = new Map();
+    edges.forEach((e) => (out.get(e.from) || out.set(e.from, []).get(e.from)).push(e));
+
+    const state = new Map();
+    const visit = (k) => {
+      state.set(k, 1);
+      (out.get(k) || []).forEach((e) => {
+        const s = state.get(e.to) || 0;
+        if (s === 1) e.cycle = true;
+        else if (s === 0) visit(e.to);
+      });
+      state.set(k, 2);
+    };
+    nodes.forEach((n, k) => { if (!state.get(k)) visit(k); });
+  }
+
+  /* Longest-path layering, relaxed rather than sorted — cheap, and it cannot
+     hang now that the loops are cut. */
+  function flowLayer(nodes, edges) {
+    const inc = new Map(), out = new Map();
+    const push = (m, k, v) => { (m.get(k) || m.set(k, []).get(k)).push(v); };
+    edges.filter((e) => !e.cycle)
+      .forEach((e) => { push(inc, e.to, e.from); push(out, e.from, e.to); });
+
+    for (let pass = 0; pass < 24; pass++) {
+      let moved = false;
+      nodes.forEach((n) => {
+        (inc.get(n.key) || []).forEach((f) => {
+          const src = nodes.get(f);
+          if (src && src.layer < 40 && src.layer + 1 > n.layer) { n.layer = src.layer + 1; moved = true; }
+        });
+      });
+      if (!moved) break;
+    }
+
+    /* Something nothing on this map makes — a log, a tub of tallow — is what
+       you bring to the chain, not a stage of it. Left up at the top it would
+       trail a wire the length of the page, so it drops to just above the job
+       that wants it. */
+    nodes.forEach((n) => {
+      if (inc.has(n.key)) return;
+      const eaters = (out.get(n.key) || []).map((k) => nodes.get(k)).filter(Boolean);
+      if (eaters.length) n.layer = Math.max(0, Math.min(...eaters.map((x) => x.layer)) - 1);
+    });
+
+    /* Pulling the sources down can empty a row. Close the gaps, or the map
+       leaves a band of blank page where a row used to be. */
+    const used = [...new Set([...nodes.values()].map((n) => n.layer))].sort((a, b) => a - b);
+    const rank = new Map(used.map((L, i) => [L, i]));
+    nodes.forEach((n) => (n.layer = rank.get(n.layer)));
+  }
+
+  /* A wire that skips a row — potash from ash jumps the whole lye stage — gets
+     an invisible waypoint in each row it crosses. They are ordered along with
+     everything else, so the long wire claims a lane of its own between the
+     cards instead of disappearing under them. */
+  function flowWires(nodes, edges) {
+    let n = 0;
+    return edges.map((e) => {
+      const a = nodes.get(e.from), b = nodes.get(e.to);
+      /* Some chains genuinely close: a crop grows from seeds and hands the
+         seeds back, ash becomes lye becomes potash. There is no row order that
+         makes that wire point downwards, so it is marked and drawn as what it
+         is — a return, routed out to the side rather than pretending to be one
+         more step forward. */
+      const back = e.cycle || b.layer <= a.layer;
+      const chain = [a.key];
+      for (let L = a.layer + 1; L < b.layer; L++) {
+        const k = 'w:' + (n++);
+        nodes.set(k, { key: k, kind: 'way', layer: L });
+        chain.push(k);
+      }
+      chain.push(b.key);
+      return { ...e, chain, back };
+    });
+  }
+
+  /* Order each row by where its neighbours sit in the rows above and below, so
+     the branches stay on their own side and the wires mostly stop crossing. */
+  function flowOrder(nodes, wires) {
+    const rows = [];
+    nodes.forEach((n) => (rows[n.layer] = rows[n.layer] || []).push(n));
+    rows.forEach((row) => row.forEach((n, i) => (n.pos = i)));
+
+    const near = new Map();
+    const link = (a, b) => { (near.get(a) || near.set(a, []).get(a)).push(b); };
+    wires.forEach((w) => w.chain.forEach((k, i) => {
+      if (i) { link(k, w.chain[i - 1]); link(w.chain[i - 1], k); }
+    }));
+
+    /* Sweeping only downwards settles the top of the map and leaves the bottom
+       to whatever order the recipes happened to be written in, which is how a
+       branch ends up on the left in one row and the right in the next. Every
+       other pass runs upwards, so each row is pulled into line with the rows on
+       both sides of it. */
+    for (let pass = 0; pass < 12; pass++) {
+      const order = pass % 2 ? [...rows].reverse() : rows;
+      order.forEach((row) => {
+        row.forEach((n) => {
+          const ns = (near.get(n.key) || []).map((k) => nodes.get(k))
+            .filter((x) => x && x.layer !== n.layer);
+          n.bary = ns.length ? ns.reduce((s, x) => s + x.pos, 0) / ns.length : n.pos;
+        });
+        row.sort((a, b) => a.bary - b.bary);
+        row.forEach((n, i) => (n.pos = i));
+      });
+    }
+    flowUncross(rows, wires, nodes);
+    return rows;
+  }
+
+  /* Barycentres get the rows roughly right and then stop, because an average is
+     blind to a swap that improves nothing but the crossing count — which is
+     exactly the swap that decides whether the potash branch runs down one side
+     of the map or wanders across it. This is the other half of the usual pass:
+     try each neighbouring pair in a row and keep the swap if fewer wires cross. */
+  function flowUncross(rows, wires, nodes) {
+    const gaps = [];
+    wires.filter((w) => !w.back).forEach((w) => w.chain.forEach((k, i) => {
+      if (!i) return;
+      const a = nodes.get(w.chain[i - 1]), b = nodes.get(k);
+      (gaps[a.layer] = gaps[a.layer] || []).push([a, b]);
+    }));
+
+    /* Two wires across the same gap cross when their ends are in the opposite
+       order to their starts. Every row here is a handful of nodes, so counting
+       every pair is cheaper than being clever about it. */
+    const crossings = (gap) => {
+      const ls = gaps[gap] || [];
+      let n = 0;
+      for (let i = 0; i < ls.length; i++)
+        for (let j = i + 1; j < ls.length; j++)
+          if ((ls[i][0].pos - ls[j][0].pos) * (ls[i][1].pos - ls[j][1].pos) < 0) n++;
+      return n;
+    };
+
+    for (let pass = 0; pass < 4; pass++) {
+      let better = false;
+      rows.forEach((row, L) => {
+        for (let i = 0; i + 1 < row.length; i++) {
+          const before = crossings(L - 1) + crossings(L);
+          const a = row[i], b = row[i + 1];
+          a.pos = i + 1; b.pos = i;
+          if (crossings(L - 1) + crossings(L) < before) {
+            row[i] = b; row[i + 1] = a; better = true;
+          } else { a.pos = i; b.pos = i + 1; }
+        }
+      });
+      if (!better) break;
+    }
+  }
+
+  function viewFlow(body, cfg, ind, opening) {
+    const { nodes, edges } = flowModel(cfg);
+    flowBreakCycles(nodes, edges);
+    flowLayer(nodes, edges);
+    const wires = flowWires(nodes, edges);
+    const rows  = flowOrder(nodes, wires);
+
+    /* An item with nothing making it is an input to the whole map; one with
+       nothing eating it is where a branch stops. Both are worth marking — they
+       are the only two places a reader has to look outside this page. */
+    const made = new Set(edges.map((e) => e.to));
+    const used = new Set(edges.map((e) => e.from));
+    const role = (n) => (!made.has(n.key) ? 'src' : !used.has(n.key) ? 'end' : '');
+
+    const itemLink = (name) => {
+      const art = metalColor(name) ? ingot(metalColor(name)) : sprite(name);
+      return `<a class="fi-link" href="#/item/${encodeURIComponent(name)}"
+        >${art}<span class="fi-name">${esc(name)}</span></a>`;
+    };
+
+    const itemNode = (n) => {
+      const r = role(n);
+      /* Only the end of a branch is marked. What you bring from elsewhere is
+         already saying so with a dashed box, and a second circle at the head of
+         every chain turned a mark that means "stop here" into wallpaper. */
+      const tag = r === 'end'
+        ? `<span class="fi-tag end" title="Nothing on this map uses this: the branch stops here"
+            >${sym('terminus')}</span>` : '';
+      /* A collapsed node is a list, so it cannot be a link itself — each name
+         inside it goes to its own item page. */
+      return `<div class="fnode f-item ${r}${n.names ? ' f-many' : ''}"
+        >${(n.names || [n.name]).map(itemLink).join('')}${tag}</div>`;
+    };
+
+    /* Some of these jobs belong to other industries — the ash chain starts at a
+       wood furnace and ends at a kiln and a farm plot, and the forge would
+       otherwise start with ore nobody dug. Dropping them would leave the map
+       beginning and ending in mid-air, so they are here with the industry they
+       came from named on them. */
+    const badges = (r) => {
+      const own = r.industry === ind.id || (r.also || []).includes(ind.id);
+      const from = own ? null : industry(r.industry);
+      return (r.skill && r.skill !== '—' ? `<span class="need">${esc(r.skill)}</span>` : '')
+        + (r.needs || []).map((x) => needBadge(x, true)).join('')
+        + (from ? `<a class="need borrowed" href="#/i/${from.id}"
+            title="This job belongs to ${esc(from.name)}">${sym(from.icon)}${esc(from.name)}</a>` : '');
+    };
+
+    /* A card standing on its own is a column and its note is behind a chevron,
+       because a card is 258px wide and the notes are what used to leave one
+       twice the height of the one beside it. A job inside a card of types has
+       the whole width of that card to play with, so it is a row instead: what
+       the job is on the left, what the wiki says about it on the right, both
+       read at once and neither hiding the other. */
+    const jobBody = (n, opts) => {
+      const o = opts || {};
+      const head = `<h3></h3>${o.hideBadges ? '' : `<div class="needs">${badges(n.r)}</div>`}`;
+      return `<span class="fnum"></span>
+        <div class="fjob-txt">${head}${o.list ? '' : `
+          <details class="fjob-more" hidden>
+            <summary title="What the wiki says about this job">${sym('chevron')}</summary>
+            <p class="note"></p>
+          </details>`}</div>
+        ${o.list ? '<p class="note" hidden></p>' : ''}`;
+    };
+
+    /* The building is named above its own picture, so the plate reads as a
+       labelled thing rather than as decoration over the job title — and the eye
+       can run down the map picking out buildings without stopping to work out
+       which pixel-art hut is which. */
+    const shopHead = (w) => `<a class="fjob-shop" href="#/w/${encodeURIComponent(w)}"
+        >${esc(w)}</a>
+      <div class="fjob-art">${plate(w, 'xl')}</div>`;
+
+    const jobNode = (n) =>
+      `<article class="fnode f-job">${shopHead(n.r.workshop)}${jobBody(n)}</article>`;
+
+    /* All four glass jobs want a glassmaker and a unit of fuel. Repeating that
+       on four lines says one thing four times and buries what actually differs
+       between them, so where every job under a roof asks for the same skill and
+       the same containers it is said once, on the building. */
+    const sameBadges = (list) => {
+      const drawn = list.map((n) => badges(n.r).replace(/\s+/g, ' ').trim());
+      return drawn[0] && drawn.every((x) => x === drawn[0]) ? drawn[0] : null;
+    };
+
+    /* A glass furnace makes green glass, clear glass, crystal glass and glass
+       goods, and drawing that as four cards is the same plate four times over
+       for jobs that share one hearth. Where neighbouring jobs on a row run at
+       the same building, the building gets one card and the jobs get another
+       beside it. Every wire on that stretch of the chain lands on the building;
+       the card next to it says what it can be told to do. Each job is still its
+       own node with its own number and its own note — the tidying is to the
+       picture, not to the chain. */
+    const groupNode = (list) => {
+      const shared = sameBadges(list);
+      return `<div class="f-group">
+        <article class="f-shopcard">${shopHead(list[0].r.workshop)}${
+          shared ? `<div class="needs">${shared}</div>` : ''}</article>
+        <ul class="f-types">${list.map((n) =>
+          `<li><article class="fnode f-job in-list">${
+            jobBody(n, { list: true, hideBadges: !!shared })}</article></li>`
+        ).join('')}</ul>
+      </div>`;
+    };
+
+    /* Emitting the row and recording what was emitted in the same walk: the
+       elements come back out of the DOM in document order, so this array is
+       what pairs a node with its box without a lookup key on either. */
+    const order = [];
+    const rowHtml = (row) => {
+      let html = '', i = 0;
+      while (i < row.length) {
+        const n = row[i];
+        if (n.kind !== 'job') {
+          order.push(n.key);
+          html += n.kind === 'way' ? '<span class="f-way"></span>' : itemNode(n);
+          i++;
+          continue;
+        }
+        let j = i + 1;
+        while (j < row.length && row[j].kind === 'job'
+               && row[j].r.workshop === n.r.workshop) j++;
+        const run = row.slice(i, j);
+        run.forEach((x) => order.push(x.key));
+        html += run.length > 1 ? groupNode(run) : jobNode(n);
+        i = j;
+      }
+      return html;
+    };
+
+    const shopCount = new Set([...nodes.values()]
+      .filter((n) => n.kind === 'job').map((n) => n.r.workshop)).size;
 
     body.innerHTML = `
       <p class="group-note">${esc(cfg.blurb)}</p>
       <div class="ind-filters">
-        ${row('product', cfg.productLabel, cfg.products)}
-        ${row('sheet', cfg.sheetLabel, cfg.sheets)}
+        <div class="frow" data-facet="path">
+          <span class="flabel">Show</span>
+          ${cfg.paths.map((p, i) => `<button class="fchip ${
+            p.id === opening || (!cfg.paths.some((x) => x.id === opening) && !i) ? 'on' : ''}"
+            data-v="${esc(p.id)}">${esc(p.label)}</button>`).join('')}
+        </div>
       </div>
-      <div id="rt-body"></div>`;
+      <div class="fm-head">
+        <div class="fm-bar">
+          <h2>${sym(ind.icon)}<span class="fm-title"></span></h2>
+          <span class="need kind fm-tag" hidden></span>
+          <span class="fm-count"></span>
+        </div>
+        <p class="fm-blurb"></p>
+      </div>
+      <div class="fmap" style="--c:${esc(ind.color)}">
+        <svg class="fmap-wires" aria-hidden="true"></svg>
+        ${rows.map((row) => `<div class="fmap-row">${rowHtml(row)}</div>`).join('')}
+      </div>
+      <p class="fm-legend">Every job on the map, in the order the fortress runs them.
+        A dashed box is something you bring from elsewhere; a gold one marked
+        ${sym('terminus')} is where the branch stops. The ${sym('chevron')} at the
+        foot of a card opens what the wiki says about that job; click any item to
+        see everything else that makes or eats it.</p>`;
 
-    const host = body.querySelector('#rt-body');
+    const host = body.querySelector('.fmap');
+    const svg  = host.querySelector('.fmap-wires');
 
-    const paint = () => {
-      const route = resolveRoute(cfg, sel.sheet, sel.product);
-      /* Side jobs count — they are real jobs somebody has to run. Optional
-         rungs do not, which is what makes them optional. */
-      const jobs = route.steps.filter((s) => !s.optional).length;
-      host.innerHTML = `
-        <section class="rt">
-          <div class="rt-head">
-            <h2>${sym(ind.icon)}${esc(route.prod.name)}</h2>
-            ${route.prod.tag ? `<span class="need kind">${esc(route.prod.tag)}</span>` : ''}
-            <span class="rt-count">${jobs} job${jobs === 1 ? '' : 's'} · ${
-              esc(route.sheet.label.toLowerCase())}</span>
-          </div>
-          <p class="rt-blurb">${esc(route.prod.blurb)}</p>
-          <div class="rt-path">${ribbon(route)}</div>
-          <ol class="rt-steps">${route.steps.map(rung).join('')}</ol>
-        </section>`;
-    };
-    paint();
+    /* Keys never reach the DOM: `order` was filled by the walk that wrote the
+       HTML and the browser hands the elements back in the same order, so a
+       node's box is one map lookup rather than a query against an attribute
+       that would have to be escaped. */
+    const els = new Map();
+    const cells = [...host.querySelectorAll('.fnode, .f-way')];
+    order.forEach((k, n) => els.set(k, cells[n]));
+
+    const wireEls = wires.map((w) => {
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('class', 'fm-wire' + (w.back ? ' back' : ''));
+      svg.appendChild(p);
+      return { w, el: p };
+    });
+
+    function drawWires() {
+      const box = host.getBoundingClientRect();
+      if (!box.width) return;
+      svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+
+      /* A job that shares a card with the rest of its building is entered and
+         left at the card's edge rather than its own column's, or the wire would
+         stop halfway down the workshop's picture. The column it lands above is
+         still its own, which is what keeps four furnace jobs distinguishable
+         under one plate. */
+      /* Where several jobs share a building, the building's own card is what
+         the wires attach to — all of them, in and out. Which of its jobs a wire
+         belongs to is answered by the card of types standing next to it, not by
+         where on an edge the wire happens to land. */
+      const outer = (el) => {
+        const g = el.closest('.f-group');
+        return g ? g.querySelector('.f-shopcard') : el;
+      };
+
+      /* A card is entered at the top and left at the bottom; a waypoint is only
+         a place the wire passes through, so it is entered and left at its
+         middle.
+
+         Jobs listed inside a shared card all stand at the same width, so they
+         cannot each be entered above their own text. Instead they fan across
+         the card's edge in the order they are listed — which is what keeps
+         "sand" and "sand and pearlash" telling apart at a glass furnace that
+         draws its plate once. */
+      const port = (key, side) => {
+        const el = els.get(key);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        if (nodes.get(key).kind === 'way') {
+          return { x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2 };
+        }
+        const b = outer(el).getBoundingClientRect();
+        return {
+          x: b.left - box.left + b.width / 2,
+          y: b.top - box.top + (side === 'out' ? b.height : 0)
+        };
+      };
+
+      /* A return wire leaves and re-enters at the side rather than the top and
+         bottom, and swings out past everything on the map to do it. The rows
+         are centred, so the margin beside them is the one lane on the page with
+         nothing in it — which is what keeps a wire that travels the height of
+         the industry from crossing every card on the way. */
+      let far = 0;
+      els.forEach((el) => { far = Math.max(far, el.getBoundingClientRect().right - box.left); });
+      far = Math.min(box.width - 4, far + 26);
+
+      const loop = (a, b) => {
+        const ra = outer(els.get(a)).getBoundingClientRect();
+        const rb = outer(els.get(b)).getBoundingClientRect();
+        const x1 = ra.right - box.left, y1 = ra.top - box.top + ra.height / 2;
+        const x2 = rb.right - box.left, y2 = rb.top - box.top + rb.height / 2;
+        const out = Math.max(far, x1 + 26, x2 + 26);
+        return `M${x1},${y1} C${out},${y1} ${out},${y2} ${x2},${y2}`;
+      };
+
+      wireEls.forEach(({ w, el }) => {
+        if (w.back) {
+          if (!els.get(w.chain[0]) || !els.get(w.chain[1])) return el.removeAttribute('d');
+          return el.setAttribute('d', loop(w.chain[0], w.chain[1]));
+        }
+        const pts = w.chain.map((k, j) =>
+          port(k, j === 0 ? 'out' : 'in')).filter(Boolean);
+        if (pts.length < 2) return el.removeAttribute('d');
+        el.setAttribute('d', pts.map((p, j) => {
+          if (!j) return `M${p.x},${p.y}`;
+          const q = pts[j - 1];
+          const k = Math.max(12, (p.y - q.y) * 0.42);
+          return `C${q.x},${q.y + k} ${p.x},${p.y - k} ${p.x},${p.y}`;
+        }).join(' '));
+      });
+    }
+
+    /* ── the chips ── */
+    /* A path is a main line through the map: the jobs you queue to end up
+       holding one thing. Picking one numbers those rungs 1..n and fades the
+       rest, which is the step list — without leaving the picture that shows
+       what it skipped. */
+    const byJob = new Map();
+    edges.forEach((e) => {
+      const other = e.job === e.to ? e.from : e.to;
+      (byJob.get(e.job) || byJob.set(e.job, []).get(e.job)).push(other);
+    });
+
+    const title = body.querySelector('.fm-title');
+    const tag   = body.querySelector('.fm-tag');
+    const count = body.querySelector('.fm-count');
+    const blurb = body.querySelector('.fm-blurb');
+
+    function paint(id) {
+      const path = cfg.paths.find((p) => p.id === id) || cfg.paths[0];
+      const line = path.steps ? path.steps.map((s) => 'j:' + s) : null;
+
+      const keep = line && new Set(line.concat(
+        line.flatMap((k) => byJob.get(k) || [])));
+
+      host.classList.toggle('picked', !!line);
+      let n = 0;
+      rows.forEach((row) => row.forEach((node) => {
+        const el = els.get(node.key);
+        if (node.kind === 'way') return;
+        const on = !keep || keep.has(node.key);
+        el.classList.toggle('on', on);
+        if (node.kind !== 'job') return;
+        el.querySelector('.fnum').textContent =
+          (!line || line.includes(node.key)) ? ++n : '';
+
+        /* A step can read differently depending on the line it is standing in:
+           "Grow a crop" is "Grow pig tails" on the pig tail route, and the
+           season it wants is worth saying there and nowhere else. The card
+           quotes the recipe by default and the path overrides it, so the two
+           cannot drift apart. */
+        const r = node.r;
+        el.querySelector('h3').textContent =
+          (path.titles && path.titles[r.id]) || r.name;
+        const note = (path.notes && path.notes[r.id]) || r.note || '';
+        const noteEl = el.querySelector('.note');
+        noteEl.textContent = note;
+        /* Behind a chevron on a card of its own, plainly beside the job in a
+           card of types — either way, nothing to show when there is no note. */
+        (el.querySelector('.fjob-more') || noteEl).hidden = !note;
+      }));
+      wireEls.forEach(({ w, el }) =>
+        el.classList.toggle('hot', !!line && line.includes(w.job)));
+
+      /* A shared card fades only when the path skips every job on it — the
+         plate belongs to all of them, so one live job keeps the building lit. */
+      host.querySelectorAll('.f-group').forEach((g) =>
+        g.classList.toggle('dim', !!line && !g.querySelector('.f-job.on')));
+
+      const jobs = line ? line.length : [...nodes.values()].filter((x) => x.kind === 'job').length;
+      const shops = line
+        ? new Set(line.map((k) => nodes.get(k).r.workshop)).size
+        : shopCount;
+      /* replaceState rather than a hash assignment: the chips are a control on
+         this page, not navigation away from it, and letting the router run
+         again would rebuild the map and throw the reader back to the top. The
+         URL still ends up pointing at what is on screen, so a path can be
+         linked to and lands with that path already picked. */
+      history.replaceState(null, '', `#/i/${ind.id}` + (path.steps ? '/' + path.id : ''));
+      title.textContent = path.label;
+      tag.hidden = !path.tag;
+      tag.textContent = path.tag || '';
+      count.textContent = `${jobs} job${jobs === 1 ? '' : 's'} · ${
+        shops} building${shops === 1 ? '' : 's'}`;
+      blurb.textContent = path.blurb;
+
+      /* Fading a card also strips its note, which changes how tall it is, which
+         moves every card below it. The wires were measured against the old
+         boxes, so they have to be measured again. */
+      drawWires();
+    }
 
     body.querySelector('.ind-filters').addEventListener('click', (ev) => {
-      const chipEl = ev.target.closest('.fchip');
-      if (!chipEl) return;
-      const frow = chipEl.closest('.frow');
-      sel[frow.dataset.facet] = chipEl.dataset.v;
-      frow.querySelectorAll('.fchip').forEach((c) => c.classList.toggle('on', c === chipEl));
-      paint();
+      const b = ev.target.closest('.fchip');
+      if (!b) return;
+      b.parentNode.querySelectorAll('.fchip').forEach((c) => c.classList.toggle('on', c === b));
+      paint(b.dataset.v);
     });
+
+    /* Hovering a card lights the wires touching it. It only adds a colour — no
+       dimming — so it can be read on top of whatever path is selected rather
+       than fighting with it. */
+    const touching = new Map();
+    wireEls.forEach((we) => we.w.chain.forEach((k) =>
+      (touching.get(k) || touching.set(k, []).get(k)).push(we.el)));
+    els.forEach((el, key) => {
+      if (nodes.get(key).kind === 'way') return;
+      const mine = touching.get(key) || [];
+      el.addEventListener('mouseenter', () => mine.forEach((p) => p.classList.add('lit')));
+      el.addEventListener('mouseleave', () => mine.forEach((p) => p.classList.remove('lit')));
+    });
+
+    /* Opening a note makes its card taller, and a taller card in a row of
+       stretched ones moves every box below it. The `toggle` event does not
+       bubble, so each disclosure carries its own listener. */
+    host.querySelectorAll('.fjob-more')
+      .forEach((d) => d.addEventListener('toggle', drawWires));
+
+    paint(cfg.paths.some((p) => p.id === opening) ? opening : cfg.paths[0].id);
+    requestAnimationFrame(drawWires);
+    new ResizeObserver(drawWires).observe(host);
   }
 
   function viewItem(name) {
@@ -2108,8 +2602,9 @@
   in:  [{ item:'Sun berry' }],
   out: [{ item:'Sunshine' }, { item:'Seeds' }],
   note:'Optional flavour text.' }</code></pre>
-        <p>Item pages, the search index and the chain maps all rebuild themselves from that —
-        an item exists as soon as some recipe mentions it. Valid <code>needs</code> values are
+        <p>Item pages, the search index and the industry maps all rebuild themselves from
+        that — an item exists as soon as some recipe mentions it, and a new step joins its
+        industry's map wherever what it eats and what it makes put it. Valid <code>needs</code> values are
         <code>fuel</code>, <code>flux</code>, <code>bag</code>, <code>barrel</code>,
         <code>jug</code>, <code>bucket</code> and <code>shop</code>.</p>
 
