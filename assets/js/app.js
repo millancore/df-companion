@@ -224,9 +224,6 @@
   const recipesOf = (id) => RECIPES.filter((r) =>
     r.industry === id || (r.also || []).includes(id));
 
-  /* A job keeps the name the game's own menu gives it in every language; what
-     this site says *about* the job is what translates. */
-  const recipeNote = (r) => td('recipeNote', r.id, r.note || '');
   const indName    = (i) => td('industry', i.id, i.name);
   const indBlurb   = (i) => td('industryBlurb', i.id, i.blurb);
 
@@ -871,7 +868,6 @@
         ${outs ? `<div class="flow-row"><span class="flow-label">${esc(t('flow.out', 'out'))}</span>${outs}</div>` : ''}
       </div>
       ${needs ? `<div class="needs">${needs}</div>` : ''}
-      ${r.note ? `<p class="note">${esc(recipeNote(r))}</p>` : ''}
     </article>`;
   }
 
@@ -2152,7 +2148,7 @@
       /* A collapsed node is a list, so it cannot be a link itself — each name
          inside it goes to its own item page. */
       return `<div class="fnode f-item ${r}${n.names ? ' f-many' : ''}"
-        >${(n.names || [n.name]).map(itemLink).join('')}${tag}</div>`;
+        >${tag}${(n.names || [n.name]).map(itemLink).join('')}</div>`;
     };
 
     /* Some of these jobs belong to other industries — the ash chain starts at a
@@ -2783,8 +2779,7 @@
   industry:'food', workshop:'Still', skill:'Brewer',
   needs:['barrel'],
   in:  [{ item:'Sun berry' }],
-  out: [{ item:'Sunshine' }, { item:'Seeds' }],
-  note:'Optional flavour text.' }</code></pre>
+  out: [{ item:'Sunshine' }, { item:'Seeds' }] }</code></pre>
         <p>Item pages and the industry maps all rebuild themselves from
         that — an item exists as soon as some recipe mentions it, and a new step joins its
         industry's map wherever what it eats and what it makes put it. Valid <code>needs</code> values are
@@ -2921,9 +2916,9 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
   es: {
     ui: { 'item.madeby': 'Lo produce', 'count.steps': '{n} pasos' },
     data: {
-      industry:   { food: 'Comida y bebida' },
-      recipeNote: { 'make-ash': 'El origen del jabón, la potasa…' },
-      shopNote:   { 'Smelter': 'De mena a bars, de carbón a coke…' }
+      industry: { food: 'Comida y bebida' },
+      itemNote: { 'Ash': 'El origen del jabón, la potasa…' },
+      shopNote: { 'Smelter': 'De mena a bars, de carbón a coke…' }
     }
   }
 };</code></pre>
@@ -2932,16 +2927,14 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         renders in English rather than as a key. <code>{n}</code>-style holes rather than string
         concatenation, because Spanish does not put the number, the noun and the preposition in
         the order English does. The groups under <code>data</code> are
-        <code>industry</code>, <code>industryBlurb</code>, <code>recipeNote</code>,
-        <code>itemNote</code>, <code>shopNote</code>, <code>body</code>, <code>bodyNote</code>,
-        <code>armorNote</code>, <code>weaponNote</code>, <code>forgeNote</code>,
-        <code>fibreNote</code>, <code>fibreAlso</code>, <code>goodsNote</code>,
+        <code>industry</code>, <code>industryBlurb</code>, <code>itemNote</code>,
+        <code>shopNote</code>, <code>body</code>, <code>bodyNote</code>, <code>armorNote</code>,
         <code>flowBlurb</code>, <code>flowPath</code>, <code>flowTitle</code>,
         <code>tableTitle</code>, <code>tableBlurb</code> and <code>tableCols</code>.</p>
         <p>Add a pack, add its code to <code>LANGS</code> in <code>assets/js/app.js</code>, and the
         button in the header cycles to it. The choice is kept in <code>localStorage</code> and
-        defaults to the browser's own language; switching reloads the page, because the search
-        index is built once at boot out of prose that has already been translated. Table
+        defaults to the browser's own language; switching reloads the page, which is the shortest
+        path to a page wholly in the new language. Table
         <em>rows</em> are never translated — those are the game's words, and
         <code>tableCols</code> only replaces a header row that matches the original column for
         column.</p>
@@ -3002,9 +2995,9 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
   }
 
   /* ── language ─────────────────────────────────────────────────── */
-  /* The button names the language you would get by pressing it, not the one
-     you are in — the same thing a light/dark toggle does, and the only reading
-     that works for somebody who cannot read the current one.
+  /* The button names the language you are reading, not the one pressing it
+     would get you — it is a state badge first and a control second, and the
+     tooltip is what says where the press leads.
 
      Switching reloads. Every view rebuilds itself from the data on each route,
      so a reload is the shortest path to a page that is wholly in the new
@@ -3012,7 +3005,7 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
   const langBtn = document.getElementById('lang');
   if (langBtn) {
     const next = LANG === 'es' ? 'en' : 'es';
-    langBtn.textContent = next.toUpperCase();
+    langBtn.textContent = LANG.toUpperCase();
     langBtn.title = t('site.lang', 'Read this in {lang}', {
       lang: next === 'es' ? 'español' : 'English' });
     langBtn.setAttribute('aria-label', langBtn.title);
