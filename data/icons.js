@@ -102,6 +102,13 @@ window.DF_ICONS = {
         <path d="M14 5h2a2 2 0 0 1 0 4h-.68"/>
         <path d="M18 22H6"/><path d="M9 2h6"/>` },
 
+/* A stoppered glass vial, not the metal flask or the leather waterskin — only
+   the glass one can hold an extract. The accent line is the salve in it. */
+'vial':     { box: '11 2.6 10.1 22.1', sw: 1.18,
+  art: `<rect x="13" y="4" width="6" height="3.2" rx="1.2"/>
+        <path d="M12.4 7.2v12.4a3.6 3.6 0 0 0 7.2 0V7.2"/>
+        <path d="M12.4 16h7.2" class="ac"/>` },
+
 'bucket':   { box: '5.6 9.6 20.8 19.8', sw: 1.11,
   art: `<path d="M7 11h18l-2.2 15.2A2 2 0 0 1 20.8 28h-9.6a2 2 0 0 1-2-1.8z"/>
         <path d="M9.5 11a6.5 6.5 0 0 0 13 0"/>` },

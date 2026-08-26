@@ -40,7 +40,7 @@
      would have a wire to. */
   const NEED_ITEM = {
     fuel: 'Fuel', flux: 'Flux stone', bag: 'Bag',
-    barrel: 'Barrel', jug: 'Jug', bucket: 'Bucket'
+    barrel: 'Barrel', jug: 'Jug', bucket: 'Bucket', vial: 'Vial'
   };
 
   /* Split into a symbol and its words: the badge draws the symbol, the search
@@ -63,6 +63,8 @@
               hint: 'The output goes into an empty jug' },
     bucket: { icon: 'bucket', text: 'needs a bucket',
               hint: 'Needs an empty bucket' },
+    vial:   { icon: 'vial',   text: 'needs a vial',
+              hint: 'The extract goes into an empty glass vial — a metal flask or a waterskin will not do' },
     shop:   { icon: 'shop',   text: 'shop & specialist',
               hint: 'Needs the workshop built and a dwarf with the labour enabled' }
   };
@@ -292,7 +294,7 @@
   /* ── armour ───────────────────────────────────────────────────── */
   /* Forty-odd wearables against eleven body parts is a lookup, not a list, so
      the page is the same picker as the Still's — with the body figure standing
-     in for the chips of a facet nobody would want to read as words. `covers`
+     in for a facet nobody would want to read as a list of words. `covers`
      is the join between the two: a region lights up because some piece names
      it, and clicking it filters to exactly those pieces. */
   const BODY_BY  = new Map(BODY.map((b) => [b.id, b]));
@@ -431,8 +433,8 @@
   const FORGE_SHOP = "Metalsmith's Forge";
 
   /* The wiki's production list, in its own order — which is also the order the
-     chips come out in, since mountPicker reads a facet's values off the rows
-     and the rows below are sorted by this. */
+     facet's options come out in, since mountPicker reads a facet's values off
+     the rows and the rows below are sorted by this. */
   const FORGE_CATS = ['Weapons', 'Armor', 'Chains', 'Crafts', 'Goblets', 'Toys',
     'Instruments', 'Anvils', 'Flasks', 'Coins', 'Studding', 'Furniture',
     'Animal traps', 'Mechanisms'];
@@ -1159,8 +1161,8 @@
      rows of chips that came to twenty-six buttons wrapping over five lines,
      which is a lot of furniture around one number. A select states the current
      value in one line and hides the rest until asked, which is what these are:
-     settings, not filters. The picker's own facet chips stay chips, because
-     those do change what is in the list. */
+     settings, not filters. The picker's own facets are selects for the same
+     reason of room, but they sit above the list, where a filter belongs. */
   function calcControls() {
     /* The dyer's grade multiplies the dye's value, so with no dye there is
        nothing for it to multiply. Disabled rather than hidden: a row that
@@ -1387,38 +1389,41 @@
 
     /* A facet is normally one value per row, but some are a list — an ore turns
        up in several rock types, an alloy contains several metals — so a row can
-       sit under more than one chip. */
+       sit under more than one of the facet's values. */
     const has = (r, f, v) => (f.multi ? (r[f.key] || []).includes(v) : r[f.key] === v);
     const values = (f) => f.multi
       ? [...new Set(rows.flatMap((r) => r[f.key] || []))]
       : [...new Set(rows.map((r) => r[f.key]))];
-    /* A facet can put something in front of its chips — a colour square, say —
-       and the picker can do the same for the list's right-hand column. */
-    const chips = (f) => [['all', 'All']].concat(values(f).map((v) => [v, v]))
-      .map(([v, label]) => `<button class="fchip ${v === sel[f.key] ? 'on' : ''}"
-        data-f="${esc(f.key)}" data-v="${esc(v)}">${
-          v === 'all' || !f.chip ? '' : f.chip(v)}${
-          esc(v !== 'all' && f.chipLabel ? f.chipLabel(label) : label)}</button>`).join('');
-    /* A facet with more values than a row will hold reads better as a select.
-       The forge has fifteen categories and seven labours: as chips they wrap
-       over three lines and become furniture around a control nobody is looking
-       at, which is the same argument the clothier's calculator makes about its
-       five settings. Opt-in per facet rather than automatic on a count, so a
-       facet that puts a colour square in front of its values — a select cannot
-       draw one — stays chips however long it gets. */
+    /* Every facet is a select. They were rows of chips, which read well at four
+       values and badly at fifteen: the forge's categories wrapped over three
+       lines and made the loudest thing in the panel a control nobody is looking
+       at, while the ores' rock types pushed the list itself below the fold. A
+       select says what the current setting is in one line however long the list
+       behind it is, and two of them stack where two chip rows sprawled — the
+       same argument the clothier's calculator already makes about its five
+       settings. */
     const dropdown = (f) => `<select class="fsel ${sel[f.key] === 'all' ? '' : 'on'}"
       data-f="${esc(f.key)}" aria-label="${esc(f.label)}">${
       [['all', 'All']].concat(values(f).map((v) => [v, v])).map(([v, label]) =>
         `<option value="${esc(v)}" ${v === sel[f.key] ? 'selected' : ''}>${
-          esc(v !== 'all' && f.chipLabel ? f.chipLabel(label) : label)}</option>`).join('')}
+          esc(v !== 'all' && f.valueLabel ? f.valueLabel(label) : label)}</option>`).join('')}
     </select>`;
+
+    /* A select cannot draw anything inside its options, so a facet that marks
+       its values — the dyes' colour square — shows the mark for the one in
+       force after the control instead. After, not before: an empty slot ahead
+       of the select would either misalign this row against the ones with no
+       mark, or shove the select sideways the moment a colour appeared. */
+    const markOf = (f, v) => (v === 'all' ? '' : f.mark(v));
+    const mark = (f) => (f.mark ? `<span class="fmark" data-f="${esc(f.key)}">${
+      markOf(f, sel[f.key])}</span>` : '');
 
     const rowIn  = cfg.rowIn  || (() => '');
     const rowOut = cfg.rowOut || (() => '');
 
-    /* A facet the caller drives itself draws no chips — the armour page filters
-       by body part from the figure in the panel, and a row of eleven chips
-       saying the same thing would only be a second, worse control. */
+    /* A facet the caller drives itself draws no control — the armour page
+       filters by body part from the figure in the panel, and a select listing
+       the same eleven parts would only be a second, worse control. */
     const drawn = facets.filter((f) => !f.silent);
 
     host.innerHTML = `
@@ -1426,7 +1431,7 @@
         <div class="brew-pick">
           ${drawn.length ? `<div class="brew-filters">
             ${drawn.map((f) => `<div class="frow"><span class="flabel">${esc(f.label)}</span>${
-              f.select ? dropdown(f) : chips(f)}</div>`).join('')}
+              dropdown(f)}${mark(f)}</div>`).join('')}
           </div>` : ''}
           <input class="brew-search" type="search" placeholder="${esc(cfg.placeholder)}"
                  autocomplete="off" spellcheck="false" aria-label="${esc(cfg.placeholder)}">
@@ -1475,10 +1480,10 @@
       get: (key) => sel[key],
       set(key, v) {
         sel[key] = v;
-        host.querySelectorAll(`.fchip[data-f="${key}"]`).forEach((x) =>
-          x.classList.toggle('on', x.dataset.v === v));
         const drop = host.querySelector(`.fsel[data-f="${key}"]`);
         if (drop) { drop.value = v; drop.classList.toggle('on', v !== 'all'); }
+        const spot = host.querySelector(`.fmark[data-f="${key}"]`);
+        if (spot) spot.innerHTML = markOf(facets.find((f) => f.key === key), v);
         paint();
       },
       select(row) { pick = row; paint(); },
@@ -1490,16 +1495,10 @@
     };
 
     const filters = host.querySelector('.brew-filters');
-    if (filters) {
-      filters.addEventListener('click', (ev) => {
-        const b = ev.target.closest('.fchip');
-        if (b) api.set(b.dataset.f, b.dataset.v);
-      });
-      filters.addEventListener('change', (ev) => {
-        const d = ev.target.closest('.fsel');
-        if (d) api.set(d.dataset.f, d.value);
-      });
-    }
+    if (filters) filters.addEventListener('change', (ev) => {
+      const d = ev.target.closest('.fsel');
+      if (d) api.set(d.dataset.f, d.value);
+    });
 
     search.addEventListener('input', () => { q = search.value.trim().toLowerCase(); paint(); });
 
@@ -1538,10 +1537,10 @@
 
     { step: 'dye-thread', title: 'Dyes', noun: 'dyes',
       rows: DYE_ROWS, result: dyeResult,
-      /* The chips read as "show me the blues", so they are plural; the value
+      /* The options read as "show me the blues", so they are plural; the value
          behind them stays the singular tone stored on the dye. */
       facets: [{ key: 'family', label: 'Tone',
-                 chip: (v) => swatch(FAMILY_HEX[v]), chipLabel: (v) => v + 's' },
+                 mark: (v) => swatch(FAMILY_HEX[v]), valueLabel: (v) => v + 's' },
                { key: 'made', label: 'From' }],
       rowOut: (r) => swatch(COLOR_HEX[r.color]),
       placeholder: 'Filter dyes…', listLabel: 'Dyes',
@@ -1554,9 +1553,9 @@
       placeholder: 'Filter thread sources…', listLabel: 'Thread sources',
       empty: 'Nothing gives thread under those filters.' },
 
-    /* The one picker whose panel is not just a lookup: the chips inside it are
-       a fortress you are describing, and every row of the list is repriced when
-       you change one. That is why it needs `refresh` — the choice has not
+    /* The one picker whose panel is not just a lookup: the settings inside it
+       are a fortress you are describing, and every row of the list is repriced
+       when you change one. That is why it needs `refresh` — the choice has not
        changed, but the answer has. */
     { step: 'clothier', title: 'Cloth goods', noun: 'things made from cloth',
       rows: GOODS_ROWS, result: garmentResult,
@@ -1572,14 +1571,14 @@
       }) },
 
     /* The forge's rows come from three data files rather than one, and its
-       chips are the wiki's own production list. `tables` is the other thing
+       categories are the wiki's own production list. `tables` is the other thing
        only this picker and the armour page have: notes that belong under the
        picker rather than in any row of it. */
     { step: 'forge', title: 'What the forge makes', noun: 'things a forge makes',
       rows: FORGE_ROWS, result: forgeResult, tables: FORGE_TABLES,
       rowIn: forgeCell,
-      facets: [{ key: 'cat', label: 'Makes', select: true },
-               { key: 'labour', label: 'Labour', select: true }],
+      facets: [{ key: 'cat', label: 'Makes' },
+               { key: 'labour', label: 'Labour' }],
       placeholder: 'Filter what the forge makes…', listLabel: 'Things the forge makes',
       empty: 'The forge makes nothing matching those filters.',
       onReady: (api, host) => host.addEventListener('change', (ev) => {
@@ -2606,7 +2605,7 @@
         that — an item exists as soon as some recipe mentions it, and a new step joins its
         industry's map wherever what it eats and what it makes put it. Valid <code>needs</code> values are
         <code>fuel</code>, <code>flux</code>, <code>bag</code>, <code>barrel</code>,
-        <code>jug</code>, <code>bucket</code> and <code>shop</code>.</p>
+        <code>jug</code>, <code>bucket</code>, <code>vial</code> and <code>shop</code>.</p>
 
         <h2>Adding a workshop</h2>
         <p><code>data/workshops.js</code> holds the artwork and blurb for each building.
@@ -2652,18 +2651,18 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         <p>A picker facet can read a list instead of a single value, which is how one ore
         sits under three different rock types and one alloy under each metal it contains.
         The smelter's bars are tinted with the metal's own colour from
-        <code>data/metals.js</code>. A facet marked <code>select: true</code> draws a
-        dropdown rather than a row of chips — the forge's fifteen categories and seven
-        labours wrapped over three lines as chips, which is a lot of furniture around a
-        control nobody is looking at. It is opt-in rather than automatic on a count,
-        because a select cannot draw the colour square the dyer's tone chips carry.</p>
+        <code>data/metals.js</code>. Every facet draws as a dropdown: as rows of chips
+        the forge's fifteen categories and seven labours wrapped over three lines, which
+        is a lot of furniture around a control nobody is looking at. A facet whose values
+        carry a mark — the dyer's colour square — shows the mark for the one in force
+        beside the dropdown, since a select cannot draw one inside an option.</p>
         <pre><code>{ in: 'Sun berry', out: 'Sunshine', kind: 'Other', value: 5,
   type: 'Plant', source: 'Surface crop' }
 
 { in: 'Dimple cup', out: 'Dimple dye', kind: 'Dye', source: 'Subterranean crop',
   color: 'Midnight blue', hex: '#191970', value: 20 }</code></pre>
         <p>Each workshop's page turns its table into a picker. <code>kind</code> and
-        <code>source</code> generate the filter chips, so adding a row is the whole job —
+        <code>source</code> generate the filter dropdowns, so adding a row is the whole job —
         the filters, the search, the item pages and the site search all pick it up. A plant
         that both brews and mills gets both cards on its item page.</p>
         <p>Milling grinds flour for the food chain and dye for the textiles one, which is

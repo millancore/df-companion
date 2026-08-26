@@ -110,7 +110,7 @@ window.DF_WORKSHOPS = {
 /* ── Farming, plants & textiles ── */
 
 "Farmer's Workshop": { kind: 'workshop', tier: 1, keys: 'b-o-f-f', img: 'famer.png', box: '8.6 7.6 14.8 21.8', sw: 1.16,
-  note: 'Threshing, shearing, spinning, milking and cheese. Half the fortress passes through this one building.',
+  note: 'Threshing, shearing, spinning, milking, cheese, papyrus sheets — and gelding, which never appears in its menu. Any non-economic stone or wood builds it, and half the fortress passes through it.',
   art: `<path d="M16 28V10"/>
         <path d="M16 14c-4 0-6-2-6-5 4 0 6 2 6 5z" class="ac"/>
         <path d="M16 14c4 0 6-2 6-5-4 0-6 2-6 5z" class="ac"/>

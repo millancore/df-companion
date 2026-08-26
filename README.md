@@ -128,7 +128,7 @@ The Still runs *one* job — Brew Drink — against 77 different ingredients, so
 `data/recipes.js` carries one generic `brew` step and the ingredient list lives
 here. The Still's page turns it into a picker: filter by drink category or by
 where the plant comes from, choose an ingredient, watch it brew. `kind` and
-`source` drive the filter chips, so a new row needs no code change.
+`source` drive the filter dropdowns, so a new row needs no code change.
 
 Every ingredient and drink is still indexed — search and item pages pick them up
 from this table rather than from the recipe graph.
@@ -178,9 +178,9 @@ quern, which is why only those four appear in `data/milling.js`. The file also
 defines `window.DF_COLOR_HEX` (a colour name to an approximate hex, for swatches
 only) and `window.DF_COLOR_FAMILY` (a colour name to a tone — Blue / Green / Brown …
 — so the dyer's shop can be filtered by tone), and `window.DF_FAMILY_HEX` (one
-representative colour per tone, so a filter chip can show a square). Both are reading aids read off the
+representative colour per tone, so the tone filter can show a square). Both are reading aids read off the
 name — the name is the datum, and a colour missing from either map degrades
-quietly to no swatch and no family chip. The Reference page's dye table is built
+quietly to no swatch and no tone. The Reference page's dye table is built
 from this array, so the list lives in exactly one place.
 
 **`data/icons.js`** — `window.DF_ICONS`, the shared symbol set: industries, the
@@ -289,9 +289,9 @@ be able to disagree about it.
 ```
 
 `cat` is the wiki's own production list, verbatim and in its order, and it is
-what the chips filter on. A few things the forge makes are not on that list —
+what the Makes facet filters on. A few things the forge makes are not on that list —
 blocks, and the tools a metalcrafter turns out — and rather than invent a
-fifteenth chip they sit under Furniture, where the in-game menu puts them, with
+fifteenth category they sit under Furniture, where the in-game menu puts them, with
 their own labour on the row. `labour` is which of the forge's six labours does
 the job, which is the second facet and the answer to "why is nobody working in
 there".
@@ -332,9 +332,9 @@ ingredient says the same thing dozens of times and clutters the industry map wit
 parallel strands that carry no information, so each is one generic step in
 `data/recipes.js` plus a table in its own data file.
 The `PICKERS` table in `assets/js/app.js` lists them, keyed by the generic step
-each one replaces, and `mountPicker()` turns one into the filter chips, search
+each one replaces, and `mountPicker()` turns one into the filter row, search
 and result panel. The Armor page uses the same function with two extras: a facet
-marked `silent: true` draws no chips, because the body figure *is* that facet's
+marked `silent: true` draws no control, because the body figure *is* that facet's
 control, and `aside` puts the figure at the top of the panel. `mountPicker()`
 hands back a small API — `get`, `set`, `select` — so the figure can drive the
 filter, and calls `onPaint` afterwards so it can mark itself up with what the
@@ -345,17 +345,18 @@ the workshop's own page has the picker on it and needs no label. A picker suppli
 only its own result renderer and,
 optionally, a `hay` field to widen the text filter beyond the two visible
 columns, a `rowIn` / `rowOut` to decorate either column of the list, and facets
-carrying a `chip(value)` to put something in front of the chips or a
-`chipLabel(value)` to word them differently from the value they filter on — the
-dyer's tone chips read "Blues" but select `Blue`. A facet marked `multi: true`
-reads a list rather than a single value, so one row can sit under several chips:
-galena is igneous, metamorphic and sedimentary at once, and bronze contains both
-copper and tin. A facet marked `select: true` draws a dropdown instead of a row
-of chips, for the case where there are too many values to fit a line — the
-forge's fifteen categories and seven labours wrapped over three rows and became
-furniture around a control nobody was looking at. It is opt-in per facet rather
-than automatic on a count, because a select cannot draw the colour square the
-dyer's tone chips put in front of their values. A picker may also carry `tables` — reference tables that belong
+carrying a `mark(value)` to draw something for the value in force or a
+`valueLabel(value)` to word the options differently from the value they filter
+on — the dyer's tone reads "Blues" but selects `Blue`. A facet marked
+`multi: true` reads a list rather than a single value, so one row can sit under
+several of a facet's values: galena is igneous, metamorphic and sedimentary at
+once, and bronze contains both copper and tin. Every facet draws as a dropdown.
+They were rows of chips, which read well at four values and badly at fifteen:
+the forge's categories wrapped over three rows and made the loudest thing in the
+panel a control nobody was looking at, while the ores' rock types pushed the
+list itself below the fold. Because a select cannot draw anything inside an
+option, a facet with a `mark` shows it after the dropdown instead — that is
+where the dyer's colour square went. A picker may also carry `tables` — reference tables that belong
 under it rather than in any row of it, rendered by the same code as the Armor
 page's notes and anchored back to the workshop's own page.
 
@@ -363,7 +364,7 @@ The forge's is the one picker whose rows come from three files rather than one,
 assembled in `app.js`: every weapon whose `made` list names the forge, every
 wearable that can be made of metal and is neither gear nor foreign, and all of
 `DF_FORGE_GOODS`. The rows are then sorted by `FORGE_CATS`, which is what makes
-the chips come out in the wiki's order — `mountPicker()` reads a facet's values
+the options come out in the wiki's order — `mountPicker()` reads a facet's values
 off the rows in the order it finds them.
 
 Two of the pickers keep a shared settings object rather than a per-row one: the

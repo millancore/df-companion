@@ -19,6 +19,8 @@ window.DF_INDUSTRIES = [
    'bag'    — output goes into a cloth/leather bag
    'barrel' — output goes into a barrel or large pot
    'jug'    — output goes into a jug
+   'bucket' — output goes into a bucket
+   'vial'   — extract goes into a glass vial
    'flux'   — consumes a flux stone
    'fuel'   — consumes a unit of fuel (free at magma furnaces) */
 
@@ -54,7 +56,7 @@ window.DF_RECIPES = [
 
 /* ── FARMING ─────────────────────────────────────────────────── */
 { id:'farm-plot', name:'Grow a crop', industry:'farming', workshop:'Farm Plot', skill:'Grower',
-  in:[{item:'Seeds'}], out:[{item:'Plump helmet'},{item:'Cave wheat'},{item:'Pig tail'},{item:'Sweet pod'},{item:'Dimple cup'},{item:'Quarry bush'},{item:'Rock nut'}],
+  in:[{item:'Seeds'}], out:[{item:'Plump helmet'},{item:'Cave wheat'},{item:'Pig tail'},{item:'Sweet pod'},{item:'Dimple cup'},{item:'Quarry bush'}],
   note:'Underground plots need a muddy floor (soil layers already qualify, so no irrigation is needed there). Soil layers cannot be smoothed or engraved.' },
 
 { id:'gather-plants', name:'Gather plants above ground', industry:'farming', workshop:'Out in the world', skill:'Plant gatherer',
@@ -97,12 +99,16 @@ window.DF_RECIPES = [
   note:'Eight crops run through this one job: pig tail underground, and rope reed, hemp, flax, cotton, kenaf, jute and ramie above it. Whichever goes in, the thread is worth the same — what differs is where the plant will grow and what else it is good for. The seeds come back. Pick a crop on the Loom page to see the whole route.' },
 
 { id:'process-leaves', name:'Process plant to leaves', industry:'food', workshop:"Farmer's Workshop", skill:'Thresher',
-  needs:['bag'], in:[{item:'Quarry bush'}], out:[{item:'Quarry bush leaves'},{item:'Seeds'}],
-  note:'Quarry bushes are useless until threshed — the raw bush is not food. The leaves are a cooking ingredient.' },
+  needs:['bag'], in:[{item:'Quarry bush'}], out:[{item:'Quarry bush leaves'},{item:'Rock nut'}],
+  note:'Quarry bushes are useless until threshed — the raw bush is not food, and even the leaves have to be cooked. Use the menu entry Process Plant to Bag: it gives five leaves and a rock nut per plant, where the plain Process Plants job will also take quarry bushes and give one leaf and nothing else. The rock nuts are the quarry bush’s seeds — mill them all and there is nothing left to replant.' },
 
 { id:'process-syrup', name:'Process plant to syrup', industry:'food', workshop:"Farmer's Workshop", skill:'Thresher',
   needs:['barrel'], in:[{item:'Sweet pod'}], out:[{item:'Dwarven syrup'},{item:'Seeds'}],
   note:'Sweet pods are the most flexible crop in the game: rum, sugar or syrup.' },
+
+{ id:'process-salve', name:'Process plant to salve', industry:'food', workshop:"Farmer's Workshop", skill:'Thresher',
+  needs:['vial'], in:[{item:'Valley herb'}], out:[{item:'Golden salve'}],
+  note:'The menu calls it Process Plants (Vial), and it is the only job at this workshop that hands nothing back — valley herbs have no seeds. One herb fills a vial with five units of salve at 100☼ each; a stack of five bought off an elven or human caravan fills one vial with 2,500☼ of trade good for one job. That is the whole point of it: golden salve has no other use.' },
 
 { id:'press-oil', name:'Press paste to oil', industry:'food', workshop:'Screw Press', skill:'Presser',
   needs:['jug'], in:[{item:'Rock nut paste'}], out:[{item:'Rock nut oil'},{item:'Press cake'}],
@@ -147,6 +153,10 @@ window.DF_RECIPES = [
 
 { id:'cheese', name:'Make cheese', industry:'animal', workshop:"Farmer's Workshop", skill:'Cheese maker',
   in:[{item:'Milk'}], out:[{item:'Cheese'}] },
+
+{ id:'geld', name:'Geld an animal', industry:'animal', workshop:"Farmer's Workshop", skill:'Gelder',
+  in:[{item:'Animal'}], out:[{item:'Gelded animal'}],
+  note:'The one job here with no menu entry: flag a male on the Pets/Livestock tab — the same button as butchery — and a Geld job queues itself at the next free farmer’s workshop, one at a time per workshop. It is the cure for a catsplosion, and unlike the butcher’s answer the animal walks away. An unskilled gelder is more likely to injure it.' },
 
 { id:'bonecarve', name:'Carve bone / shell', industry:'animal', workshop:"Craftsdwarf's Workshop", skill:'Bone carver',
   in:[{item:'Bone'},{item:'Shell'}], out:[{item:'Bone bolts'},{item:'Bone crafts'},{item:'Shell crafts'}],
@@ -428,7 +438,7 @@ window.DF_INDUSTRY_FLOWS = {
   food: {
     blurb: 'Everything a dwarf eats or drinks passes through one of these four buildings. Pick what you want to end up holding and the map numbers the jobs that get you there.',
     steps: ['butcher', 'brew', 'mill', 'mill-paste', 'process-leaves', 'process-syrup',
-            'clean-fish', 'render-fat', 'press-oil', 'cook-meals'],
+            'process-salve', 'clean-fish', 'render-fat', 'press-oil', 'cook-meals'],
     /* The quern's output is written generically because one job grinds
        thirty-three plants; the kitchen names the two powders it cooks with.
        Joining them is what puts a wire between the two. */
@@ -562,7 +572,7 @@ window.DF_INDUSTRY_FLOWS = {
 
   animal: {
     blurb: 'One animal, six things off it, and four buildings that each take one of them somewhere different. Nothing here is optional if you want leather.',
-    steps: ['butcher', 'milk', 'tan', 'cheese', 'bonecarve', 'leatherworks', 'parchment'],
+    steps: ['butcher', 'milk', 'tan', 'cheese', 'geld', 'bonecarve', 'leatherworks', 'parchment'],
     paths: [
       { id: 'all', label: 'Everything',
         blurb: 'The butcher’s shop is the head of five separate chains at once, which is why everything below it fans out. A raw hide rots if it is not tanned, so put the tanner’s shop next to the butcher and link them.' },
@@ -582,6 +592,10 @@ window.DF_INDUSTRY_FLOWS = {
       { id: 'dairy', label: 'Milk & cheese',
         steps: ['milk', 'cheese'],
         blurb: 'Renewable food from an animal you do not have to kill, at the cost of an empty bucket each time. Both jobs run at the farmer’s workshop.' },
+
+      { id: 'geld', label: 'Gelding', tag: 'Catsplosion',
+        steps: ['geld'],
+        blurb: 'The other thing the farmer’s workshop does to an animal, and the only one that leaves it alive. Flag the males on the Pets/Livestock tab before the cats and the dogs have done the arithmetic for you — one geld job per workshop at a time, so a fortress that has already lost the race wants several.' },
 
       { id: 'parchment', label: 'Parchment', tag: 'Books',
         steps: ['butcher', 'parchment'],
@@ -720,6 +734,10 @@ window.DF_ITEM_NOTES = {
   'Charcoal': 'One log, one charcoal. Slow but always available.',
   'Coke': 'Made from coal at the smelter. Far more efficient than charcoal, and it saves your trees from elven complaints.',
   'Plump helmet': 'Grows quickly underground, can be eaten raw, brewed into wine or milled. The single most useful plant in the game.',
+  'Gelded animal': 'Alive, still worth butchering later, and no longer capable of adding to the population. Gelding does not touch an animal’s milk, wool or meat — it only stops the breeding.',
+  'Valley herb': 'A surface plant, gathered rather than grown — it has no seeds, so a farm plot will never give you one. It grows only in temperate grassland and only in spring, which is why the reliable supply is the elven and human caravans, who bring it in stacks of five.',
+  'Golden salve': 'An extract, and a pure trade good — nothing in the fortress uses it. 100☼ a unit, five units per herb, and the whole stack processed goes into one vial, so a bought stack of five is 2,500☼. Look inside the vials when you are hauling to the depot: the container is what gets moved, and it does not say what is in it.',
+  'Rock nut': 'The quarry bush’s seed, and the only one of the six cave crops whose seed is worth a job of its own: milled to paste, then pressed for oil and a press cake. Keep enough back to replant — ground rock nuts do not grow quarry bushes.',
   'Sweet pod': 'Brews into rum, mills into sugar, or presses into syrup at the farmer’s workshop.',
   'Ash': 'The root of soap, potash, fertiliser and pearlash. Made only from logs at a wood furnace.',
   'Soap': 'Stock the hospital with it. Wounds washed with soap get infected far less often.',

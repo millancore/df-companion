@@ -644,6 +644,9 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .brew-pick { border: 1px solid var(--line); background: var(--panel); }
 
 .brew-filters { padding: .7rem .8rem .5rem; border-bottom: 1px solid var(--line); }
+/* The pickers' labels run to two words — "Found in", "Made of" — and the column
+   has to hold the longest of them, or the label butts against the select. */
+.brew-filters .flabel { width: 4.4rem; }
 .frow { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
 .frow + .frow { margin-top: .4rem; }
 .flabel {
@@ -658,14 +661,20 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .fchip:hover { border-color: var(--accent); color: var(--ink); }
 .fchip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
 
-/* A facet with too many values to fit a row uses a select instead. It borrows
-   the calculator's appearance below rather than inventing a second one — the
-   only difference is the width, which follows the widest option here instead of
-   filling a column. `on` marks it the way `.fchip.on` marks a chip: a filter
-   that is doing something has to look different from one that is not, or the
-   only clue that the list is short is that the list is short. */
+/* Every facet of a picker is a select. It borrows the calculator's appearance
+   below rather than inventing a second one — the only difference is the width,
+   which follows the widest option here instead of filling a column. `on` is
+   what a chip's accent fill used to say: a filter that is doing something has
+   to look different from one that is not, or the only clue that the list is
+   short is that the list is short. */
 .frow .fsel { width: auto; min-width: 9rem; max-width: 100%; }
 .frow .fsel.on { border-color: var(--accent); color: var(--ink); font-weight: 600; }
+
+/* The mark for the value in force, for a facet whose values carry one — a
+   select cannot draw anything inside an option. It sits after the select, so
+   the rows stay aligned whether or not the facet is set to anything. */
+.fmark { display: inline-flex; align-items: center; margin-left: .1rem; }
+.fmark .swatch { width: .8rem; height: .8rem; }
 
 .brew-search {
   width: 100%; padding: .45rem .8rem;

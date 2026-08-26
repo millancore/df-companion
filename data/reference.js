@@ -98,7 +98,7 @@ window.DF_REFERENCE = [
   id: 'crops',
   title: 'Underground Crops',
   icon: 'mushroom',
-  blurb: 'The seven cave plants and what each one is actually for.',
+  blurb: 'The six cave crops and what each one is actually for — plus the seed that earns a row of its own.',
   columns: ['Crop', 'Brew', 'Mill', 'Process', 'Eat'],
   decorate: { 0: 'sprite' },
   rows: [
@@ -108,7 +108,7 @@ window.DF_REFERENCE = [
     ['Sweet pod', 'Dwarven rum', 'Sugar', 'Syrup', 'Cooked'],
     ['Dimple cup', '—', 'Dimple dye', '—', '—'],
     ['Quarry bush', '—', '—', 'Leaves (bag)', 'Leaves, cooked'],
-    ['Rock nut', '—', 'Paste → oil', '—', 'Cooked']
+    ['Rock nut (quarry bush seed)', '—', 'Paste → oil', '—', 'Cooked']
   ]
 },
 
@@ -138,6 +138,7 @@ window.DF_REFERENCE = [
     ['Barrel or rock pot', 'All brewing, and dwarven syrup', 'Logs at the carpenter’s / stone at the craftsdwarf’s'],
     ['Cloth or leather bag', 'Flour, sugar, dye, quarry bush leaves, sand', 'Cloth at the clothier’s / leather at the leather works'],
     ['Jug', 'Rock nut oil from the screw press', 'Stone at the craftsdwarf’s workshop'],
+    ['Glass vial', 'Golden salve at the farmer’s workshop', 'Glass furnace, three per job — a metal flask or a waterskin will not hold an extract'],
     ['Bucket', 'Lye, milk, plant slurry', 'Logs at the carpenter’s workshop'],
     ['Anvil', 'Every job at the metalsmith’s forge', 'One bar at a forge, or bought from the dwarven caravan']
   ]
@@ -152,11 +153,14 @@ window.DF_REFERENCE = [
   rows: [
     ['"Brew drink" cancelled', 'No empty barrel or rock pot'],
     ['Screw press makes no oil', 'No empty jug'],
+    ['No golden salve from valley herbs', 'No empty glass vial — flasks and waterskins do not count'],
     ['Ashery makes no lye', 'No empty bucket'],
     ['No steel, plenty of iron', 'No flux stone on the map'],
     ['Forge does nothing', 'No anvil in the workshop'],
     ['Seeds ran out', 'Someone cooked the plants — cooking destroys seeds'],
-    ['Quarry bushes are not food', 'They must be threshed into leaves first'],
+    ['Quarry bushes are not food', 'They must be threshed into leaves first, and the leaves then cooked'],
+    ['One leaf per quarry bush', 'Ran the plain Process Plants job — Process Plant to Bag gives five'],
+    ['Quarry bushes stopped growing', 'The rock nuts were milled to paste; they were the seeds'],
     ['Smelter idle with ore in stock', 'Out of charcoal or coke'],
     ['Hides vanished', 'Raw hides rot — tan them immediately']
   ]
