@@ -492,7 +492,20 @@ already knows, or its node leads nowhere.
 to end up holding one thing — and picking one numbers those rungs 1..n and fades
 the rest, detail and all, so the line you asked for is not separated by a page of
 greyed-out paragraphs. That is the step list, without leaving the picture that
-shows what it skipped; hovering a faded card brings it back. A path may override
+shows what it skipped; hovering a faded card brings it back.
+
+Below 720px it stops fading and starts removing. The map is one card wide there,
+so the branch you did not take is not context beside the one you did — it is
+screenfuls of grey between two steps, and the next step is always below the fold.
+So the path takes the map with it: what it skipped leaves the flow, the rows it
+emptied close up, and what is left is the line itself, numbered down the page.
+Everything is one tap away on the chips and carries no step list, so the whole
+picture is never the thing being narrowed. That is CSS, not a second layout —
+the one thing the drawing code needs is that a node with no box at all drops out
+of a wire's chain, so the wire runs from the step above straight to the step
+below instead of being drawn to the corner of the map.
+
+A path may override
 a step's `titles` and `notes`, because a job can read differently depending on
 the line it stands in: "Grow a crop" is "Grow pig tails" on the pig tail route,
 and the season it wants is worth saying there and nowhere else. The chips write

@@ -2413,6 +2413,13 @@
         const el = els.get(key);
         if (!el) return null;
         const r = el.getBoundingClientRect();
+        /* A node a picked path has dropped out of the flow — which is what
+           happens to everything it skipped at phone widths — has no box at all,
+           and a wire still routed through it would be drawn to the corner of
+           the map. Dropping the point instead lets the wire run from the step
+           above straight to the step below, which is the line anyway. A
+           waypoint has no width but does have height, so it keeps its lane. */
+        if (!r.width && !r.height) return null;
         if (nodes.get(key).kind === 'way') {
           return { x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2 };
         }
