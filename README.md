@@ -162,9 +162,14 @@ smelter works from:
 
 `found` is the wiki's own wording and is the datum; `rocks` groups it so the
 picker can filter, and an ore that turns up in several rock types sits under all
-of them. An alloy's ingredients are `parts` rather than `in`, because the picker
-already uses `in` for the name it shows. Both panels tint their bars with the
-metal's own colour from `data/metals.js`.
+of them. An alloy's ingredients are `parts` rather than `in`, which is the
+field the picker builds for itself: it writes the recipe into the left column
+and the alloy into the right, so both of the smelter's tables read the same way
+round — an ore and the metal it smelts to, the bars an alloy eats and the alloy
+they make. The quantity is part of that recipe, because two of them otherwise
+come out identical: fine and trifle pewter are both tin and copper, and so are
+billon and sterling silver. Both panels tint their bars with the metal's own
+colour from `data/metals.js`.
 
 **`data/dyes.js`** — `window.DF_DYES`, every dye in the game, plus the two lookup
 maps the colours need:
@@ -325,14 +330,31 @@ worked out" table says which is which.
 Seven workshops run a single job against a long list of things — the Still's
 Brew Drink, the quern's Mill Plants, the dyer's shop's Dye, the loom's Weave
 Cloth, the clothier's Sew Clothing, the smelter's Smelt Ore and alloy reactions
-(two tables, two pickers on one page), and the forge, which is six labours and
+(two tables behind one Job select), and the forge, which is six labours and
 fourteen categories of product on one anvil. Listing those out as one card per
 ingredient says the same thing dozens of times and clutters the industry map with
 parallel strands that carry no information, so each is one generic step in
 `data/recipes.js` plus a table in its own data file.
 The `PICKERS` table in `assets/js/app.js` lists them, keyed by the generic step
-each one replaces, and `mountPicker()` turns one into the filter row, search
-and result panel. The Armor page uses the same function with two extras: a facet
+each one replaces — `steps` where one picker stands in for more than one, which
+is what keeps a step it has swallowed from also appearing as a plain job card
+underneath — and `mountPicker()` turns one into the filter row, search and
+result panel.
+
+A picker can carry more than one *mode*, and the smelter is the one that does.
+Its two jobs are the same shape — Smelt Ore against 17 ores, the alloy reactions
+against 14 recipes — and they used to be two panels stacked down its page, each
+with its own list, its own filters and its own search box, one of them always
+scrolled past. They are one panel with a Job select on top instead: the two are
+never read at once, and a second copy of every control was the whole price of
+admitting they are different tables. A mode owns the rows, the facets, the
+result renderer and the wording, so switching swaps all of them together and
+nothing from the ore side is left standing over the alloy list — the facets go
+back to All with it, because the ores' rock types mean nothing to an alloy. The
+search box is the one thing that carries over, since unlike a facet it is still
+on screen saying what it holds. The heading above the panel names the table
+under it, so it is repointed with the mode. A picker with no modes is a picker
+with one, and that mode is the config itself. The Armor page uses the same function with two extras: a facet
 marked `silent: true` draws no control, because the body figure *is* that facet's
 control, and `aside` puts the figure at the top of the panel. `mountPicker()`
 hands back a small API — `get`, `set`, `select` — so the figure can drive the

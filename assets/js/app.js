@@ -257,10 +257,20 @@
     out: o.metal + (o.bonus ? ' + ' + o.bonus.metal : ''),
     hay: [o.ore, o.metal, o.bonus ? o.bonus.metal : '', o.found, 'ore smelt'].join(' ').toLowerCase()
   }));
+  /* Both tables read left to right, what goes in to what comes out: an ore and
+     the metal it smelts to, the bars an alloy eats and the alloy they make. The
+     alloy list used to run the other way — the alloy on the left, its recipe on
+     the right — which read well enough on its own page and reads as backwards
+     the moment the Job select puts it where the ore list was. The quantity is
+     part of the name here, because two recipes can otherwise come out with the
+     same one: fine and trifle pewter are both tin and copper, and so are billon
+     and sterling silver. */
+  const partsLabel = (parts) => parts
+    .map((x) => x.metal + (x.qty > 1 ? ' ×' + x.qty : '')).join(' + ');
   const ALLOY_ROWS = ALLOYS.map((a) => ({
     ...a,
-    in: a.alloy,
-    out: a.parts.map((x) => x.metal).join(' + '),
+    in: partsLabel(a.parts),
+    out: a.alloy,
     contains: a.parts.map((x) => x.metal),
     use: a.weapon ? t('alloy.use.weapon', 'Weapons-grade') : t('alloy.use.decor', 'Decorative'),
     hay: [a.alloy, ...a.parts.map((x) => x.metal), a.weapon ? 'weapon armour' : 'decorative']
@@ -979,35 +989,71 @@
     </svg>`;
   }
 
-  /* The furnace: ore drops in, the fire takes it, a bar comes out in the
-     metal's own colour. */
-  function smeltAnim(metal, label) {
-    const col = metalColor(metal);
+  /* The furnace, from what goes in to what comes out. It draws both of the
+     smelter's jobs because both are the same picture: something falls in the
+     top, the fire takes it, the melt runs out of the tap and sets into a bar.
+     What changes is the feed — one rough lump for an ore, one tinted ingot per
+     metal for an alloy — and how many bars come back, since galena and
+     tetrahedrite pay a second one out.
+
+     `feed` and `bars` are lists of colours: a feed with no colour is drawn as a
+     rock, one with a colour as a small bar of that metal. A `maybe` bar is the
+     ore's silver — drawn dashed and half-filled, because it only turns up some
+     of the time and a solid bar would promise more than the game does. */
+  function smeltAnim(spec) {
+    const id = 'smelt-' + (++animSeq);
+    const bars = (spec.bars || []).filter(Boolean);
+    const feed = (spec.feed || []).slice(0, 3);
+    const col = bars.length ? bars[0].color : '';
+    const LUMP = 'M36 16l8-5 9 5-2 9-11 2-6-6z';
+
+    /* The feed is one animation with staggered starts, so three ingots go down
+       the same chute one after another rather than as a single clump. */
+    const feedArt = feed.map((f, i) => `<g class="feed f${i + 1}"${
+      f.color ? ` style="--in:${esc(f.color)}"` : ''}>${f.color
+        ? `<g transform="translate(33 8) scale(.62)"><path class="in-bar" d="${INGOT_BARS}"/></g>`
+        : `<path d="${LUMP}" fill="none" stroke="currentColor" stroke-width="2.4"
+             stroke-linecap="round" stroke-linejoin="round"/>`}</g>`).join('');
+
+    /* Each bar is the ingot glyph placed by a nested transform, so the outer
+       group is free for the CSS to animate. */
+    const barArt = bars.map((b, i) => `<g class="bar${b.maybe ? ' maybe' : ''} b${i + 1}"${
+      b.color ? ` style="--out:${esc(b.color)}"` : ''}>
+        <g transform="${i ? 'translate(98 20) scale(.76)' : 'translate(84.1 42.2) scale(1.31)'}">
+          <path d="${INGOT_BARS}"/>
+        </g>
+      </g>`).join('');
+
     return `<svg class="brew-anim smelt-anim" ${col ? `style="--brew:${esc(col)}"` : ''}
-      viewBox="10 6 118 84" role="img" aria-label="${esc(label)}">
-      <g class="ore" fill="none" stroke="currentColor" stroke-width="2.4"
-         stroke-linecap="round" stroke-linejoin="round">
-        <path d="M36 16l8-5 9 5-2 9-11 2-6-6z"/>
-      </g>
+      viewBox="10 6 118 84" role="img" aria-label="${esc(spec.label)}">
+      <defs>
+        <clipPath id="${id}-m"><path d="M30 84V63a12 12 0 0 1 24 0v21z"/></clipPath>
+      </defs>
+
+      <!-- The melt, seen through the mouth of the furnace: the rectangle is
+           cut to the arch, so the mouth lights up to its own shape. -->
+      <g clip-path="url(#${id}-m)"><rect class="glow" x="28" y="48" width="28" height="38"/></g>
+
+      ${feedArt}
 
       <g class="ink" fill="none" stroke="currentColor" stroke-width="2.4"
          stroke-linecap="round" stroke-linejoin="round">
         <path d="M15 84V38h54v46z"/>
         <path d="M69 38V20h12v18"/>
         <path d="M30 84V63a12 12 0 0 1 24 0v21"/>
+        <path d="M69 54h8v5h-8"/>
+        <path d="M84 79h42"/>
       </g>
 
       <path class="fire" d="M42 79c-7.5-6-1.5-13.5 0-18 4.5 7.5 12 9 0 18z"/>
+      <path class="pour" d="M77 59c5 3 8 8 10 13" fill="none"
+            stroke-width="2.6" stroke-linecap="round"/>
+      <circle class="puff u1" cx="75" cy="17" r="3"/>
+      <circle class="puff u2" cx="78" cy="17" r="2.2"/>
       <path class="spark s1" d="M74 30c-2-1.6-.4-3.6 0-4.8 1.2 2 3.2 2.4 0 4.8z"/>
       <path class="spark s2" d="M77 26c-1.5-1.2-.3-2.7 0-3.6.9 1.5 2.4 1.8 0 3.6z"/>
 
-      <!-- The cast bar is the same three shapes as the ingot glyph, placed by a
-           nested transform so the outer group is free for the CSS animation. -->
-      <g class="bar">
-        <g transform="translate(84.1 42.2) scale(1.31)">
-          <path d="${INGOT_BARS}"/>
-        </g>
-      </g>
+      ${barArt}
     </svg>`;
   }
 
@@ -1019,8 +1065,12 @@
         c ? ingot(c) : ''}${esc(m)}</a>`;
     };
     return `<div class="brew-out${(opts && opts.compact) ? ' beside' : ''}">
-      ${smeltAnim(o.metal, t('anim.smelt', '{ore} smelted into {metal}',
-        { ore: o.ore, metal: o.metal }))}
+      ${smeltAnim({
+        label: t('anim.smelt', '{ore} smelted into {metal}', { ore: o.ore, metal: o.metal }),
+        feed: [{}],
+        bars: [{ color: metalColor(o.metal) },
+               o.bonus && { color: metalColor(o.bonus.metal), maybe: true }]
+      })}
       <div class="brew-flow">
         <a class="chip in" href="#/item/${encodeURIComponent(o.ore)}">${esc(o.ore)}</a>
         <span class="brew-arrow">${ARROW}</span>
@@ -1049,8 +1099,12 @@
     };
     const col = metalColor(a.alloy);
     return `<div class="brew-out${(opts && opts.compact) ? ' beside' : ''}">
-      ${smeltAnim(a.alloy, t('anim.alloy', '{parts} alloyed into {alloy}', {
-        parts: a.parts.map((x) => x.metal).join(t('word.and.plain', ' and ')), alloy: a.alloy }))}
+      ${smeltAnim({
+        label: t('anim.alloy', '{parts} alloyed into {alloy}', {
+          parts: a.parts.map((x) => x.metal).join(t('word.and.plain', ' and ')), alloy: a.alloy }),
+        feed: a.parts.map((x) => ({ color: metalColor(x.metal) })),
+        bars: [{ color: metalColor(a.alloy) }]
+      })}
       <div class="brew-flow">
         ${a.parts.map(part).join('<span class="plus">+</span>')}
         <span class="brew-arrow">${ARROW}</span>
@@ -1489,14 +1543,31 @@
     </div>`;
   }
 
-  /* One picker drives both the still and the quern: the same list, filters and
-     search, with each workshop supplying only its own result panel. */
+  /* One picker drives the still, the quern, the forge, the smelter and the
+     armour page: the same list, filters and search, with each workshop
+     supplying only its own result panel.
+
+     A picker can carry more than one *mode*. The smelter does two jobs of the
+     same shape — Smelt Ore against 17 ores, the alloy reactions against 14
+     recipes — and they used to be two panels stacked down its page, each with
+     its own list, its own filters and its own search box, one of them always
+     scrolled past. They are one panel with a Job select on top instead: the two
+     are never read at once, and a second copy of every control was the whole
+     price of admitting they are different tables. Switching mode swaps the
+     rows, the facets, the result panel and the wording together, so nothing
+     from the ore side is left standing over the alloy list.
+
+     A picker with no modes is a picker with one, and that mode is the config
+     itself — which is why everything a mode owns is read through `opt`. */
   function mountPicker(host, cfg) {
-    const rows = cfg.rows;
-    const facets = cfg.facets;   // [{ key, label }]
-    const sel = {};
-    facets.forEach((f) => (sel[f.key] = 'all'));
-    let q = '', pick = rows[0], shown = null;
+    const modes = cfg.modes || [cfg];
+    let mode = modes[0];
+    let rows = [], facets = [], sel = {};
+    let q = '', pick = null, shown = null;
+
+    /* What the mode says, falling back to what the picker says: wording that
+       does not change between modes is written once. */
+    const opt = (key) => (mode[key] !== undefined ? mode[key] : cfg[key]);
 
     /* A facet is normally one value per row, but some are a list — an ore turns
        up in several rock types, an alloy contains several metals — so a row can
@@ -1529,33 +1600,64 @@
     const mark = (f) => (f.mark ? `<span class="fmark" data-f="${esc(f.key)}">${
       markOf(f, sel[f.key])}</span>` : '');
 
-    const rowIn  = cfg.rowIn  || (() => '');
-    const rowOut = cfg.rowOut || (() => '');
-
-    /* A facet the caller drives itself draws no control — the armour page
-       filters by body part from the figure in the panel, and a select listing
-       the same eleven parts would only be a second, worse control. */
-    const drawn = facets.filter((f) => !f.silent);
+    /* The mode select is not a facet and does not sit among them: a facet
+       narrows the list, this one replaces it, and everything below it — the
+       other selects included — is read in its terms. */
+    const modeLabel = cfg.modeLabel || t('facet.job', 'Job');
+    const modeSel = () => (modes.length < 2 ? '' : `<div class="frow mode-row">
+      <span class="flabel">${esc(modeLabel)}</span>
+      <select class="fsel msel" aria-label="${esc(modeLabel)}">${modes.map((m) =>
+        `<option value="${esc(m.key)}" ${m === mode ? 'selected' : ''}>${esc(m.label)}</option>`)
+        .join('')}</select>
+    </div>`);
 
     host.innerHTML = `
       <div class="brew">
         <div class="brew-pick">
-          ${drawn.length ? `<div class="brew-filters">
-            ${drawn.map((f) => `<div class="frow"><span class="flabel">${esc(f.label)}</span>${
-              dropdown(f)}${mark(f)}</div>`).join('')}
-          </div>` : ''}
-          <input class="brew-search" type="search" placeholder="${esc(cfg.placeholder)}"
-                 autocomplete="off" spellcheck="false" aria-label="${esc(cfg.placeholder)}">
-          <div class="brew-list" role="listbox" aria-label="${esc(cfg.listLabel)}"></div>
+          <div class="brew-filters"></div>
+          <input class="brew-search" type="search" autocomplete="off" spellcheck="false">
+          <div class="brew-list" role="listbox"></div>
         </div>
         <div class="brew-panel">${cfg.aside || ''}<div class="panel-result"></div></div>
       </div>`;
 
-    const list   = host.querySelector('.brew-list');
-    const panel  = host.querySelector('.panel-result');
-    const search = host.querySelector('.brew-search');
-    const byIn   = new Map(rows.map((r) => [r.in, r]));
+    const filters = host.querySelector('.brew-filters');
+    const list    = host.querySelector('.brew-list');
+    const panel   = host.querySelector('.panel-result');
+    const search  = host.querySelector('.brew-search');
 
+    /* A facet the caller drives itself draws no control — the armour page
+       filters by body part from the figure in the panel, and a select listing
+       the same eleven parts would only be a second, worse control. */
+    function paintFilters() {
+      filters.innerHTML = modeSel() + facets.filter((f) => !f.silent).map((f) =>
+        `<div class="frow"><span class="flabel">${esc(f.label)}</span>${dropdown(f)}${mark(f)}</div>`)
+        .join('');
+      filters.hidden = !filters.innerHTML.trim();
+    }
+
+    /* Everything a mode owns, swapped in one go. The filters go back to All
+       rather than carrying over: the ores' rock types mean nothing to an alloy,
+       and a setting that cannot apply is worse than no setting. The search box
+       does carry over, because unlike a facet it is still on screen saying so. */
+    function useMode(m) {
+      mode = m;
+      rows = opt('rows') || [];
+      facets = opt('facets') || [];
+      sel = {};
+      facets.forEach((f) => (sel[f.key] = 'all'));
+      pick = rows[0];
+      shown = null;
+      search.placeholder = opt('placeholder') || '';
+      search.setAttribute('aria-label', opt('placeholder') || '');
+      list.setAttribute('aria-label', opt('listLabel') || '');
+      paintFilters();
+      if (cfg.onMode) cfg.onMode(mode);
+    }
+
+    /* A row is addressed by its place in the table rather than by the words in
+       its left column: those are a recipe now, not a name, and two recipes can
+       read alike. */
     const hay = (r) => r.hay || (r.in + ' ' + r.out).toLowerCase();
     const matches = () => rows.filter((r) =>
       facets.every((f) => sel[f.key] === 'all' || has(r, f, sel[f.key])) &&
@@ -1566,18 +1668,20 @@
       /* Keep the selection if it survived the filter, otherwise follow the list
          — an empty panel next to a full list reads as a broken page. */
       if (!hits.includes(pick)) pick = hits[0];
+      const rowIn  = opt('rowIn')  || (() => '');
+      const rowOut = opt('rowOut') || (() => '');
 
       list.innerHTML = hits.length
-        ? hits.map((r) => `<button data-in="${esc(r.in)}" role="option"
+        ? hits.map((r) => `<button data-row="${rows.indexOf(r)}" role="option"
              aria-selected="${r === pick}" class="${r === pick ? 'on' : ''}">
              <span class="bi">${rowIn(r)}${esc(r.in)}</span>
              <span class="bo">${rowOut(r)}${esc(r.out)}</span></button>`).join('')
-        : `<p class="none">${esc(cfg.empty)}</p>`;
+        : `<p class="none">${esc(opt('empty'))}</p>`;
 
       /* Only rebuild the panel when the choice really changed — otherwise every
          keystroke in the filter would restart the animation. */
       if (pick !== shown) {
-        panel.innerHTML = pick ? cfg.result(pick) : '';
+        panel.innerHTML = pick ? opt('result')(pick) : '';
         shown = pick;
       }
       const on = list.querySelector('button.on');
@@ -1605,8 +1709,14 @@
       refresh() { shown = null; paint(); }
     };
 
-    const filters = host.querySelector('.brew-filters');
-    if (filters) filters.addEventListener('change', (ev) => {
+    /* The filter block is rebuilt on every mode change, so the listener sits on
+       the block rather than on the selects inside it. */
+    filters.addEventListener('change', (ev) => {
+      const m = ev.target.closest('.msel');
+      if (m) {
+        useMode(modes.find((x) => x.key === m.value) || modes[0]);
+        return paint();
+      }
       const d = ev.target.closest('.fsel');
       if (d) api.set(d.dataset.f, d.value);
     });
@@ -1616,9 +1726,10 @@
     list.addEventListener('click', (ev) => {
       const b = ev.target.closest('button');
       if (!b) return;
-      api.select(byIn.get(b.dataset.in));
+      api.select(rows[Number(b.dataset.row)]);
     });
 
+    useMode(modes.find((m) => m.key === cfg.startMode) || modes[0]);
     if (cfg.start) pick = rows.find((r) => r.id === cfg.start) || pick;
     paint();
     /* For a caller that has to wire up something inside the panel it drew. */
@@ -1716,29 +1827,43 @@
         api.refresh();
       }) },
 
-    { step: 'smelt-ore', title: t('pick.ore.title', 'Ores'),
-      noun: t('pick.ore.noun', 'ores'),
-      rows: ORE_ROWS, result: oreResult,
-      facets: [{ key: 'metal', label: t('facet.metal', 'Metal') },
-               { key: 'rocks', label: t('facet.foundin', 'Found in'), multi: true }],
-      rowOut: (r) => { const c = metalColor(r.metal); return c ? ingot(c) : ''; },
-      placeholder: t('pick.ore.filter', 'Filter ores…'),
-      listLabel: t('pick.ore.list', 'Ores'),
-      empty: t('pick.ore.empty', 'No ore matches those filters.') },
+    /* The smelter's two jobs, in one panel. They are the same question asked
+       twice — what comes out of the furnace, and what does it want going in —
+       so the Job select swaps between them and everything else stays put. Both
+       steps are named here, which is what keeps either of them from also
+       showing up as a plain job card underneath. */
+    { steps: ['smelt-ore', 'make-alloy'],
+      modeLabel: t('facet.job', 'Job'),
+      modes: [
+        { key: 'ore', label: t('pick.ore.mode', 'Smelt ore'),
+          title: t('pick.ore.title', 'Ores'), noun: t('pick.ore.noun', 'ores'),
+          rows: ORE_ROWS, result: oreResult,
+          facets: [{ key: 'metal', label: t('facet.metal', 'Metal') },
+                   { key: 'rocks', label: t('facet.foundin', 'Found in'), multi: true }],
+          rowOut: (r) => { const c = metalColor(r.metal); return c ? ingot(c) : ''; },
+          placeholder: t('pick.ore.filter', 'Filter ores…'),
+          listLabel: t('pick.ore.list', 'Ores'),
+          empty: t('pick.ore.empty', 'No ore matches those filters.') },
 
-    { step: 'make-alloy', title: t('pick.alloy.title', 'Alloys'),
-      noun: t('pick.alloy.noun', 'alloy recipes'),
-      rows: ALLOY_ROWS, result: alloyResult,
-      facets: [{ key: 'use', label: t('facet.use', 'Use') },
-               { key: 'contains', label: t('facet.contains', 'Contains'), multi: true }],
-      rowIn: (r) => { const c = metalColor(r.alloy); return c ? ingot(c) : ''; },
-      placeholder: t('pick.alloy.filter', 'Filter alloys…'),
-      listLabel: t('pick.alloy.list', 'Alloys'),
-      empty: t('pick.alloy.empty', 'No alloy matches those filters.') }
+        { key: 'alloy', label: t('pick.alloy.mode', 'Make alloy'),
+          title: t('pick.alloy.title', 'Alloys'), noun: t('pick.alloy.noun', 'alloy recipes'),
+          rows: ALLOY_ROWS, result: alloyResult,
+          facets: [{ key: 'use', label: t('facet.use', 'Use') },
+                   { key: 'contains', label: t('facet.contains', 'Contains'), multi: true }],
+          rowOut: (r) => { const c = metalColor(r.alloy); return c ? ingot(c) : ''; },
+          placeholder: t('pick.alloy.filter', 'Filter alloys…'),
+          listLabel: t('pick.alloy.list', 'Alloys'),
+          empty: t('pick.alloy.empty', 'No alloy matches those filters.') }
+      ] }
   ];
 
+  /* A picker states which steps it replaces and which modes it carries. Most
+     carry one of each and say so in the singular; these read either shape. */
+  const pickModes = (p) => p.modes || [p];
+  const pickSteps = (p) => p.steps || [p.step];
   const pickersFor = (steps) => PICKERS.filter((p) =>
-    p.rows.length && steps.some((r) => r.id === p.step));
+    pickModes(p).some((m) => m.rows.length) &&
+    steps.some((r) => pickSteps(p).includes(r.id)));
 
   /* The marker on a workshop that answers questions rather than listing jobs.
      It belongs on the list, where the cards are otherwise indistinguishable —
@@ -1747,7 +1872,7 @@
      the tables since a mark alone cannot say whether that means two rows or
      seventy-seven. */
   function liveMark(picks) {
-    const what = picks.map((p) => `${p.rows.length} ${p.noun}`)
+    const what = picks.flatMap(pickModes).map((m) => `${m.rows.length} ${m.noun}`)
       .join(t('word.and.plain', ' and '));
     return `<span class="live-mark" title="${esc(t('ws.livemark',
       'Pick from {what} and see what comes out', { what }))}"
@@ -2568,7 +2693,7 @@
     /* A picker states its job, skill and container itself, so the generic card
        it stands in for would only say the same thing again. Any other job at
        the building still gets one. */
-    const jobs = steps.filter((r) => !picks.some((p) => p.step === r.id));
+    const jobs = steps.filter((r) => !picks.some((p) => pickSteps(p).includes(r.id)));
 
     main.innerHTML = `
       <a class="back" href="#/w">${sym('back')}${esc(t('back.workshops', 'All workshops'))}</a>
@@ -2590,14 +2715,26 @@
             `<a href="#/i/${i.id}">${sym(i.icon)} ${esc(indName(i))}</a>`).join(', ') })}</p>
         </div>
       </div>
-      ${picks.map((p, i) => `
-        <p class="col-head">${esc(p.title)} <span class="n">${p.rows.length}</span></p>
+      ${picks.map((p, i) => { const m = pickModes(p)[0]; return `
+        <p class="col-head" id="pick-head-${i}"><span class="pt">${esc(m.title)}</span>
+          <span class="n">${m.rows.length}</span></p>
         <div id="pick-${i}"></div>
-        ${p.tables ? refToc(p.tables, route) + refBlocks(p.tables) : ''}`).join('')}
+        ${p.tables ? refToc(p.tables, route) + refBlocks(p.tables) : ''}`; }).join('')}
       ${jobs.length ? `<p class="col-head">${esc(t('ws.jobs', 'Jobs'))} <span class="n">${jobs.length}</span></p>
                        <div class="rec-grid">${jobs.map((r) => recipeCard(r)).join('')}</div>` : ''}`;
 
-    picks.forEach((p, i) => mountPicker(document.getElementById('pick-' + i), p));
+    /* The heading above a picker names the table under it, so a picker that
+       can change tables has to be able to change it. */
+    picks.forEach((p, i) => {
+      const head = document.getElementById('pick-head-' + i);
+      mountPicker(document.getElementById('pick-' + i), Object.assign({}, p, {
+        onMode: (m) => {
+          if (!head) return;
+          head.querySelector('.pt').textContent = m.title;
+          head.querySelector('.n').textContent = m.rows.length;
+        }
+      }));
+    });
   }
 
   /* Tables opt in to decoration per column via `decorate: { 1: 'metal' }`.

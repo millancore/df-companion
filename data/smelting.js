@@ -21,8 +21,10 @@
    Every job here burns a unit of fuel unless the smelter is built over magma,
    and pig iron and steel want a flux stone on top of that.
 
-   An alloy's ingredients are `parts`, not `in`: the picker uses `in` for the
-   name it shows in its left column, and one of them had to give way. */
+   An alloy's ingredients are `parts` rather than `in`, which is the field the
+   picker builds for itself: it writes the recipe into the left column and the
+   alloy into the right, so both of the smelter's tables read the same way
+   round — what goes in, then what comes out. */
 
 window.DF_ORES = [
   { ore: 'Raw adamantine',   metal: 'Adamantine', bars: 4,
