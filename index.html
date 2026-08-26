@@ -36,6 +36,7 @@
     <a href="#/w" data-nav="workshops">Workshops</a>
     <a href="#/armor" data-nav="armor">Armor</a>
     <a href="#/about" data-nav="about">About</a>
+    <button id="lang" class="icon-btn lang-btn" title="English / Español" aria-label="Change language"></button>
     <button id="theme" class="icon-btn" title="Toggle light / dark" aria-label="Toggle theme"></button>
   </nav>
 </header>
@@ -43,14 +44,15 @@
 <main id="main"></main>
 
 <footer class="foot">
-  <p>
+  <p id="foot-note">
     A fan-made reference for <a href="https://www.bay12games.com/dwarves/" target="_blank" rel="noopener">Dwarf Fortress</a>.
     Not affiliated with Bay 12 Games or Kitfox Games. Verify anything load-bearing against the
     <a href="https://dwarffortresswiki.org" target="_blank" rel="noopener">wiki</a>.
   </p>
-  <p class="muted">Layout inspired by Max Cantor’s printable cheat sheet at <a href="https://thingsfittogether.com" target="_blank" rel="noopener">thingsfittogether.com</a>.</p>
+  <p class="muted" id="foot-credit">Layout inspired by Max Cantor’s printable cheat sheet at <a href="https://thingsfittogether.com" target="_blank" rel="noopener">thingsfittogether.com</a>.</p>
 </footer>
 
+<script src="data/i18n.js"></script>
 <script src="data/icons.js"></script>
 <script src="data/sprites.js"></script>
 <script src="data/recipes.js"></script>

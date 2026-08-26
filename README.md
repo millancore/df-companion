@@ -2,7 +2,8 @@
 
 An interactive, dependency-free reference for **Dwarf Fortress** industry workflows —
 what turns into what, at which workshop, with which skill, and which missing barrel is
-quietly stalling the whole chain.
+quietly stalling the whole chain. In English or Spanish, with the game's own names
+for things left in English in both.
 
 Ten industries and 68 production steps across 31 workshops, each with hand-drawn
 SVG artwork. Seven of those workshops — the Still, the quern, the dyer's shop,
@@ -235,9 +236,7 @@ minimum one, and `app.js` computes it, so a piece only ever states its size.
 derives an item's base value from the same UBSTEP / LBSTEP / UPSTEP tokens this
 file has already resolved into `covers`. `pair` marks the hand- and footwear that
 comes two at a time from one unit of material, which is why gauntlets and high
-boots melt back at 120%. `window.DF_ARMOR_TABLES` holds the notes under the
-picker in exactly the `data/reference.js` shape, and the two pages share one
-renderer.
+boots melt back at 120%.
 
 **`data/weapons.js`** — `window.DF_WEAPONS`, every manufactured weapon in the
 game: the seven a dwarf can forge, the ammunition and trap components off the
@@ -511,6 +510,70 @@ move, and the wires are redrawn to wherever they landed.
 An industry with no flow still gets a page — the old grouped step list, which
 needs no configuration beyond the steps themselves.
 
+## Languages
+
+The site reads in English or Spanish, and the button beside the theme toggle
+switches between them. The choice is kept in `localStorage` and starts from the
+browser's own language, so a Spanish-speaking reader lands on the Spanish site
+without touching anything.
+
+**The game's own nomenclature is not translated, in any language.** An item stays
+a Plump helmet, a building a Metalsmith's Forge, a job on its menu Brew Drink,
+and a picker's options — the metals, the qualities, the drink kinds, the
+materials, the labours — stay the words the game puts on screen. This is the
+whole point of the rule rather than an omission: you are reading this *because*
+you have the game open in the other window, and a translated menu entry is a
+worse answer than an untranslated one. Table rows are left alone for the same
+reason. What does translate is everything the site says *about* those things:
+headings, labels, legends, filters, the calculators' terms, and every note and
+blurb in the data files.
+
+`data/i18n.js` holds one pack per language, in two halves:
+
+```js
+window.DF_I18N = {
+  es: {
+    ui: { 'item.madeby': 'Lo produce', 'count.steps': '{n} pasos' },
+    data: {
+      industry:   { food: 'Comida y bebida' },
+      recipeNote: { 'make-ash': 'El origen del jabón, la potasa…' },
+      shopNote:   { 'Smelter': 'De mena a bars, de carbón a coke…' }
+    }
+  }
+};
+```
+
+`ui` is keyed by a short string and holds the text written into the views.
+`data` is keyed by the id a data file already carries — a recipe's `id`, a
+workshop's name, a table's `id`, an industry's `id` — and holds the prose that
+lives beside the facts. The groups are `industry`, `industryBlurb`,
+`recipeNote`, `itemNote`, `shopNote`, `body`, `bodyNote`, `armorNote`,
+`weaponNote`, `forgeNote`, `fibreNote`, `fibreAlso`, `goodsNote`, `flowBlurb`,
+`flowPath`, `flowTitle`, `flowNote`, `tableTitle`, `tableBlurb` and
+`tableCols`.
+
+English is not in the pack. It stays written out at the point it is used, as the
+second argument to `t()`:
+
+```js
+`<p class="col-head">${esc(t('item.madeby', 'Made by'))}</p>`
+t(n === 1 ? 'count.step' : 'count.steps', n === 1 ? '{n} step' : '{n} steps', { n })
+```
+
+so the source still reads as English prose, and a key missing from a pack renders
+in English rather than as a key. Substitution uses `{n}`-style holes rather than
+string concatenation, because Spanish does not put the number, the noun and the
+preposition in the order English does — a translation has to be free to move
+them. `tableCols` only replaces a header row that still matches the original
+column for column, so a table that grows a column keeps its English headings
+rather than silently mislabelling one.
+
+To add a language: add a pack, add its code to `LANGS` at the top of
+`assets/js/app.js`, and the header button cycles to it. Switching reloads the
+page — every view rebuilds itself from the data on each route, but the search
+index is built once at boot out of prose that has already been translated, and
+letting the browser do that is one code path fewer than rebuilding it in place.
+
 ## Layout
 
 ```
@@ -532,6 +595,7 @@ data/reference.js     reference tables
 data/armor.js         43 wearables, the body figure and the armour notes
 data/weapons.js       31 weapons with their full attack tables
 data/forge.js         44 forge goods, 26 metals and the forge's notes
+data/i18n.js          one language pack per language: UI strings and data prose
 ```
 
 ## Credits

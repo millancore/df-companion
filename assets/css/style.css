@@ -121,6 +121,10 @@ a { color: var(--accent); }
   cursor: pointer; font-size: .9rem;
 }
 .icon-btn:hover { color: var(--ink); border-color: var(--accent); }
+/* The language toggle carries two letters rather than a glyph: a flag would
+   name a country instead of a language, and there is no icon for "Spanish"
+   that a reader would recognise faster than the word. */
+.lang-btn { font: 600 .68rem/1 var(--mono, ui-monospace, monospace); letter-spacing: .06em; }
 
 /* ── Layout ───────────────────────────────────────────────────── */
 main { max-width: 1240px; margin: 0 auto; padding: clamp(1.2rem, 4vw, 2.5rem) clamp(.75rem, 3vw, 2rem) 4rem; }
@@ -342,20 +346,13 @@ td:first-child { font-weight: 600; white-space: nowrap; }
    boxes the browser actually produced, so nothing here has to agree with the
    layout twice. That is also what makes the mobile fallback free: rows wrap,
    the boxes move, the wires are redrawn to wherever they landed. */
-/* What the chips settled on, named above the map it redraws. */
-.fm-head { margin: 1.4rem 0 0; }
-.fm-bar { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; margin-bottom: .3rem; }
-.fm-bar h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: .4rem; }
-.fm-bar h2 .sym { color: var(--accent); }
+/* How big the map the chips settled on is. The chip itself says which path
+   this is, so the count is all that is left to write above the map. */
 .fm-count {
-  margin-left: auto; white-space: nowrap;
+  display: block; margin: 1.4rem 0 0; white-space: nowrap;
   font-size: .72rem; font-family: var(--mono);
   text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3);
 }
-.fm-blurb { margin: .35rem 0 0; color: var(--ink-2); font-size: .88rem; max-width: 66ch; }
-/* `.need` sets its own display, which outranks the browser's rule for the
-   hidden attribute — without this the empty badge still draws its border. */
-.fm-tag[hidden] { display: none; }
 .fm-legend { margin: 1.4rem 0 0; font-size: .78rem; color: var(--ink-3); max-width: 66ch; }
 
 .fmap { position: relative; margin-top: 1.2rem; }
@@ -455,25 +452,6 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .f-job .needs { justify-content: center; }
 .f-job .needs:empty { display: none; }
 
-/* The note is what used to break the equal heights — three sentences on one
-   card and none on the one beside it — so it lives behind a chevron, pushed to
-   the foot of the card by `margin-top: auto`, which is what keeps the chevrons
-   on a row lined up whatever is above them. */
-.fjob-more { margin-top: auto; }
-.fjob-more > summary {
-  display: flex; align-items: center; justify-content: center;
-  list-style: none; cursor: pointer; color: var(--ink-3);
-  margin-top: .8rem; padding-top: .5rem; border-top: 1px dashed var(--line);
-}
-.fjob-more > summary::marker,
-.fjob-more > summary::-webkit-details-marker { display: none; content: none; }
-.fjob-more > summary:hover { color: var(--accent); }
-.fjob-more > summary .sym { width: 1.15rem; height: 1.15rem; transition: transform .15s; }
-.fjob-more[open] > summary .sym { transform: rotate(180deg); }
-.f-job .note {
-  margin: .5rem 0 0;
-  font-size: .76rem; line-height: 1.5; color: var(--ink-2); text-align: left;
-}
 
 /* On a step card a spelled-out badge is most of the card's width, so the map
    draws the symbol alone and leaves the words to the tooltip. Everywhere else
@@ -514,9 +492,12 @@ td:first-child { font-weight: 600; white-space: nowrap; }
    the badges say so once, at the foot of the building rather than on four lines
    that would each repeat it. */
 .f-shopcard .needs { justify-content: center; margin-top: .7rem; }
+/* Wide enough for a job title and its badges and no wider: the second column
+   this card used to run — the job on the left, what the wiki said about it on
+   the right — went with the notes. */
 .f-types {
   list-style: none; margin: 0; padding: 1rem;
-  flex: none; width: 430px; max-width: 100%; text-align: left;
+  flex: none; width: 260px; max-width: 100%; text-align: left;
 }
 .f-types > li + li { margin-top: .7rem; padding-top: .7rem; border-top: 1px solid var(--line); }
 
@@ -534,15 +515,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .f-job.in-list .fnum:empty { display: none; }
 .f-job.in-list h3 { margin: 0 0 .35rem; }
 .f-job.in-list .needs { justify-content: flex-start; }
-/* Two columns to a line: what the job is on the left, what the wiki says about
-   it on the right. A card of types has the width for both, so the note stands
-   open here rather than behind the chevron a lone card needs. */
-.f-job.in-list .fjob-txt { flex: none; width: 152px; }
-.f-job.in-list .note {
-  flex: 1; min-width: 0; margin: 0;
-  font-size: .74rem; line-height: 1.5; color: var(--ink-2);
-}
-.f-job.in-list .note[hidden] { display: none; }
+.f-job.in-list .fjob-txt { flex: 1; min-width: 0; }
 /* Faded by the chips only when the path skips every job under this roof. */
 .f-group.dim .f-shopcard { opacity: .32; filter: grayscale(1); }
 
@@ -555,10 +528,8 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .fnum:empty { display: none; }
 
 /* Picking a path fades what it skipped rather than removing it: the point of
-   keeping the map is that you can still see the branch you did not take. The
-   detail on those cards goes, though — a page of greyed-out paragraphs between
-   step 2 and step 3 is a page the reader has to scroll past to follow the line
-   they actually asked for. Hovering one brings it back. */
+   keeping the map is that you can still see the branch you did not take.
+   Hovering one brings it back. */
 .fmap.picked .fnode:not(.on) { opacity: .32; filter: grayscale(1); }
 .fmap.picked .fnode:not(.on):hover { opacity: .85; filter: none; }
 
@@ -603,11 +574,6 @@ td:first-child { font-weight: 600; white-space: nowrap; }
   .f-shopcard { width: 96px; padding: .8rem .5rem; }
   .f-shopcard .fjob-shop { font-size: .82rem; }
   .f-types { flex: 1; width: auto; min-width: 0; padding: .8rem; }
-  /* No room for two columns here, so the note drops under the job it belongs
-     to rather than being squeezed into a gutter beside it. */
-  .f-job.in-list { flex-wrap: wrap; }
-  .f-job.in-list .fjob-txt { width: auto; flex: 1; }
-  .f-job.in-list .note { flex-basis: 100%; margin-top: .45rem; }
 }
 
 /* ── Symbols ──────────────────────────────────────────────────── */

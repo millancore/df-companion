@@ -1,4 +1,42 @@
 (function () {
+  /* ── language ─────────────────────────────────────────────────
+     The site is written in English and the game's own nomenclature stays
+     that way in every language: an item is a "Plump helmet", a building a
+     "Metalsmith's Forge" and a job on its menu "Brew Drink", because those
+     are the words on the screen the reader is alt-tabbing away from. What
+     translates is everything this site says *about* them — headings, labels,
+     legends and every note.
+
+     English literals stay in the source as the fallback, so a key missing
+     from a pack renders in English rather than as a key. */
+  const LANGS = ['en', 'es'];
+  const PACKS = window.DF_I18N || {};
+  const stored = localStorage.getItem('df-lang');
+  const LANG = LANGS.includes(stored) ? stored
+    : (String(navigator.language || '').toLowerCase().startsWith('es') ? 'es' : 'en');
+  document.documentElement.lang = LANG;
+
+  const UI   = (PACKS[LANG] || {}).ui   || {};
+  const DATA = (PACKS[LANG] || {}).data || {};
+
+  /* {n}-style holes rather than string concatenation: Spanish does not put
+     the number, the noun and the preposition in the order English does, so a
+     translated string has to be free to move them. */
+  const fmt = (s, vars) => vars
+    ? String(s).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)) : s;
+
+  /* `en` is the English text, written out where it is used so the source
+     still reads as English prose. */
+  const t = (key, en, vars) => fmt(LANG === 'en' || UI[key] == null ? en : UI[key], vars);
+
+  /* Prose that lives in the data files — an industry's blurb, a note on a
+     recipe — translated by the id the data already carries. */
+  const td = (group, key, en) => {
+    const g = DATA[group];
+    const v = g && key != null ? g[key] : null;
+    return v == null ? en : v;
+  };
+
   const RECIPES    = window.DF_RECIPES;
   const INDUSTRIES = window.DF_INDUSTRIES;
   const REFERENCE  = window.DF_REFERENCE;
@@ -21,7 +59,6 @@
   const DWARF      = window.DF_DWARF_PATH || '';
   const ARMOR_MATS = window.DF_ARMOR_MATS || {};
   const ARMOR      = window.DF_ARMOR || [];
-  const ARMOR_TABLES = window.DF_ARMOR_TABLES || [];
   const WEAPONS      = window.DF_WEAPONS || [];
   const FORGE_GOODS  = window.DF_FORGE_GOODS || [];
   const FORGE_METALS = window.DF_FORGE_METALS || [];
@@ -51,22 +88,22 @@
      badges wrap it to three lines — so the words have to survive somewhere,
      and a tooltip can say more than the label ever fitted. */
   const NEED_LABEL = {
-    fuel:   { icon: 'flame',  text: 'consumes fuel',
-              hint: 'Burns a unit of fuel — free at a magma furnace' },
-    flux:   { icon: 'flux',   text: 'flux stone',
-              hint: 'Consumes a flux stone: limestone, dolomite, chalk, calcite or marble' },
-    bag:    { icon: 'bag',    text: 'needs a bag',
-              hint: 'The output goes into an empty bag' },
-    barrel: { icon: 'barrel', text: 'barrel or pot',
-              hint: 'The output goes into an empty barrel or large pot' },
-    jug:    { icon: 'jug',    text: 'needs a jug',
-              hint: 'The output goes into an empty jug' },
-    bucket: { icon: 'bucket', text: 'needs a bucket',
-              hint: 'Needs an empty bucket' },
-    vial:   { icon: 'vial',   text: 'needs a vial',
-              hint: 'The extract goes into an empty glass vial — a metal flask or a waterskin will not do' },
-    shop:   { icon: 'shop',   text: 'shop & specialist',
-              hint: 'Needs the workshop built and a dwarf with the labour enabled' }
+    fuel:   { icon: 'flame',  text: t('need.fuel', 'consumes fuel'),
+              hint: t('need.fuel.hint', 'Burns a unit of fuel — free at a magma furnace') },
+    flux:   { icon: 'flux',   text: t('need.flux', 'flux stone'),
+              hint: t('need.flux.hint', 'Consumes a flux stone: limestone, dolomite, chalk, calcite or marble') },
+    bag:    { icon: 'bag',    text: t('need.bag', 'needs a bag'),
+              hint: t('need.bag.hint', 'The output goes into an empty bag') },
+    barrel: { icon: 'barrel', text: t('need.barrel', 'barrel or pot'),
+              hint: t('need.barrel.hint', 'The output goes into an empty barrel or large pot') },
+    jug:    { icon: 'jug',    text: t('need.jug', 'needs a jug'),
+              hint: t('need.jug.hint', 'The output goes into an empty jug') },
+    bucket: { icon: 'bucket', text: t('need.bucket', 'needs a bucket'),
+              hint: t('need.bucket.hint', 'Needs an empty bucket') },
+    vial:   { icon: 'vial',   text: t('need.vial', 'needs a vial'),
+              hint: t('need.vial.hint', 'The extract goes into an empty glass vial — a metal flask or a waterskin will not do') },
+    shop:   { icon: 'shop',   text: t('need.shop', 'shop & specialist'),
+              hint: t('need.shop.hint', 'Needs the workshop built and a dwarf with the labour enabled') }
   };
 
   const needBadge = (n, compact) => {
@@ -178,12 +215,22 @@
   const swatch = (hex) => hex
     ? `<span class="swatch" style="--sw:${esc(hex)}" aria-hidden="true"></span>` : '';
 
-  const KIND_NAME = { furnace: 'Furnace', workshop: 'Workshop', place: 'Place' };
+  const KIND_NAME = {
+    furnace:  t('kind.furnace', 'Furnace'),
+    workshop: t('kind.workshop', 'Workshop'),
+    place:    t('kind.place', 'Place')
+  };
   const shopKind = (name) => (SHOPS[name] || {}).kind || 'workshop';
 
   const industry = (id) => INDUSTRIES.find((i) => i.id === id);
   const recipesOf = (id) => RECIPES.filter((r) =>
     r.industry === id || (r.also || []).includes(id));
+
+  /* A job keeps the name the game's own menu gives it in every language; what
+     this site says *about* the job is what translates. */
+  const recipeNote = (r) => td('recipeNote', r.id, r.note || '');
+  const indName    = (i) => td('industry', i.id, i.name);
+  const indBlurb   = (i) => td('industryBlurb', i.id, i.blurb);
 
   /* ── brewing ──────────────────────────────────────────────────── */
   /* The Still's 77 ingredients are not recipes — they are one recipe's input
@@ -215,7 +262,7 @@
     in: a.alloy,
     out: a.parts.map((x) => x.metal).join(' + '),
     contains: a.parts.map((x) => x.metal),
-    use: a.weapon ? 'Weapons-grade' : 'Decorative',
+    use: a.weapon ? t('alloy.use.weapon', 'Weapons-grade') : t('alloy.use.decor', 'Decorative'),
     hay: [a.alloy, ...a.parts.map((x) => x.metal), a.weapon ? 'weapon armour' : 'decorative']
       .join(' ').toLowerCase()
   }));
@@ -235,7 +282,7 @@
     in: d.dye,
     out: d.color,
     family: COLOR_FAM[d.color] || 'Other',
-    made: d.milled ? 'Milled at a quern' : 'Other job',
+    made: d.milled ? t('dye.made.quern', 'Milled at a quern') : t('dye.made.other', 'Other job'),
     hay: [d.dye, d.color, d.from, d.part].join(' ').toLowerCase()
   }));
   const DYE_BY = new Map(DYE_ROWS.map((d) => [d.dye, d]));
@@ -285,7 +332,7 @@
     ...g,
     sprite: (EQ_BY_NAME.get(g.as || g.name) || {}).sprite,
     in: g.name,
-    out: g.base ? g.base + '\u263c base' : 'not clothing',
+    out: g.base ? g.base + '\u263c ' + t('goods.base', 'base') : t('goods.notclothing', 'not clothing'),
     hay: [g.name, g.slot, g.kind, g.pair ? 'pair two' : '',
           g.avail === 'foreign' ? 'foreign elf goblin human' : ''].join(' ').toLowerCase()
   }));
@@ -298,7 +345,11 @@
      is the join between the two: a region lights up because some piece names
      it, and clicking it filters to exactly those pieces. */
   const BODY_BY  = new Map(BODY.map((b) => [b.id, b]));
-  const partName = (id) => (BODY_BY.get(id) || { label: id }).label;
+  /* The regions of the dwarf are anatomy rather than the game's item names, so
+     they translate. The material codes behind `matName` do not: "Leather" is
+     what the Made-of dropdown offers and what the game calls it. */
+  const partName = (id) => td('body', id, (BODY_BY.get(id) || { label: id }).label);
+  const partNote = (id) => td('bodyNote', id, (BODY_BY.get(id) || {}).note || '');
   const matName  = (code) => (ARMOR_MATS[code] || { name: code }).name;
 
   /* Material size ÷ 3, rounded down, minimum one — the game's own formula, so
@@ -309,6 +360,14 @@
      is flatly three bars, a ballista arrowhead three — and those state `bars`
      instead. Armour never does, so this is the same function it always was. */
   const barCost = (r) => (r.bars != null ? r.bars : Math.max(1, Math.floor(r.size / 3)));
+
+  /* Bars and wafers are counted often enough, and in enough different
+     sentences, to be worth one place that knows how each language says them. */
+  const barsLabel   = (n) => t(n === 1 ? 'unit.bar' : 'unit.bars',
+    n === 1 ? '{n} bar' : '{n} bars', { n });
+  const wafersLabel = (n) => t(n === 1 ? 'unit.wafer' : 'unit.wafers',
+    n === 1 ? '{n} wafer' : '{n} wafers', { n });
+  const unitsLabel  = (n, adam) => (adam ? wafersLabel(n) : barsLabel(n));
 
   const ARMOR_ROWS = ARMOR.map((p) => ({
     ...p,
@@ -329,15 +388,15 @@
   function bodyFigure() {
     return `<div class="body-wrap">
       <svg class="body-fig" viewBox="0 0 200 355" role="group"
-           aria-label="Dwarf body — choose a part to filter the armour">
+           aria-label="${esc(t('armor.figure.label', 'Dwarf body — choose a part to filter the armour'))}">
         <g class="body-shape" aria-hidden="true"
            transform="translate(0 354.5) scale(.0332226 -.0332226)"><path d="${DWARF}"/></g>
         ${BODY.map((b) => `<g class="bp" data-part="${esc(b.id)}" role="button" tabindex="0"
-            aria-label="${esc(b.label)}"><title>${esc(b.label)}</title>${b.art}</g>`).join('')}
+            aria-label="${esc(partName(b.id))}"><title>${esc(partName(b.id))}</title>${b.art}</g>`).join('')}
       </svg>
       <div class="body-cap">
         <strong class="body-name"></strong>
-        <button class="body-all fchip" type="button" hidden>Whole body</button>
+        <button class="body-all fchip" type="button" hidden>${esc(t('armor.wholebody', 'Whole body'))}</button>
       </div>
       <p class="body-note"></p>
     </div>`;
@@ -354,9 +413,10 @@
       g.classList.toggle('cov', covered.includes(g.dataset.part));
     });
     const part = BODY_BY.get(cur);
-    host.querySelector('.body-name').textContent = part ? part.label : 'Click a body part';
-    host.querySelector('.body-note').textContent = part ? (part.note || '')
-      : 'Every piece is listed. Pick a part of the dwarf to see only what covers it.';
+    host.querySelector('.body-name').textContent = part
+      ? partName(part.id) : t('armor.pickpart', 'Click a body part');
+    host.querySelector('.body-note').textContent = part ? partNote(part.id)
+      : t('armor.allpieces', 'Every piece is listed. Pick a part of the dwarf to see only what covers it.');
     host.querySelector('.body-all').hidden = !part;
   }
 
@@ -372,45 +432,49 @@
 
     return `<div class="brew-out">
       <div class="brew-flow">
-        ${p.mats.map(mat).join('<span class="plus">or</span>')}
+        ${p.mats.map(mat).join(`<span class="plus">${esc(t('word.or', 'or'))}</span>`)}
         <span class="brew-arrow">${ARROW}</span>
         <span class="chip out flat">${esc(p.name)}</span>
       </div>
       <div class="brew-meta">
         <span class="need kind" data-kind="${esc(p.kind)}">${esc(p.kind)}</span>
-        <span class="need">${esc(p.layer)} layer</span>
-        ${p.cov != null ? `<span class="need">${p.cov}% coverage</span>` : ''}
-        ${p.block ? `<span class="need">${p.block}% block chance</span>` : ''}
-        ${p.level ? `<span class="need">armour level ${esc(String(p.level))}</span>` : ''}
+        <span class="need">${esc(t('armor.layer', '{layer} layer', { layer: p.layer }))}</span>
+        ${p.cov != null ? `<span class="need">${esc(t('armor.coverage', '{n}% coverage', { n: p.cov }))}</span>` : ''}
+        ${p.block ? `<span class="need">${esc(t('armor.block', '{n}% block chance', { n: p.block }))}</span>` : ''}
+        ${p.level ? `<span class="need">${esc(t('armor.level', 'armour level {n}', { n: p.level }))}</span>` : ''}
         ${p.elastic ? `<span class="need">${esc(p.elastic)}</span>` : ''}
-        ${p.shaped ? `<span class="need warnish">${sym('warn')}shaped</span>` : ''}
-        ${p.avail === 'foreign' ? `<span class="need warnish">${sym('warn')}dwarves cannot make it</span>` : ''}
-        ${p.avail === 'uncommon' ? `<span class="need warnish">${sym('warn')}not every civilisation</span>` : ''}
+        ${p.shaped ? `<span class="need warnish">${sym('warn')}${esc(t('armor.shaped', 'shaped'))}</span>` : ''}
+        ${p.avail === 'foreign' ? `<span class="need warnish">${sym('warn')}${esc(t('armor.foreign', 'dwarves cannot make it'))}</span>` : ''}
+        ${p.avail === 'uncommon' ? `<span class="need warnish">${sym('warn')}${esc(t('armor.uncommon', 'not every civilisation'))}</span>` : ''}
       </div>
 
       <div class="armor-covers">
-        <span class="flow-label">covers</span>
+        <span class="flow-label">${esc(t('armor.covers', 'covers'))}</span>
         ${p.covers.length ? p.covers.map(part).join('')
-          : '<span class="muted">Nothing — it is held, not worn, and blocks the attack instead.</span>'}
+          : `<span class="muted">${esc(t('armor.nocover',
+              'Nothing — it is held, not worn, and blocks the attack instead.'))}</span>`}
       </div>
 
       <dl class="armor-stats">
-        <div><dt>Material size</dt><dd>${p.size}</dd></div>
-        ${metal ? `<div><dt>Metal cost</dt><dd>${bars} bar${bars === 1 ? '' : 's'}</dd></div>
-          <div><dt>In adamantine</dt><dd>${p.size} wafer${p.size === 1 ? '' : 's'}</dd></div>` : ''}
-        ${p.ls != null ? `<div><dt>Layer size</dt><dd>${p.ls}</dd></div>` : ''}
-        ${p.perm != null ? `<div><dt>Permit</dt><dd>${p.perm}</dd></div>` : ''}
-        ${p.melt ? `<div><dt>Melts back to</dt><dd>${p.melt} bars
+        <div><dt>${esc(t('stat.matsize', 'Material size'))}</dt><dd>${p.size}</dd></div>
+        ${metal ? `<div><dt>${esc(t('stat.metalcost', 'Metal cost'))}</dt><dd>${esc(barsLabel(bars))}</dd></div>
+          <div><dt>${esc(t('stat.inadamantine', 'In adamantine'))}</dt><dd>${esc(wafersLabel(p.size))}</dd></div>` : ''}
+        ${p.ls != null ? `<div><dt>${esc(t('stat.layersize', 'Layer size'))}</dt><dd>${p.ls}</dd></div>` : ''}
+        ${p.perm != null ? `<div><dt>${esc(t('stat.permit', 'Permit'))}</dt><dd>${p.perm}</dd></div>` : ''}
+        ${p.melt ? `<div><dt>${esc(t('stat.meltsback', 'Melts back to'))}</dt><dd>${esc(barsLabel(p.melt))}
           <span class="muted">(${Math.round(p.melt / bars * 100)}%)</span></dd></div>` : ''}
       </dl>
 
-      <p class="brew-job">Made at ${shops.map((w) =>
-        `<a class="chip shop" href="#/w/${encodeURIComponent(w)}">${icon(w)}${esc(w)}</a>`).join(' ')}
-        by ${esc(skills.join(' or '))}.${metal
-          ? ` The metal version costs <strong>${bars} bar${bars === 1 ? '' : 's'}</strong> of a
-              weapons-grade metal, plus an anvil and a unit of fuel.` : ''}</p>
+      <p class="brew-job">${t('armor.madeat', 'Made at {shops} by {skills}.', {
+          shops: shops.map((w) =>
+            `<a class="chip shop" href="#/w/${encodeURIComponent(w)}">${icon(w)}${esc(w)}</a>`).join(' '),
+          skills: esc(skills.join(t('word.or.sep', ' or ')))
+        })}${metal
+          ? ' ' + t('armor.metalcost',
+              'The metal version costs <strong>{bars}</strong> of a weapons-grade metal, plus an anvil and a unit of fuel.',
+              { bars: esc(barsLabel(bars)) }) : ''}</p>
 
-      ${p.note ? `<p class="brew-job">${esc(p.note)}</p>` : ''}
+      ${p.note ? `<p class="brew-job">${esc(td('armorNote', p.id, p.note))}</p>` : ''}
     </div>`;
   }
 
@@ -441,15 +505,21 @@
 
   const forgeMetal = (name) => FORGE_METALS.find((m) => m.metal === name);
 
+  /* The forge's rows come from three data files, so a note does too — and each
+     file keys its rows differently. Armour is the one with an id of its own,
+     which is what lets the Armor page and this page share a translation. */
+  const forgeNote = (r) => r.form === 'armor'  ? td('armorNote', r.id, r.note)
+                         : r.form === 'weapon' ? td('weaponNote', r.name, r.note)
+                         : td('forgeNote', r.name, r.note);
+
   /* What the list's right-hand column says. In a ninety-row list the one fact
      worth scanning for is what the thing costs — and for the handful that come
      out in multiples, "×3 from one bar" is the entire point of them. */
   function forgeCost(r) {
-    const n = barCost(r);
-    const bars = n + (n === 1 ? ' bar' : ' bars');
-    if (r.per)  return `×${r.per} from ${bars}`;
-    if (r.upto) return `1–${r.upto} from ${bars}`;
-    if (r.pair) return `a pair from ${bars}`;
+    const bars = barsLabel(barCost(r));
+    if (r.per)  return t('forge.cost.per',  '×{n} from {bars}', { n: r.per, bars });
+    if (r.upto) return t('forge.cost.upto', '1–{n} from {bars}', { n: r.upto, bars });
+    if (r.pair) return t('forge.cost.pair', 'a pair from {bars}', { bars });
     return bars;
   }
 
@@ -528,12 +598,12 @@
     </div>`;
 
     return `<div class="calc">
-      ${row('metal', 'Metal', allowed.map((m) => ({
+      ${row('metal', t('calc.metal', 'Metal'), allowed.map((m) => ({
         v: m.metal, now: FORGE_CALC.metal, label: `${m.metal} ×${m.value}` })))}
-      ${row('q', 'Smith', QUALITY_STEPS.map((q, i) => ({
+      ${row('q', t('calc.smith', 'Smith'), QUALITY_STEPS.map((q, i) => ({
         v: i, now: r.noQuality ? 0 : FORGE_CALC.q,
         label: `${q.label} ×${q.mult}${q.bonus ? ' +' + q.bonus : ''}` })),
-        r.noQuality, 'This item has no quality level, whoever makes it')}
+        r.noQuality, t('calc.noquality', 'This item has no quality level, whoever makes it'))}
     </div>`;
   }
 
@@ -543,7 +613,9 @@
      battle axe's 40,000 says more than either page of prose about it. */
   function attackTable(atks) {
     return `<div class="table-wrap"><table class="atk">
-      <thead><tr><th>Attack</th><th>Type</th><th>Contact</th><th>Penetration</th><th>Velocity</th></tr></thead>
+      <thead><tr><th>${esc(t('atk.attack', 'Attack'))}</th><th>${esc(t('atk.type', 'Type'))}</th
+        ><th>${esc(t('atk.contact', 'Contact'))}</th><th>${esc(t('atk.penetration', 'Penetration'))}</th
+        ><th>${esc(t('atk.velocity', 'Velocity'))}</th></tr></thead>
       <tbody>${atks.map((a) => `<tr>
         <td>${esc(a.name)}</td>
         <td><span class="need atk-${a.type === 'Edge' ? 'edge' : 'blunt'}">${esc(a.type)}</span></td>
@@ -553,10 +625,11 @@
         <td class="num">${a.vel ? a.vel + '×' : '—'}</td>
       </tr>`).join('')}</tbody>
     </table></div>
-    <p class="brew-job muted">Contact area is how wide the hit lands and penetration how deep it
-      goes; a small area concentrates the same force and gets through armour a wide one bounces
-      off. Penetration is bracketed on blunt attacks because the game ignores it there. Velocity
-      multiplies the momentum outright.</p>`;
+    <p class="brew-job muted">${esc(t('atk.note',
+      'Contact area is how wide the hit lands and penetration how deep it goes; a small area '
+      + 'concentrates the same force and gets through armour a wide one bounces off. Penetration '
+      + 'is bracketed on blunt attacks because the game ignores it there. Velocity multiplies the '
+      + 'momentum outright.'))}</p>`;
   }
 
   /* One row of the forge's picker: what it costs in bars, what it gives back at
@@ -578,7 +651,7 @@
     const adam  = metal.metal === 'Adamantine';
     const cost  = adam && r.size != null ? r.size : barCost(r);
     const unit  = adam ? 'wafer' : 'bar';
-    const units = cost + ' ' + unit + (cost === 1 ? '' : 's');
+    const units = unitsLabel(cost, adam);
 
     const q     = r.noQuality ? QUALITY_STEPS[0] : QUALITY_STEPS[FORGE_CALC.q];
     const count = r.per || (r.pair ? 2 : 1);
@@ -610,81 +683,90 @@
         <span class="need kind" data-kind="${esc(r.cat)}">${esc(r.cat)}</span>
         <span class="need">${esc(r.labour)}</span>
         ${r.kind && r.kind !== r.cat ? `<span class="need">${esc(r.kind)}</span>` : ''}
-        ${r.melt ? `<span class="need">melts to ${r.melt} ${unit}${r.melt === 1 ? '' : 's'}
+        ${r.melt ? `<span class="need">${esc(t('forge.meltsto', 'melts to {units}',
+            { units: unitsLabel(r.melt, adam) }))}
           <span class="muted">(${Math.round(r.melt / cost * 100)}%)</span></span>` : ''}
-        ${r.noQuality ? '<span class="need">no quality level</span>' : ''}
-        ${r.shaped ? `<span class="need warnish">${sym('warn')}shaped</span>` : ''}
-        ${r.cat === 'Studding' ? `<span class="need">${sym('flame')}burns no fuel</span>` : ''}
+        ${r.noQuality ? `<span class="need">${esc(t('forge.noquality', 'no quality level'))}</span>` : ''}
+        ${r.shaped ? `<span class="need warnish">${sym('warn')}${esc(t('armor.shaped', 'shaped'))}</span>` : ''}
+        ${r.cat === 'Studding' ? `<span class="need">${sym('flame')}${esc(t('forge.nofuel', 'burns no fuel'))}</span>` : ''}
       </div>
 
       ${r.form === 'weapon' ? `
       <dl class="armor-stats forge-stats">
         ${r.skill && r.skill !== '—'
-          ? `<div><dt>${r.kind === 'Ammo' ? 'Fired with' : 'Wielded with'}</dt>
+          ? `<div><dt>${esc(r.kind === 'Ammo' ? t('stat.firedwith', 'Fired with')
+                                              : t('stat.wieldedwith', 'Wielded with'))}</dt>
                <dd>${esc(r.skill)}</dd></div>` : ''}
         ${r.hands && r.hands !== '—'
-          ? `<div><dt>Hands</dt><dd>${esc(r.hands)}</dd></div>` : ''}
-        ${r.hits ? `<div><dt>Hits per trigger</dt><dd>${r.hits}</dd></div>` : ''}
-        ${r.vol ? `<div><dt>Volume</dt><dd>${r.vol.toLocaleString('en')} cm³</dd></div>` : ''}
-        ${r.size != null ? `<div><dt>Material size</dt><dd>${r.size}</dd></div>` : ''}
+          ? `<div><dt>${esc(t('stat.hands', 'Hands'))}</dt><dd>${esc(r.hands)}</dd></div>` : ''}
+        ${r.hits ? `<div><dt>${esc(t('stat.hits', 'Hits per trigger'))}</dt><dd>${r.hits}</dd></div>` : ''}
+        ${r.vol ? `<div><dt>${esc(t('stat.volume', 'Volume'))}</dt><dd>${r.vol.toLocaleString('en')} cm³</dd></div>` : ''}
+        ${r.size != null ? `<div><dt>${esc(t('stat.matsize', 'Material size'))}</dt><dd>${r.size}</dd></div>` : ''}
       </dl>
       ${r.attacks ? attackTable(r.attacks) : ''}` : ''}
 
       ${r.form === 'armor' ? `
       <div class="armor-covers">
-        <span class="flow-label">covers</span>
-        ${covers || '<span class="muted">Nothing — it is held, not worn, and blocks the attack instead.</span>'}
+        <span class="flow-label">${esc(t('armor.covers', 'covers'))}</span>
+        ${covers || `<span class="muted">${esc(t('armor.nocover',
+          'Nothing — it is held, not worn, and blocks the attack instead.'))}</span>`}
       </div>
       <dl class="armor-stats forge-stats">
-        <div><dt>Material size</dt><dd>${r.size}</dd></div>
-        ${r.ls != null ? `<div><dt>Layer size</dt><dd>${r.ls}</dd></div>` : ''}
-        ${r.cov != null ? `<div><dt>Coverage</dt><dd>${r.cov}%</dd></div>` : ''}
-        ${r.block ? `<div><dt>Block chance</dt><dd>${r.block}%</dd></div>` : ''}
-        ${r.level ? `<div><dt>Armour level</dt><dd>${esc(String(r.level))}</dd></div>` : ''}
+        <div><dt>${esc(t('stat.matsize', 'Material size'))}</dt><dd>${r.size}</dd></div>
+        ${r.ls != null ? `<div><dt>${esc(t('stat.layersize', 'Layer size'))}</dt><dd>${r.ls}</dd></div>` : ''}
+        ${r.cov != null ? `<div><dt>${esc(t('stat.coverage', 'Coverage'))}</dt><dd>${r.cov}%</dd></div>` : ''}
+        ${r.block ? `<div><dt>${esc(t('stat.blockchance', 'Block chance'))}</dt><dd>${r.block}%</dd></div>` : ''}
+        ${r.level ? `<div><dt>${esc(t('stat.armourlevel', 'Armour level'))}</dt><dd>${esc(String(r.level))}</dd></div>` : ''}
       </dl>
-      <p class="brew-job"><a class="chip" href="#/armor/${esc(r.id)}">See ${esc(r.name.toLowerCase())}
-        on the dwarf</a> for layers, permits and what it leaves bare.</p>` : ''}
+      <p class="brew-job">${t('forge.seeonwarf',
+        '<a class="chip" href="{href}">See {name} on the dwarf</a> for layers, permits and what it leaves bare.',
+        { href: `#/armor/${esc(r.id)}`, name: esc(r.name.toLowerCase()) })}</p>` : ''}
 
       ${total == null ? '' : `
-      <p class="col-head calc-head">Worth</p>
+      <p class="col-head calc-head">${esc(t('calc.worth', 'Worth'))}</p>
       ${forgeControls(r, allowed)}
       <dl class="calc-out">
-        ${line('Base', esc(r.name.toLowerCase()), round2(r.base))}
-        ${line('× metal', `${round2(r.base)} × ${esc(metal.metal)} ${metal.value}`,
+        ${line(esc(t('calc.base', 'Base')), esc(r.name.toLowerCase()), round2(r.base))}
+        ${line(esc(t('calc.xmetal', '× metal')), `${round2(r.base)} × ${esc(metal.metal)} ${metal.value}`,
                round2(r.base * metal.value))}
-        ${line('× quality', `${round2(r.base * metal.value)} × ${esc(q.label)} ${q.mult}`,
+        ${line(esc(t('calc.xquality', '× quality')), `${round2(r.base * metal.value)} × ${esc(q.label)} ${q.mult}`,
                round2(r.base * metal.value * q.mult))}
-        ${line('+ bonus', q.bonus ? '+' + q.bonus : 'none', round2(each))}
-        ${count > 1 ? line('× stack', `${round2(each)} × ${count}`, round2(total)) : ''}
+        ${line(esc(t('calc.plusbonus', '+ bonus')), q.bonus ? '+' + q.bonus : esc(t('calc.none', 'none')), round2(each))}
+        ${count > 1 ? line(esc(t('calc.xstack', '× stack')), `${round2(each)} × ${count}`, round2(total)) : ''}
       </dl>
       <p class="calc-total">${round2(total)}☼
-        <span class="muted">${count > 1 ? `for the ${count}` : ''}${
+        <span class="muted">${count > 1 ? esc(t('calc.forthe', 'for the {n}', { n: count })) : ''}${
           count > 1 && cost > 1 ? ', ' : ''}${
-          cost > 1 ? `${round2(total / cost)}☼ per ${unit}` : ''}</span></p>`}
+          cost > 1 ? esc(t(adam ? 'calc.perwafer' : 'calc.perbar', '{v}☼ per ' + unit,
+            { v: round2(total / cost) })) : ''}</span></p>`}
 
-      <p class="brew-job">One <strong>${esc(r.labour)}</strong> job at
-        <a class="chip shop" href="#/w/${encodeURIComponent(FORGE_SHOP)}">
-          ${icon(FORGE_SHOP)}${esc(FORGE_SHOP)}</a>, which needs an anvil in it${
+      <p class="brew-job">${t('forge.job',
+          'One <strong>{labour}</strong> job at {shop}, which needs an anvil in it',
+          { labour: esc(r.labour),
+            shop: `<a class="chip shop" href="#/w/${encodeURIComponent(FORGE_SHOP)}">`
+                  + `${icon(FORGE_SHOP)}${esc(FORGE_SHOP)}</a>` })}${
           r.cat === 'Studding'
-            ? ' — and is the one job here that burns no fuel at all.'
-            : ' and a unit of fuel, unless it is the magma version.'}
+            ? t('forge.job.studding', ' — and is the one job here that burns no fuel at all.')
+            : t('forge.job.fuel', ' and a unit of fuel, unless it is the magma version.')}
         ${GATED.includes(r.cat)
-          ? ` The metal list above is only what the forge will accept for this${
-              r.cat === 'Anvils' ? ': an anvil has to be fire-safe.'
-              : r.cat === 'Armor' ? ': armour must be weapons-grade, and black bronze never is.'
-              : ': weapons must be weapons-grade, and silver only for the melee ones.'}` : ''}</p>
+          ? ' ' + t('forge.gated', 'The metal list above is only what the forge will accept for this{why}', {
+              why: r.cat === 'Anvils' ? t('forge.gated.anvil', ': an anvil has to be fire-safe.')
+              : r.cat === 'Armor' ? t('forge.gated.armor', ': armour must be weapons-grade, and black bronze never is.')
+              : t('forge.gated.weapon', ': weapons must be weapons-grade, and silver only for the melee ones.') })
+          : ''}</p>
 
-      ${elsewhere.length ? `<p class="brew-job">Also made
-        ${elsewhere.map(([at, mats]) =>
-          `in ${esc(mats.join(' or ').toLowerCase())} at
-           <a class="chip shop" href="#/w/${encodeURIComponent(at)}">${icon(at)}${esc(at)}</a>`
-        ).join(', and ')}.</p>` : ''}
+      ${elsewhere.length ? `<p class="brew-job">${t('forge.elsewhere', 'Also made {where}.', {
+          where: elsewhere.map(([at, mats]) =>
+            t('forge.elsewhere.one', 'in {mats} at {shop}', {
+              mats: esc(mats.join(t('word.or.sep', ' or ')).toLowerCase()),
+              shop: `<a class="chip shop" href="#/w/${encodeURIComponent(at)}">${icon(at)}${esc(at)}</a>` })
+          ).join(t('word.and.sep', ', and ')) })}</p>` : ''}
 
-      ${r.mats && r.mats.length > 1 ? `<p class="brew-job">Also made of
-        ${r.mats.filter((c) => c !== 'M').map((c) => esc(matName(c).toLowerCase())).join(', ')}
-        — see the Armor page for which building works which.</p>` : ''}
+      ${r.mats && r.mats.length > 1 ? `<p class="brew-job">${t('forge.alsomadeof',
+        'Also made of {mats} — see the Armor page for which building works which.',
+        { mats: r.mats.filter((c) => c !== 'M').map((c) => esc(matName(c).toLowerCase())).join(', ') })}</p>` : ''}
 
-      ${r.note ? `<p class="brew-job">${esc(r.note)}</p>` : ''}
+      ${r.note ? `<p class="brew-job">${esc(forgeNote(r))}</p>` : ''}
     </div>`;
   }
 
@@ -790,7 +872,7 @@
     const needs = (r.needs || []).map(needBadge).join('');
 
     const where = opts.showWorkshop
-      ? `<div class="flow-row"><span class="flow-label">at</span>
+      ? `<div class="flow-row"><span class="flow-label">${esc(t('flow.at', 'at'))}</span>
            <a class="chip shop" href="#/w/${encodeURIComponent(r.workshop)}">
              ${icon(r.workshop)}${esc(r.workshop)}</a>
            ${r.skill && r.skill !== '—' ? `<span class="need">${esc(r.skill)}</span>` : ''}</div>`
@@ -799,13 +881,13 @@
     return `<article class="rec" id="r-${esc(r.id)}">
       <h3>${metalOut ? ingot(metalOut, 'title') : ''}${esc(r.name)}</h3>
       <div class="flow">
-        ${ins ? `<div class="flow-row"><span class="flow-label">in</span>${ins}</div>` : ''}
+        ${ins ? `<div class="flow-row"><span class="flow-label">${esc(t('flow.in', 'in'))}</span>${ins}</div>` : ''}
         ${where}
         <div class="arrow">${ARROW}</div>
-        ${outs ? `<div class="flow-row"><span class="flow-label">out</span>${outs}</div>` : ''}
+        ${outs ? `<div class="flow-row"><span class="flow-label">${esc(t('flow.out', 'out'))}</span>${outs}</div>` : ''}
       </div>
       ${needs ? `<div class="needs">${needs}</div>` : ''}
-      ${r.note ? `<p class="note">${esc(r.note)}</p>` : ''}
+      ${r.note ? `<p class="note">${esc(recipeNote(r))}</p>` : ''}
     </article>`;
   }
 
@@ -815,7 +897,7 @@
      read what it turns into. The list is the source of truth for the filters,
      so adding a row to data/brewing.js needs no change here. */
   const valueTag = (v) =>
-    `<span class="val" title="Drink value">${v}☼</span>`;
+    `<span class="val" title="${esc(t('tag.value', 'Drink value'))}">${v}☼</span>`;
 
   /* The still at work: the plant drops in, the vessel fills in the drink's own
      colour, it bubbles, and the barrel below catches it. Drawn rather than
@@ -825,7 +907,8 @@
   function brewAnim(b) {
     const id = 'brew-clip-' + (++animSeq);
     return `<svg class="brew-anim" data-kind="${esc(b.kind)}" viewBox="90 6 118 86" role="img"
-      aria-label="${esc(b.in)} brewing into ${esc(b.out)} at the still">
+      aria-label="${esc(t('anim.brew', '{in} brewing into {out} at the still',
+        { in: b.in, out: b.out }))}">
       <defs>
         <clipPath id="${id}-v"><path d="M100 36h40c6 12 6 34 0 46H100c-6-12-6-34 0-46z"/></clipPath>
         <clipPath id="${id}-b"><path d="M172 62h28c3 7 3 19 0 26h-28c-3-7-3-19 0-26z"/></clipPath>
@@ -865,7 +948,8 @@
     const id = 'mill-clip-' + (++animSeq);
     return `<svg class="brew-anim mill-anim" data-kind="${esc(m.kind)}"
       ${m.hex ? `style="--brew:${esc(m.hex)}"` : ''} viewBox="8 4 116 88" role="img"
-      aria-label="${esc(m.in)} milled into ${esc(m.out)} at the quern">
+      aria-label="${esc(t('anim.mill', '{in} milled into {out} at the quern',
+        { in: m.in, out: m.out }))}">
       <defs>
         <clipPath id="${id}-b"><path d="M100.5 56C95 60.8 89 67.4 89 71.6c0 3.3 2.4 4.8 5.7 4.8h18.6c3.3 0 5.7-1.5 5.7-4.8 0-4.2-6-10.8-11.5-15.6z"/></clipPath>
       </defs>
@@ -935,21 +1019,24 @@
         c ? ingot(c) : ''}${esc(m)}</a>`;
     };
     return `<div class="brew-out${(opts && opts.compact) ? ' beside' : ''}">
-      ${smeltAnim(o.metal, o.ore + ' smelted into ' + o.metal)}
+      ${smeltAnim(o.metal, t('anim.smelt', '{ore} smelted into {metal}',
+        { ore: o.ore, metal: o.metal }))}
       <div class="brew-flow">
         <a class="chip in" href="#/item/${encodeURIComponent(o.ore)}">${esc(o.ore)}</a>
         <span class="brew-arrow">${ARROW}</span>
         ${bar(o.metal)}${o.bonus ? `<span class="plus">+</span>${bar(o.bonus.metal)}` : ''}
       </div>
       <div class="brew-meta">
-        <span class="need kind">${o.bars} bars</span>
-        ${o.bonus ? `<span class="need">${o.bonus.chance}% chance of ${o.bonus.bars} ${esc(o.bonus.metal.toLowerCase())}</span>` : ''}
+        <span class="need kind">${esc(barsLabel(o.bars))}</span>
+        ${o.bonus ? `<span class="need">${esc(t('ore.bonus', '{chance}% chance of {bars} {metal}', {
+          chance: o.bonus.chance, bars: o.bonus.bars, metal: o.bonus.metal.toLowerCase() }))}</span>` : ''}
         ${needBadge('fuel')}
       </div>
-      <p class="brew-job">One <strong>Smelt Ore</strong> job at the smelter: a
-        ${step && step.skill ? esc(step.skill) : 'Furnace operator'} and a unit of fuel —
-        none at all if the smelter is built over magma.</p>
-      <p class="brew-where"><span class="col-head">Found in</span> ${esc(o.found)}.</p>
+      <p class="brew-job">${t('ore.job',
+        'One <strong>Smelt Ore</strong> job at the smelter: a {skill} and a unit of fuel — none at '
+        + 'all if the smelter is built over magma.',
+        { skill: esc(step && step.skill ? step.skill : 'Furnace operator') })}</p>
+      <p class="brew-where"><span class="col-head">${esc(t('ore.foundin', 'Found in'))}</span> ${esc(o.found)}.</p>
     </div>`;
   }
 
@@ -962,7 +1049,8 @@
     };
     const col = metalColor(a.alloy);
     return `<div class="brew-out${(opts && opts.compact) ? ' beside' : ''}">
-      ${smeltAnim(a.alloy, a.parts.map((x) => x.metal).join(' and ') + ' alloyed into ' + a.alloy)}
+      ${smeltAnim(a.alloy, t('anim.alloy', '{parts} alloyed into {alloy}', {
+        parts: a.parts.map((x) => x.metal).join(t('word.and.plain', ' and ')), alloy: a.alloy }))}
       <div class="brew-flow">
         ${a.parts.map(part).join('<span class="plus">+</span>')}
         <span class="brew-arrow">${ARROW}</span>
@@ -975,11 +1063,13 @@
         ${needBadge('fuel')}
         ${a.flux ? needBadge('flux') : ''}
       </div>
-      <p class="brew-job">One <strong>${esc(a.alloy)}</strong> reaction at the smelter: a
-        ${step && step.skill ? esc(step.skill) : 'Furnace operator'}, the bars above and a unit
-        of fuel.${a.flux ? ' It also eats a flux stone — no flux on the map means no steel, ' +
-        'no matter how much iron you dig.' : ''}${a.weapon
-          ? ' Good enough to arm a militia with.' : ' Value, not weapons — it will not hold an edge.'}</p>
+      <p class="brew-job">${t('alloy.job',
+        'One <strong>{alloy}</strong> reaction at the smelter: a {skill}, the bars above and a unit of fuel.',
+        { alloy: esc(a.alloy), skill: esc(step && step.skill ? step.skill : 'Furnace operator') })}${
+        a.flux ? ' ' + t('alloy.flux',
+          'It also eats a flux stone — no flux on the map means no steel, no matter how much iron you dig.') : ''}${
+        a.weapon ? ' ' + t('alloy.weapon', 'Good enough to arm a militia with.')
+                 : ' ' + t('alloy.decor', 'Value, not weapons — it will not hold an edge.')}</p>
     </div>`;
   }
 
@@ -991,7 +1081,8 @@
     const hex = COLOR_HEX[d.color];
     return `<svg class="brew-anim dye-anim" ${hex ? `style="--brew:${esc(hex)}"` : ''}
       viewBox="18 8 96 84" role="img"
-      aria-label="Cloth dyed ${esc(d.color)} with ${esc(d.dye)} at the dyer's shop">
+      aria-label="${esc(t('anim.dye', "Cloth dyed {color} with {dye} at the dyer's shop",
+        { color: d.color, dye: d.dye }))}">
       <defs>
         <clipPath id="${id}-v"><path d="M34 54h60v20c0 6.6-13.4 12-30 12s-30-5.4-30-12z"/></clipPath>
       </defs>
@@ -1032,23 +1123,28 @@
       <div class="brew-flow">
         ${side(d.dye, 'in')}
         <span class="brew-arrow">${ARROW}</span>
-        <span class="chip out flat">${swatch(COLOR_HEX[d.color])}cloth in ${esc(d.color.toLowerCase())}</span>
+        <span class="chip out flat">${swatch(COLOR_HEX[d.color])}${esc(t('dye.clothin',
+          'cloth in {color}', { color: d.color.toLowerCase() }))}</span>
       </div>
       <div class="brew-meta">
-        <span class="need kind" data-fam="${esc(COLOR_FAM[d.color] || '')}">${esc(COLOR_FAM[d.color] || 'Colour')}</span>
+        <span class="need kind" data-fam="${esc(COLOR_FAM[d.color] || '')}">${esc(COLOR_FAM[d.color] || t('dye.colour', 'Colour'))}</span>
         ${valueTag(d.value)}
         <span class="need">${sprite(d.from)}${d.part === 'Whole plant'
-          ? 'from ' + esc(d.from.toLowerCase())
-          : esc(d.part.toLowerCase()) + ' of ' + esc(d.from.toLowerCase())}</span>
-        <span class="need">${d.milled ? 'Milled at a quern' : 'Other job'}</span>
+          ? esc(t('dye.fromplant', 'from {plant}', { plant: d.from.toLowerCase() }))
+          : esc(t('dye.frompart', '{part} of {plant}',
+              { part: d.part.toLowerCase(), plant: d.from.toLowerCase() }))}</span>
+        <span class="need">${esc(d.milled ? t('dye.made.quern', 'Milled at a quern')
+                                          : t('dye.made.other', 'Other job'))}</span>
       </div>
-      <p class="brew-job">One <strong>Dye</strong> job at the dyer's shop: a
-        ${step && step.skill ? esc(step.skill) : 'Dyer'}, the dye, and the thread, cloth or
-        leather to colour. Dyeing adds the dye's ${d.value}☼ to the item's value, multiplied
-        by the quality of the work.${d.milled ? ' This one you can make yourself, by milling ' +
-        esc(d.from) + ' at a quern.' : ''}</p>
+      <p class="brew-job">${t('dye.job',
+        "One <strong>Dye</strong> job at the dyer's shop: a {skill}, the dye, and the thread, cloth "
+        + "or leather to colour. Dyeing adds the dye's {value}☼ to the item's value, multiplied by "
+        + "the quality of the work.",
+        { skill: esc(step && step.skill ? step.skill : 'Dyer'), value: d.value })}${
+        d.milled ? ' ' + t('dye.milled', 'This one you can make yourself, by milling {plant} at a quern.',
+          { plant: esc(d.from) }) : ''}</p>
       ${other.length ? `<div class="brew-else">
-        <p class="col-head">${esc(d.dye)} is also</p>
+        <p class="col-head">${esc(t('also.is', '{name} is also', { name: d.dye }))}</p>
         <div class="flow-row">${other.map((r) =>
           `<a class="chip" href="#/i/${r.industry}#r-${esc(r.id)}">${esc(r.name)}</a>`).join('')}</div>
       </div>` : ''}
@@ -1067,7 +1163,8 @@
     const warp = [0, 1, 2, 3, 4, 5, 6].map((i) =>
       `<path d="M${11 + i * 3} 8.5v18"/>`).join('');
     return `<svg class="brew-anim weave-anim" data-kind="${esc(f.kind)}" viewBox="4 3 32 30"
-      role="img" aria-label="${esc(f.out)} woven into ${esc(f.cloth || 'cloth')} at the loom">
+      role="img" aria-label="${esc(t('anim.weave', '{out} woven into {cloth} at the loom',
+        { out: f.out, cloth: f.cloth || t('word.cloth', 'cloth') }))}">
       <defs><clipPath id="${id}-c"><rect x="10" y="8.5" width="20" height="18"/></clipPath></defs>
 
       <g class="warp" fill="none" stroke="currentColor" stroke-width=".8"
@@ -1146,7 +1243,7 @@
   /* Dye is a flat addition rather than a multiplier, so only its milled value
      matters and the seventy-two dyes collapse to two numbers. */
   const CLOTH_DYES = [
-    { v: 0,  label: 'Undyed' },
+    { v: 0,  label: t('cloth.undyed', 'Undyed') },
     { v: 10, label: 'Redroot' },
     { v: 20, label: 'Dimple / emerald / sliver' }
   ];
@@ -1171,7 +1268,7 @@
     const row = (key, label, opts, off) => `<div class="calc-row${off ? ' off' : ''}">
       <label class="flabel" for="calc-${esc(key)}">${esc(label)}</label>
       <select class="calc-sel" id="calc-${esc(key)}" data-k="${esc(key)}"
-              ${off ? 'disabled title="Nothing to colour — pick a dye first"' : ''}>
+              ${off ? `disabled title="${esc(t('calc.nodye', 'Nothing to colour — pick a dye first'))}"` : ''}>
         ${opts.map((o) => `<option value="${o.v}" ${
           o.v === CALC[key] ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}
       </select>
@@ -1182,11 +1279,11 @@
       .map((q) => ({ v: q.v, label: q.label }));
 
     return `<div class="calc">
-      ${row('mult', 'Cloth', CLOTH_MATS.map((m) => ({ v: m.mult, label: m.label + ' ×' + m.mult })))}
-      ${row('itemQ', 'Clothier', grades('itemQ'))}
-      ${row('clothQ', 'Weaver', grades('clothQ'))}
-      ${row('dye', 'Dye', CLOTH_DYES)}
-      ${row('dyeQ', 'Dyer', grades('dyeQ'), !CALC.dye)}
+      ${row('mult', t('calc.cloth', 'Cloth'), CLOTH_MATS.map((m) => ({ v: m.mult, label: m.label + ' ×' + m.mult })))}
+      ${row('itemQ', t('calc.clothier', 'Clothier'), grades('itemQ'))}
+      ${row('clothQ', t('calc.weaver', 'Weaver'), grades('clothQ'))}
+      ${row('dye', t('calc.dye', 'Dye'), CLOTH_DYES)}
+      ${row('dyeQ', t('calc.dyer', 'Dyer'), grades('dyeQ'), !CALC.dye)}
     </div>`;
   }
 
@@ -1209,7 +1306,7 @@
 
     return `<div class="brew-out${compact ? ' beside' : ''}">
       <div class="brew-flow">
-        <span class="chip in flat">1 × cloth</span>
+        <span class="chip in flat">${esc(t('cloth.onecloth', '1 × cloth'))}</span>
         <span class="brew-arrow">${ARROW}</span>
         ${ITEMS.has(g.name) ? chip(g.name, 'out') : `<span class="chip out flat">${esc(g.name)}</span>`}
         ${g.pair ? '<span class="need">× 2</span>' : ''}
@@ -1217,36 +1314,43 @@
       <div class="brew-meta">
         <span class="need kind" data-kind="${esc(g.kind)}">${esc(g.kind)}</span>
         <span class="need">${esc(g.slot)}</span>
-        ${g.base ? `<span class="need">base ${g.base}☼</span>` : ''}
-        ${g.pair ? '<span class="need">two from one cloth</span>' : ''}
+        ${g.base ? `<span class="need">${esc(t('cloth.basevalue', 'base {n}☼', { n: g.base }))}</span>` : ''}
+        ${g.pair ? `<span class="need">${esc(t('cloth.pair', 'two from one cloth'))}</span>` : ''}
         ${g.avail === 'foreign'
-          ? `<span class="need warnish">${sym('warn')}dwarves cannot make it</span>` : ''}
+          ? `<span class="need warnish">${sym('warn')}${esc(t('armor.foreign', 'dwarves cannot make it'))}</span>` : ''}
       </div>
 
-      ${total == null ? `<p class="brew-job">${esc(g.note || '')}</p>` : `
-      <p class="col-head calc-head">Worth</p>
+      ${total == null ? `<p class="brew-job">${esc(td('goodsNote', g.name, g.note || ''))}</p>` : `
+      <p class="col-head calc-head">${esc(t('calc.worth', 'Worth'))}</p>
       ${calcControls()}
       <dl class="calc-out">
-        ${line('Item', `${g.base} × ${esc(String(grade(CALC.itemQ)))}`, g.base * CALC.itemQ)}
-        ${line('Cloth quality', `10 × ${esc(String(grade(CALC.clothQ)))}`, 10 * CALC.clothQ)}
-        ${line('Thread', '10', 10)}
-        ${line('Subtotal × cloth', `${bracket} × ${CALC.mult}`, CALC.mult * bracket)}
-        ${line('Dye', CALC.dye
-          ? `${CALC.dye} × ${esc(String(grade(CALC.dyeQ)))}` : 'undyed', CALC.dye * CALC.dyeQ)}
+        ${line(esc(t('calc.item', 'Item')), `${g.base} × ${esc(String(grade(CALC.itemQ)))}`, g.base * CALC.itemQ)}
+        ${line(esc(t('calc.clothquality', 'Cloth quality')), `10 × ${esc(String(grade(CALC.clothQ)))}`, 10 * CALC.clothQ)}
+        ${line(esc(t('calc.thread', 'Thread')), '10', 10)}
+        ${line(esc(t('calc.subtotal', 'Subtotal × cloth')), `${bracket} × ${CALC.mult}`, CALC.mult * bracket)}
+        ${line(esc(t('calc.dye', 'Dye')), CALC.dye
+          ? `${CALC.dye} × ${esc(String(grade(CALC.dyeQ)))}`
+          : esc(t('calc.undyed', 'undyed')), CALC.dye * CALC.dyeQ)}
       </dl>
       <p class="calc-total">${total}☼${g.pair
-        ? ` <span class="muted">each, ${total * 2}☼ for the pair</span>` : ''}</p>
+        ? ` <span class="muted">${esc(t('cloth.eachpair', 'each, {n}☼ for the pair',
+            { n: total * 2 }))}</span>` : ''}</p>
       `}
 
-      <p class="brew-job">One <strong>${esc(g.shop ? 'Make cloth crafts' : 'Clothier')}</strong>
-        job at <a class="chip shop" href="#/w/${encodeURIComponent(shop)}">
-        ${icon(shop)}${esc(shop)}</a>, eating one whole unit of cloth whatever the size of
-        what it makes.${g.pair ? ' This one comes out two at a time, so the cloth, the '
-        + 'weave and the dye are all paid for once and counted twice.' : ''}</p>
+      <p class="brew-job">${t('cloth.job',
+        'One <strong>{job}</strong> job at {shop}, eating one whole unit of cloth whatever the size '
+        + 'of what it makes.', {
+          job: esc(g.shop ? 'Make cloth crafts' : 'Clothier'),
+          shop: `<a class="chip shop" href="#/w/${encodeURIComponent(shop)}">`
+                + `${icon(shop)}${esc(shop)}</a>` })}${
+        g.pair ? ' ' + t('cloth.jobpair',
+          'This one comes out two at a time, so the cloth, the weave and the dye are all paid for '
+          + 'once and counted twice.') : ''}</p>
 
-      ${g.note ? `<p class="brew-job">${esc(g.note)}</p>` : ''}
-      ${g.base ? `<p class="brew-job muted">Dye cannot be applied to finished clothing — the
-        thread or the cloth has to be dyed first, and dyed things cannot be redyed.</p>` : ''}
+      ${g.note ? `<p class="brew-job">${esc(td('goodsNote', g.name, g.note))}</p>` : ''}
+      ${g.base ? `<p class="brew-job muted">${esc(t('cloth.nodye',
+        'Dye cannot be applied to finished clothing — the thread or the cloth has to be dyed first, '
+        + 'and dyed things cannot be redyed.'))}</p>` : ''}
     </div>`;
   }
 
@@ -1265,7 +1369,9 @@
       (r.in || []).some((x) => x.item === f.in));
 
     const seasons = f.seasons
-      ? (f.seasons.length === 4 ? 'Grows all year' : 'Grows in ' + f.seasons.join(' and '))
+      ? (f.seasons.length === 4 ? t('fibre.allyear', 'Grows all year')
+        : t('fibre.growsin', 'Grows in {seasons}',
+            { seasons: f.seasons.join(t('word.and.plain', ' and ')) }))
       : null;
 
     return `<div class="brew-out${compact ? ' beside' : ''}">
@@ -1276,7 +1382,7 @@
         ${link(f.out, 'in')}
         ${f.weave
           ? `<span class="brew-arrow">${ARROW}</span>${link(f.cloth, 'out')}`
-          : `<span class="need warnish">${sym('warn')}no loom will take it</span>`}
+          : `<span class="need warnish">${sym('warn')}${esc(t('fibre.noloom', 'no loom will take it'))}</span>`}
       </div>
       <div class="brew-meta">
         <span class="need kind" data-kind="${esc(f.kind)}">${esc(f.kind)}</span>
@@ -1287,30 +1393,33 @@
       </div>
 
       <dl class="armor-stats fibre-stats">
-        <div><dt>Material</dt><dd>×${f.mult}</dd></div>
-        <div><dt>Thread</dt><dd>${f.thread}☼</dd></div>
-        <div><dt>Cloth</dt><dd>${f.weave ? f.clothValue + '☼' : '—'}</dd></div>
-        <div title="A masterwork robe from masterwork cloth, masterfully dyed with a 20☼ dye — the best this fibre can do short of an artifact"><dt>Best robe</dt><dd>${f.weave
+        <div><dt>${esc(t('stat.material', 'Material'))}</dt><dd>×${f.mult}</dd></div>
+        <div><dt>${esc(t('stat.thread', 'Thread'))}</dt><dd>${f.thread}☼</dd></div>
+        <div><dt>${esc(t('stat.cloth', 'Cloth'))}</dt><dd>${f.weave ? f.clothValue + '☼' : '—'}</dd></div>
+        <div title="${esc(t('stat.bestrobe.hint', 'A masterwork robe from masterwork cloth, masterfully dyed with a 20☼ dye — the best this fibre can do short of an artifact'))}"><dt>${esc(t('stat.bestrobe', 'Best robe'))}</dt><dd>${f.weave
           ? clothValue({ base: 33 }, { mult: f.mult, itemQ: 12, clothQ: 12, dye: 20, dyeQ: 12 }) + '☼'
           : '—'}</dd></div>
       </dl>
 
       <p class="brew-job">${source
-        ? `<strong>${esc(source.name)}</strong> at
-           <a class="chip shop" href="#/w/${encodeURIComponent(source.workshop)}">
-             ${icon(source.workshop)}${esc(source.workshop)}</a>
-           ${source.skill && source.skill !== '—' ? 'by a ' + esc(source.skill.toLowerCase()) : ''}
-           gives the thread.` : ''}
-        ${f.weave ? `One <strong>Weave Cloth</strong> job at the loom then turns one thread into
-          one cloth, and the material carries through unchanged. Non-hair thread queues itself
-          for weaving — turn that off under standing orders if you would rather dye it first.`
+        ? t('fibre.source', '<strong>{job}</strong> at {shop} {by}gives the thread.', {
+            job: esc(source.name),
+            shop: `<a class="chip shop" href="#/w/${encodeURIComponent(source.workshop)}">`
+                  + `${icon(source.workshop)}${esc(source.workshop)}</a>`,
+            by: source.skill && source.skill !== '—'
+              ? t('fibre.byskill', 'by a {skill} ', { skill: esc(source.skill.toLowerCase()) }) : '' })
+        : ''}
+        ${f.weave ? t('fibre.weave',
+          'One <strong>Weave Cloth</strong> job at the loom then turns one thread into one cloth, '
+          + 'and the material carries through unchanged. Non-hair thread queues itself for weaving — '
+          + 'turn that off under standing orders if you would rather dye it first.')
         : ''}</p>
 
-      ${f.note ? `<p class="brew-job">${esc(f.note)}</p>` : ''}
-      ${f.also ? `<p class="brew-job muted">${esc(f.also)}</p>` : ''}
+      ${f.note ? `<p class="brew-job">${esc(td('fibreNote', f.in, f.note))}</p>` : ''}
+      ${f.also ? `<p class="brew-job muted">${esc(td('fibreAlso', f.in, f.also))}</p>` : ''}
 
       ${other.length ? `<div class="brew-else">
-        <p class="col-head">${esc(f.in)} is also</p>
+        <p class="col-head">${esc(t('also.is', '{name} is also', { name: f.in }))}</p>
         <div class="flow-row">${other.map((r) =>
           `<a class="chip" href="#/i/${r.industry}#r-${esc(r.id)}">${esc(r.name)}</a>`).join('')}</div>
       </div>` : ''}
@@ -1335,12 +1444,13 @@
         <span class="need">${esc(m.source)}</span>
         ${(step && (step.needs || []).includes('bag')) ? needBadge('bag') : ''}
       </div>
-      <p class="brew-job">One <strong>Mill Plants</strong> job at the quern or millstone: a
-        ${step && step.skill ? esc(step.skill) : 'Miller'} and an empty bag. The seeds come
-        back — milling never eats them. A millstone grinds the same thing faster, but wants
-        power from a windmill or water wheel.</p>
+      <p class="brew-job">${t('mill.job',
+        'One <strong>Mill Plants</strong> job at the quern or millstone: a {skill} and an empty bag. '
+        + 'The seeds come back — milling never eats them. A millstone grinds the same thing faster, '
+        + 'but wants power from a windmill or water wheel.',
+        { skill: esc(step && step.skill ? step.skill : 'Miller') })}</p>
       ${other.length ? `<div class="brew-else">
-        <p class="col-head">${esc(m.in)} is also</p>
+        <p class="col-head">${esc(t('also.is', '{name} is also', { name: m.in }))}</p>
         <div class="flow-row">${other.map((r) =>
           `<a class="chip" href="#/i/${r.industry}#r-${esc(r.id)}">${esc(r.name)}</a>`).join('')}</div>
       </div>` : ''}
@@ -1364,14 +1474,15 @@
       <div class="brew-meta">
         <span class="need kind" data-kind="${esc(b.kind)}">${esc(b.kind)}</span>
         ${valueTag(b.value)}
-        <span class="need">${esc(b.type)}-based</span>
+        <span class="need">${esc(t('brew.based', '{type}-based', { type: b.type }))}</span>
         <span class="need">${esc(b.source)}</span>
       </div>
-      <p class="brew-job">One <strong>Brew Drink</strong> job at the Still: a
-        ${step && step.skill ? esc(step.skill) : 'Brewer'} and an empty barrel or rock pot.
-        The seeds come back — brewing never eats them.</p>
+      <p class="brew-job">${t('brew.job',
+        'One <strong>Brew Drink</strong> job at the Still: a {skill} and an empty barrel or rock pot. '
+        + 'The seeds come back — brewing never eats them.',
+        { skill: esc(step && step.skill ? step.skill : 'Brewer') })}</p>
       ${other.length ? `<div class="brew-else">
-        <p class="col-head">${esc(b.in)} is also</p>
+        <p class="col-head">${esc(t('also.is', '{name} is also', { name: b.in }))}</p>
         <div class="flow-row">${other.map((r) =>
           `<a class="chip" href="#/i/${r.industry}#r-${esc(r.id)}">${esc(r.name)}</a>`).join('')}</div>
       </div>` : ''}
@@ -1404,7 +1515,7 @@
        settings. */
     const dropdown = (f) => `<select class="fsel ${sel[f.key] === 'all' ? '' : 'on'}"
       data-f="${esc(f.key)}" aria-label="${esc(f.label)}">${
-      [['all', 'All']].concat(values(f).map((v) => [v, v])).map(([v, label]) =>
+      [['all', t('filter.all', 'All')]].concat(values(f).map((v) => [v, v])).map(([v, label]) =>
         `<option value="${esc(v)}" ${v === sel[f.key] ? 'selected' : ''}>${
           esc(v !== 'all' && f.valueLabel ? f.valueLabel(label) : label)}</option>`).join('')}
     </select>`;
@@ -1521,48 +1632,63 @@
      workshop list reads the same table to mark the buildings that are
      interactive, so the badge cannot drift from what the page actually does. */
   const PICKERS = [
-    { step: 'brew', title: 'Brewing', noun: 'brewable ingredients',
+    { step: 'brew', title: t('pick.brew.title', 'Brewing'),
+      noun: t('pick.brew.noun', 'brewable ingredients'),
       rows: BREWING, result: brewResult,
-      facets: [{ key: 'kind', label: 'Drink' }, { key: 'source', label: 'Source' }],
+      facets: [{ key: 'kind', label: t('facet.drink', 'Drink') },
+               { key: 'source', label: t('facet.source', 'Source') }],
       rowIn: (r) => spriteCell(r.in),
-      placeholder: 'Filter ingredients…', listLabel: 'Brewing ingredients',
-      empty: 'No ingredient matches those filters.' },
+      placeholder: t('pick.brew.filter', 'Filter ingredients…'),
+      listLabel: t('pick.brew.list', 'Brewing ingredients'),
+      empty: t('pick.brew.empty', 'No ingredient matches those filters.') },
 
-    { step: 'mill', title: 'Milling', noun: 'millable plants',
+    { step: 'mill', title: t('pick.mill.title', 'Milling'),
+      noun: t('pick.mill.noun', 'millable plants'),
       rows: MILLING, result: millResult,
-      facets: [{ key: 'kind', label: 'Product' }, { key: 'source', label: 'Source' }],
+      facets: [{ key: 'kind', label: t('facet.product', 'Product') },
+               { key: 'source', label: t('facet.source', 'Source') }],
       rowIn: (r) => spriteCell(r.in),
-      placeholder: 'Filter plants…', listLabel: 'Millable plants',
-      empty: 'No plant matches those filters.' },
+      placeholder: t('pick.mill.filter', 'Filter plants…'),
+      listLabel: t('pick.mill.list', 'Millable plants'),
+      empty: t('pick.mill.empty', 'No plant matches those filters.') },
 
-    { step: 'dye-thread', title: 'Dyes', noun: 'dyes',
+    { step: 'dye-thread', title: t('pick.dye.title', 'Dyes'),
+      noun: t('pick.dye.noun', 'dyes'),
       rows: DYE_ROWS, result: dyeResult,
       /* The options read as "show me the blues", so they are plural; the value
          behind them stays the singular tone stored on the dye. */
-      facets: [{ key: 'family', label: 'Tone',
-                 mark: (v) => swatch(FAMILY_HEX[v]), valueLabel: (v) => v + 's' },
-               { key: 'made', label: 'From' }],
+      facets: [{ key: 'family', label: t('facet.tone', 'Tone'),
+                 mark: (v) => swatch(FAMILY_HEX[v]),
+                 valueLabel: (v) => t('facet.tone.plural', '{v}s', { v }) },
+               { key: 'made', label: t('facet.from', 'From') }],
       rowOut: (r) => swatch(COLOR_HEX[r.color]),
-      placeholder: 'Filter dyes…', listLabel: 'Dyes',
-      empty: 'No dye matches those filters.' },
+      placeholder: t('pick.dye.filter', 'Filter dyes…'),
+      listLabel: t('pick.dye.list', 'Dyes'),
+      empty: t('pick.dye.empty', 'No dye matches those filters.') },
 
-    { step: 'weave', title: 'Thread sources', noun: 'thread sources',
+    { step: 'weave', title: t('pick.fibre.title', 'Thread sources'),
+      noun: t('pick.fibre.noun', 'thread sources'),
       rows: FIBRE_ROWS, result: fibreResult,
-      facets: [{ key: 'kind', label: 'Fibre' }, { key: 'where', label: 'From' }],
+      facets: [{ key: 'kind', label: t('facet.fibre', 'Fibre') },
+               { key: 'where', label: t('facet.from', 'From') }],
       rowIn: (r) => spriteCell(r.in),
-      placeholder: 'Filter thread sources…', listLabel: 'Thread sources',
-      empty: 'Nothing gives thread under those filters.' },
+      placeholder: t('pick.fibre.filter', 'Filter thread sources…'),
+      listLabel: t('pick.fibre.list', 'Thread sources'),
+      empty: t('pick.fibre.empty', 'Nothing gives thread under those filters.') },
 
     /* The one picker whose panel is not just a lookup: the settings inside it
        are a fortress you are describing, and every row of the list is repriced
        when you change one. That is why it needs `refresh` — the choice has not
        changed, but the answer has. */
-    { step: 'clothier', title: 'Cloth goods', noun: 'things made from cloth',
+    { step: 'clothier', title: t('pick.cloth.title', 'Cloth goods'),
+      noun: t('pick.cloth.noun', 'things made from cloth'),
       rows: GOODS_ROWS, result: garmentResult,
       rowIn: eqSprite,
-      facets: [{ key: 'slot', label: 'Worn on' }, { key: 'kind', label: 'Kind' }],
-      placeholder: 'Filter cloth goods…', listLabel: 'Things made from cloth',
-      empty: 'Nothing matches those filters.',
+      facets: [{ key: 'slot', label: t('facet.wornon', 'Worn on') },
+               { key: 'kind', label: t('facet.kind', 'Kind') }],
+      placeholder: t('pick.cloth.filter', 'Filter cloth goods…'),
+      listLabel: t('pick.cloth.list', 'Things made from cloth'),
+      empty: t('pick.cloth.empty', 'Nothing matches those filters.'),
       onReady: (api, host) => host.addEventListener('change', (ev) => {
         const sel = ev.target.closest('.calc-sel');
         if (!sel) return;
@@ -1574,13 +1700,15 @@
        categories are the wiki's own production list. `tables` is the other thing
        only this picker and the armour page have: notes that belong under the
        picker rather than in any row of it. */
-    { step: 'forge', title: 'What the forge makes', noun: 'things a forge makes',
+    { step: 'forge', title: t('pick.forge.title', 'What the forge makes'),
+      noun: t('pick.forge.noun', 'things a forge makes'),
       rows: FORGE_ROWS, result: forgeResult, tables: FORGE_TABLES,
       rowIn: forgeCell,
-      facets: [{ key: 'cat', label: 'Makes' },
-               { key: 'labour', label: 'Labour' }],
-      placeholder: 'Filter what the forge makes…', listLabel: 'Things the forge makes',
-      empty: 'The forge makes nothing matching those filters.',
+      facets: [{ key: 'cat', label: t('facet.makes', 'Makes') },
+               { key: 'labour', label: t('facet.labour', 'Labour') }],
+      placeholder: t('pick.forge.filter', 'Filter what the forge makes…'),
+      listLabel: t('pick.forge.list', 'Things the forge makes'),
+      empty: t('pick.forge.empty', 'The forge makes nothing matching those filters.'),
       onReady: (api, host) => host.addEventListener('change', (ev) => {
         const sel = ev.target.closest('.calc-sel');
         if (!sel) return;
@@ -1588,21 +1716,25 @@
         api.refresh();
       }) },
 
-    { step: 'smelt-ore', title: 'Ores', noun: 'ores',
+    { step: 'smelt-ore', title: t('pick.ore.title', 'Ores'),
+      noun: t('pick.ore.noun', 'ores'),
       rows: ORE_ROWS, result: oreResult,
-      facets: [{ key: 'metal', label: 'Metal' },
-               { key: 'rocks', label: 'Found in', multi: true }],
+      facets: [{ key: 'metal', label: t('facet.metal', 'Metal') },
+               { key: 'rocks', label: t('facet.foundin', 'Found in'), multi: true }],
       rowOut: (r) => { const c = metalColor(r.metal); return c ? ingot(c) : ''; },
-      placeholder: 'Filter ores…', listLabel: 'Ores',
-      empty: 'No ore matches those filters.' },
+      placeholder: t('pick.ore.filter', 'Filter ores…'),
+      listLabel: t('pick.ore.list', 'Ores'),
+      empty: t('pick.ore.empty', 'No ore matches those filters.') },
 
-    { step: 'make-alloy', title: 'Alloys', noun: 'alloy recipes',
+    { step: 'make-alloy', title: t('pick.alloy.title', 'Alloys'),
+      noun: t('pick.alloy.noun', 'alloy recipes'),
       rows: ALLOY_ROWS, result: alloyResult,
-      facets: [{ key: 'use', label: 'Use' },
-               { key: 'contains', label: 'Contains', multi: true }],
+      facets: [{ key: 'use', label: t('facet.use', 'Use') },
+               { key: 'contains', label: t('facet.contains', 'Contains'), multi: true }],
       rowIn: (r) => { const c = metalColor(r.alloy); return c ? ingot(c) : ''; },
-      placeholder: 'Filter alloys…', listLabel: 'Alloys',
-      empty: 'No alloy matches those filters.' }
+      placeholder: t('pick.alloy.filter', 'Filter alloys…'),
+      listLabel: t('pick.alloy.list', 'Alloys'),
+      empty: t('pick.alloy.empty', 'No alloy matches those filters.') }
   ];
 
   const pickersFor = (steps) => PICKERS.filter((p) =>
@@ -1615,29 +1747,34 @@
      the tables since a mark alone cannot say whether that means two rows or
      seventy-seven. */
   function liveMark(picks) {
-    const what = picks.map((p) => `${p.rows.length} ${p.noun}`).join(' and ');
-    return `<span class="live-mark" title="Pick from ${esc(what)} and see what comes out"
+    const what = picks.map((p) => `${p.rows.length} ${p.noun}`)
+      .join(t('word.and.plain', ' and '));
+    return `<span class="live-mark" title="${esc(t('ws.livemark',
+      'Pick from {what} and see what comes out', { what }))}"
       >${sym('spark')}</span>`;
   }
 
   /* ── views ────────────────────────────────────────────────────── */
+  const stepCount = (n) => t(n === 1 ? 'count.step' : 'count.steps',
+    n === 1 ? '{n} step' : '{n} steps', { n });
   function viewHome() {
     const cards = INDUSTRIES.map((i) => {
       const n = recipesOf(i.id).length;
       return `<a class="ind-card" href="#/i/${i.id}" style="--c:${i.color}">
         <div class="ic">${sym(i.icon, 'ind')}</div>
-        <h2>${esc(i.name)}</h2>
-        <p>${esc(i.blurb)}</p>
-        <div class="count">${n} step${n === 1 ? '' : 's'}</div>
+        <h2>${esc(indName(i))}</h2>
+        <p>${esc(indBlurb(i))}</p>
+        <div class="count">${esc(stepCount(n))}</div>
       </a>`;
     }).join('');
 
     main.innerHTML = `
       <section class="hero">
-        <h1>Every chain, from boulder to masterwork</h1>
-        <p>An interactive map of the Dwarf Fortress industries: what turns into what, at which
-        workshop, with which skill, and which empty barrel is stopping the whole thing.
-        Click any item to see everything that makes it and everything it feeds.</p>
+        <h1>${esc(t('home.title', 'Every chain, from boulder to masterwork'))}</h1>
+        <p>${esc(t('home.blurb',
+          'An interactive map of the Dwarf Fortress industries: what turns into what, at which '
+          + 'workshop, with which skill, and which empty barrel is stopping the whole thing. '
+          + 'Click any item to see everything that makes it and everything it feeds.'))}</p>
       </section>
       <div class="ind-grid">${cards}</div>`;
   }
@@ -1657,11 +1794,11 @@
     const rs = recipesOf(id);
 
     main.innerHTML = `
-      <a class="back" href="#/">${sym('back')}All industries</a>
+      <a class="back" href="#/">${sym('back')}${esc(t('back.industries', 'All industries'))}</a>
       <div class="page-head">
         <div>
-          <h1>${sym(ind.icon)} ${esc(ind.name)}</h1>
-          <p>${esc(ind.blurb)}</p>
+          <h1>${sym(ind.icon)} ${esc(indName(ind))}</h1>
+          <p>${esc(indBlurb(ind))}</p>
         </div>
       </div>
       <div id="ind-body"></div>`;
@@ -1969,7 +2106,7 @@
          already saying so with a dashed box, and a second circle at the head of
          every chain turned a mark that means "stop here" into wallpaper. */
       const tag = r === 'end'
-        ? `<span class="fi-tag end" title="Nothing on this map uses this: the branch stops here"
+        ? `<span class="fi-tag end" title="${esc(t('map.terminus', 'Nothing on this map uses this: the branch stops here'))}"
             >${sym('terminus')}</span>` : '';
       /* A collapsed node is a list, so it cannot be a link itself — each name
          inside it goes to its own item page. */
@@ -1988,25 +2125,17 @@
       return (r.skill && r.skill !== '—' ? `<span class="need">${esc(r.skill)}</span>` : '')
         + (r.needs || []).map((x) => needBadge(x, true)).join('')
         + (from ? `<a class="need borrowed" href="#/i/${from.id}"
-            title="This job belongs to ${esc(from.name)}">${sym(from.icon)}${esc(from.name)}</a>` : '');
+            title="${esc(t('map.borrowed', 'This job belongs to {name}', { name: indName(from) }))}"
+            >${sym(from.icon)}${esc(indName(from))}</a>` : '');
     };
 
-    /* A card standing on its own is a column and its note is behind a chevron,
-       because a card is 258px wide and the notes are what used to leave one
-       twice the height of the one beside it. A job inside a card of types has
-       the whole width of that card to play with, so it is a row instead: what
-       the job is on the left, what the wiki says about it on the right, both
-       read at once and neither hiding the other. */
+    /* A card is 258px wide and every one on a row is stretched to the tallest,
+       so a card carries the job, what it wants and nothing else. */
     const jobBody = (n, opts) => {
       const o = opts || {};
       const head = `<h3></h3>${o.hideBadges ? '' : `<div class="needs">${badges(n.r)}</div>`}`;
       return `<span class="fnum"></span>
-        <div class="fjob-txt">${head}${o.list ? '' : `
-          <details class="fjob-more" hidden>
-            <summary title="What the wiki says about this job">${sym('chevron')}</summary>
-            <p class="note"></p>
-          </details>`}</div>
-        ${o.list ? '<p class="note" hidden></p>' : ''}`;
+        <div class="fjob-txt">${head}</div>`;
     };
 
     /* The building is named above its own picture, so the plate reads as a
@@ -2035,8 +2164,8 @@
        the same building, the building gets one card and the jobs get another
        beside it. Every wire on that stretch of the chain lands on the building;
        the card next to it says what it can be told to do. Each job is still its
-       own node with its own number and its own note — the tidying is to the
-       picture, not to the chain. */
+       own node with its own number — the tidying is to the picture, not to
+       the chain. */
     const groupNode = (list) => {
       const shared = sameBadges(list);
       return `<div class="f-group">
@@ -2077,33 +2206,32 @@
     const shopCount = new Set([...nodes.values()]
       .filter((n) => n.kind === 'job').map((n) => n.r.workshop)).size;
 
+    /* A path is part of this site's own furniture rather than the game's, so
+       its label, its tag and its prose all translate — keyed by the industry
+       and the path id the flow already carries. */
+    const pathKey  = (p, field) => `${ind.id}.${p.id}.${field}`;
+    const pathText = (p, field, en) => (en ? td('flowPath', pathKey(p, field), en) : en);
+
     body.innerHTML = `
-      <p class="group-note">${esc(cfg.blurb)}</p>
+      <p class="group-note">${esc(td('flowBlurb', ind.id, cfg.blurb))}</p>
       <div class="ind-filters">
         <div class="frow" data-facet="path">
-          <span class="flabel">Show</span>
+          <span class="flabel">${esc(t('map.show', 'Show'))}</span>
           ${cfg.paths.map((p, i) => `<button class="fchip ${
             p.id === opening || (!cfg.paths.some((x) => x.id === opening) && !i) ? 'on' : ''}"
-            data-v="${esc(p.id)}">${esc(p.label)}</button>`).join('')}
+            data-v="${esc(p.id)}">${esc(pathText(p, 'label', p.label))}</button>`).join('')}
         </div>
       </div>
-      <div class="fm-head">
-        <div class="fm-bar">
-          <h2>${sym(ind.icon)}<span class="fm-title"></span></h2>
-          <span class="need kind fm-tag" hidden></span>
-          <span class="fm-count"></span>
-        </div>
-        <p class="fm-blurb"></p>
-      </div>
+      <p class="fm-count"></p>
       <div class="fmap" style="--c:${esc(ind.color)}">
         <svg class="fmap-wires" aria-hidden="true"></svg>
         ${rows.map((row) => `<div class="fmap-row">${rowHtml(row)}</div>`).join('')}
       </div>
-      <p class="fm-legend">Every job on the map, in the order the fortress runs them.
-        A dashed box is something you bring from elsewhere; a gold one marked
-        ${sym('terminus')} is where the branch stops. The ${sym('chevron')} at the
-        foot of a card opens what the wiki says about that job; click any item to
-        see everything else that makes or eats it.</p>`;
+      <p class="fm-legend">${t('map.legend',
+        'Every job on the map, in the order the fortress runs them. A dashed box is something you '
+        + 'bring from elsewhere; a gold one marked {terminus} is where the branch stops. Click any '
+        + 'item to see everything else that makes or eats it.',
+        { terminus: sym('terminus') })}</p>`;
 
     const host = body.querySelector('.fmap');
     const svg  = host.querySelector('.fmap-wires');
@@ -2211,10 +2339,7 @@
       (byJob.get(e.job) || byJob.set(e.job, []).get(e.job)).push(other);
     });
 
-    const title = body.querySelector('.fm-title');
-    const tag   = body.querySelector('.fm-tag');
     const count = body.querySelector('.fm-count');
-    const blurb = body.querySelector('.fm-blurb');
 
     function paint(id) {
       const path = cfg.paths.find((p) => p.id === id) || cfg.paths[0];
@@ -2240,14 +2365,9 @@
            quotes the recipe by default and the path overrides it, so the two
            cannot drift apart. */
         const r = node.r;
-        el.querySelector('h3').textContent =
-          (path.titles && path.titles[r.id]) || r.name;
-        const note = (path.notes && path.notes[r.id]) || r.note || '';
-        const noteEl = el.querySelector('.note');
-        noteEl.textContent = note;
-        /* Behind a chevron on a card of its own, plainly beside the job in a
-           card of types — either way, nothing to show when there is no note. */
-        (el.querySelector('.fjob-more') || noteEl).hidden = !note;
+        el.querySelector('h3').textContent = (path.titles && path.titles[r.id])
+          ? td('flowTitle', `${ind.id}.${path.id}.${r.id}`, path.titles[r.id])
+          : r.name;
       }));
       wireEls.forEach(({ w, el }) =>
         el.classList.toggle('hot', !!line && line.includes(w.job)));
@@ -2267,14 +2387,12 @@
          URL still ends up pointing at what is on screen, so a path can be
          linked to and lands with that path already picked. */
       history.replaceState(null, '', `#/i/${ind.id}` + (path.steps ? '/' + path.id : ''));
-      title.textContent = path.label;
-      tag.hidden = !path.tag;
-      tag.textContent = path.tag || '';
-      count.textContent = `${jobs} job${jobs === 1 ? '' : 's'} · ${
-        shops} building${shops === 1 ? '' : 's'}`;
-      blurb.textContent = path.blurb;
+      count.textContent = t(jobs === 1 ? 'count.job' : 'count.jobs',
+          jobs === 1 ? '{n} job' : '{n} jobs', { n: jobs })
+        + ' · ' + t(shops === 1 ? 'count.building' : 'count.buildings',
+          shops === 1 ? '{n} building' : '{n} buildings', { n: shops });
 
-      /* Fading a card also strips its note, which changes how tall it is, which
+      /* Fading a card changes what is on the row and so how tall it is, which
          moves every card below it. The wires were measured against the old
          boxes, so they have to be measured again. */
       drawWires();
@@ -2300,12 +2418,6 @@
       el.addEventListener('mouseleave', () => mine.forEach((p) => p.classList.remove('lit')));
     });
 
-    /* Opening a note makes its card taller, and a taller card in a row of
-       stretched ones moves every box below it. The `toggle` event does not
-       bubble, so each disclosure carries its own listener. */
-    host.querySelectorAll('.fjob-more')
-      .forEach((d) => d.addEventListener('toggle', drawWires));
-
     paint(cfg.paths.some((p) => p.id === opening) ? opening : cfg.paths[0].id);
     requestAnimationFrame(drawWires);
     new ResizeObserver(drawWires).observe(host);
@@ -2314,9 +2426,9 @@
   function viewItem(name) {
     const info = ITEMS.get(name);
     if (!info) {
-      main.innerHTML = `<a class="back" href="#/">${sym('back')}All industries</a>
+      main.innerHTML = `<a class="back" href="#/">${sym('back')}${esc(t('back.industries', 'All industries'))}</a>
         <div class="page-head"><div><h1>${esc(name)}</h1>
-        <p>Nothing in the data references this item.</p></div></div>`;
+        <p>${esc(t('item.unknown', 'Nothing in the data references this item.'))}</p></div></div>`;
       return;
     }
 
@@ -2333,32 +2445,32 @@
       o.metal === asMetal || (o.bonus && o.bonus.metal === asMetal));
     const list = (rs) => rs.length
       ? `<div class="stack">${rs.map((r) => recipeCard(r, { showWorkshop: true })).join('')}</div>`
-      : '<p class="none">Nothing here — this is a raw input or a dead end.</p>';
+      : `<p class="none">${esc(t('item.none', 'Nothing here — this is a raw input or a dead end.'))}</p>`;
 
     main.innerHTML = `
-      <a class="back" href="#/">${sym('back')}All industries</a>
+      <a class="back" href="#/">${sym('back')}${esc(t('back.industries', 'All industries'))}</a>
       <div class="item-head">
         <h1>${metalColor(name)
           ? ingot(metalColor(name), 'big')
           : sprite(name, 'big')}${esc(name)}</h1>
-        ${note ? `<p class="item-note">${esc(note)}</p>` : ''}
+        ${note ? `<p class="item-note">${esc(td('itemNote', name, note))}</p>` : ''}
       </div>
-      ${brew ? `<p class="col-head">At the Still</p>${brewResult(brew, { compact: true })}` : ''}
-      ${mill ? `<p class="col-head">At the quern</p>${millResult(mill, { compact: true })}` : ''}
-      ${dye ? `<p class="col-head">At the dyer's shop</p>${dyeResult(dye, { compact: true })}` : ''}
-      ${fibre ? `<p class="col-head">At the loom</p>${fibreResult(fibre, { compact: true })}` : ''}
-      ${ore ? `<p class="col-head">At the smelter</p>${oreResult(ore, { compact: true })}` : ''}
-      ${alloy ? `<p class="col-head">At the smelter</p>${alloyResult(alloy, { compact: true })}` : ''}
-      ${(!ore && fromOre.length) ? `<p class="col-head">Smelted from <span class="n">${fromOre.length}</span></p>
+      ${brew ? `<p class="col-head">${esc(t('item.atstill', 'At the Still'))}</p>${brewResult(brew, { compact: true })}` : ''}
+      ${mill ? `<p class="col-head">${esc(t('item.atquern', 'At the quern'))}</p>${millResult(mill, { compact: true })}` : ''}
+      ${dye ? `<p class="col-head">${esc(t('item.atdyer', "At the dyer's shop"))}</p>${dyeResult(dye, { compact: true })}` : ''}
+      ${fibre ? `<p class="col-head">${esc(t('item.atloom', 'At the loom'))}</p>${fibreResult(fibre, { compact: true })}` : ''}
+      ${ore ? `<p class="col-head">${esc(t('item.atsmelter', 'At the smelter'))}</p>${oreResult(ore, { compact: true })}` : ''}
+      ${alloy ? `<p class="col-head">${esc(t('item.atsmelter', 'At the smelter'))}</p>${alloyResult(alloy, { compact: true })}` : ''}
+      ${(!ore && fromOre.length) ? `<p class="col-head">${esc(t('item.smeltedfrom', 'Smelted from'))} <span class="n">${fromOre.length}</span></p>
         <div class="ore-list">${fromOre.map((o) =>
           `<a class="chip" href="#/item/${encodeURIComponent(o.ore)}">${esc(o.ore)}</a>`).join('')}</div>` : ''}
       <div class="two-col">
         <div>
-          <p class="col-head">Made by <span class="n">${info.madeBy.length}</span></p>
+          <p class="col-head">${esc(t('item.madeby', 'Made by'))} <span class="n">${info.madeBy.length}</span></p>
           ${list(info.madeBy)}
         </div>
         <div>
-          <p class="col-head">Used in <span class="n">${info.usedIn.length}</span></p>
+          <p class="col-head">${esc(t('item.usedin', 'Used in'))} <span class="n">${info.usedIn.length}</span></p>
           ${list(info.usedIn)}
         </div>
       </div>`;
@@ -2367,9 +2479,12 @@
   function viewWorkshops() {
     const order = ['workshop', 'furnace', 'place'];
     const heading = {
-      workshop: ['Workshops', 'Built from the workshop menu. No fuel, just a dwarf and the right skill.'],
-      furnace:  ['Furnaces', 'Each job burns a unit of fuel — charcoal or coke — unless the furnace is built over magma.'],
-      place:    ['Places & zones', 'Not buildings: jobs that happen out in the world, in a plot, or in a zone.']
+      workshop: [t('ws.group.workshop', 'Workshops'),
+                 t('ws.group.workshop.note', 'Built from the workshop menu. No fuel, just a dwarf and the right skill.')],
+      furnace:  [t('ws.group.furnace', 'Furnaces'),
+                 t('ws.group.furnace.note', 'Each job burns a unit of fuel — charcoal or coke — unless the furnace is built over magma.')],
+      place:    [t('ws.group.place', 'Places & zones'),
+                 t('ws.group.place.note', 'Not buildings: jobs that happen out in the world, in a plot, or in a zone.')]
     };
 
     const groups = new Map(order.map((k) => [k, []]));
@@ -2386,10 +2501,10 @@
         <div class="ws-art">${plate(w, 'xl')}</div>
         <div class="ws-body">
           <h3>${esc(w)}</h3>
-          ${meta.note ? `<p>${esc(meta.note)}</p>` : ''}
+          ${meta.note ? `<p>${esc(td('shopNote', w, meta.note))}</p>` : ''}
           <div class="ws-meta">
-            <span class="count">${steps.length} step${steps.length === 1 ? '' : 's'}</span>
-            ${meta.tier ? `<span class="need tier">Tier ${meta.tier}</span>` : ''}
+            <span class="count">${esc(stepCount(steps.length))}</span>
+            ${meta.tier ? `<span class="need tier">${esc(t('ws.tier', 'Tier {n}', { n: meta.tier }))}</span>` : ''}
             ${skills.map((sk) => `<span class="need">${esc(sk)}</span>`).join('')}
           </div>
         </div>
@@ -2398,15 +2513,15 @@
 
     main.innerHTML = `
       <div class="page-head"><div>
-        <h1>Workshops</h1>
-        <p>Every building and place a job can happen, and what comes out of it.
-        Almost all of them are 3×3. The tier is how far the building sits from raw
-        material: a tier 1 building eats what the map gives you, tier 2 eats tier 1’s
-        output, tier 3 eats tier 2’s.</p>
+        <h1>${esc(t('ws.title', 'Workshops'))}</h1>
+        <p>${esc(t('ws.blurb',
+          'Every building and place a job can happen, and what comes out of it. Almost all of them '
+          + 'are 3×3. The tier is how far the building sits from raw material: a tier 1 building '
+          + 'eats what the map gives you, tier 2 eats tier 1’s output, tier 3 eats tier 2’s.'))}</p>
       </div></div>
       <div class="ws-filters frow">
-        <span class="flabel">Tier</span>
-        ${[['all', 'All'], ['1', '1'], ['2', '2'], ['3', '3']].map(([v, label]) =>
+        <span class="flabel">${esc(t('ws.tierlabel', 'Tier'))}</span>
+        ${[['all', t('filter.all', 'All')], ['1', '1'], ['2', '2'], ['3', '3']].map(([v, label]) =>
           `<button class="fchip ${v === 'all' ? 'on' : ''}" data-tier="${v}">${label}</button>`).join('')}
       </div>
       ${order.map((k) => `
@@ -2456,30 +2571,30 @@
     const jobs = steps.filter((r) => !picks.some((p) => p.step === r.id));
 
     main.innerHTML = `
-      <a class="back" href="#/w">${sym('back')}All workshops</a>
+      <a class="back" href="#/w">${sym('back')}${esc(t('back.workshops', 'All workshops'))}</a>
       <div class="ws-head">
         <div class="ws-art big">${plate(name, 'xxl')}</div>
         <div>
           <h1>${esc(name)}</h1>
           <div class="ws-meta">
-            <span class="need">${KIND_NAME[kind]}</span>
-            ${meta.tier ? `<span class="need tier">Tier ${meta.tier}</span>` : ''}
-            ${burnsFuel ? `<span class="need">${sym('flame')}burns fuel</span>` : ''}
+            <span class="need">${esc(KIND_NAME[kind])}</span>
+            ${meta.tier ? `<span class="need tier">${esc(t('ws.tier', 'Tier {n}', { n: meta.tier }))}</span>` : ''}
+            ${burnsFuel ? `<span class="need">${sym('flame')}${esc(t('ws.burnsfuel', 'burns fuel'))}</span>` : ''}
             ${skills.map((sk) => `<span class="need">${esc(sk)}</span>`).join('')}
           </div>
-          ${meta.note ? `<p class="item-note">${esc(meta.note)}</p>` : ''}
-          ${meta.keys ? `<p class="ws-build">Build ${keycaps(meta.keys)}
+          ${meta.note ? `<p class="item-note">${esc(td('shopNote', name, meta.note))}</p>` : ''}
+          ${meta.keys ? `<p class="ws-build">${t('ws.build', 'Build {keys}', { keys: keycaps(meta.keys) })}
             <span class="dot">·</span> ${esc(meta.size || '3×3')}${meta.magma
-              ? ` <span class="dot">·</span> the magma version burns no fuel` : ''}</p>` : ''}
-          <p class="muted ws-inds">Feeds ${inds.map((i) =>
-            `<a href="#/i/${i.id}">${sym(i.icon)} ${esc(i.name)}</a>`).join(', ')}</p>
+              ? ` <span class="dot">·</span> ${esc(t('ws.magma', 'the magma version burns no fuel'))}` : ''}</p>` : ''}
+          <p class="muted ws-inds">${t('ws.feeds', 'Feeds {inds}', { inds: inds.map((i) =>
+            `<a href="#/i/${i.id}">${sym(i.icon)} ${esc(indName(i))}</a>`).join(', ') })}</p>
         </div>
       </div>
       ${picks.map((p, i) => `
         <p class="col-head">${esc(p.title)} <span class="n">${p.rows.length}</span></p>
         <div id="pick-${i}"></div>
         ${p.tables ? refToc(p.tables, route) + refBlocks(p.tables) : ''}`).join('')}
-      ${jobs.length ? `<p class="col-head">Jobs <span class="n">${jobs.length}</span></p>
+      ${jobs.length ? `<p class="col-head">${esc(t('ws.jobs', 'Jobs'))} <span class="n">${jobs.length}</span></p>
                        <div class="rec-grid">${jobs.map((r) => recipeCard(r)).join('')}</div>` : ''}`;
 
     picks.forEach((p, i) => mountPicker(document.getElementById('pick-' + i), p));
@@ -2502,25 +2617,34 @@
   /* Two pages are made of these tables — the reference and the notes under the
      armour picker — so the markup lives in one place and a table only has to
      say which page anchors it. */
-  const refToc = (tables, route) => `<div class="toc">${tables.map((t) =>
-    `<a href="#/${route}#${t.id}">${sym(t.icon)} ${esc(t.title)}</a>`).join('')}</div>`;
+  /* A table's heading, its blurb and its column names are this site talking;
+     the cells are the game's own words and stay as they are. */
+  const tblTitle = (tb) => td('tableTitle', tb.id, tb.title);
+  const tblBlurb = (tb) => td('tableBlurb', tb.id, tb.blurb);
+  const tblCols  = (tb) => {
+    const cols = (DATA.tableCols || {})[tb.id];
+    return Array.isArray(cols) && cols.length === tb.columns.length ? cols : tb.columns;
+  };
 
-  const refBlocks = (tables) => tables.map((t) => `
-    <section class="ref-block" id="${t.id}">
-      <h2>${sym(t.icon)} ${esc(t.title)}</h2>
-      <p>${esc(t.blurb)}</p>
+  const refToc = (tables, route) => `<div class="toc">${tables.map((tb) =>
+    `<a href="#/${route}#${tb.id}">${sym(tb.icon)} ${esc(tblTitle(tb))}</a>`).join('')}</div>`;
+
+  const refBlocks = (tables) => tables.map((tb) => `
+    <section class="ref-block" id="${tb.id}">
+      <h2>${sym(tb.icon)} ${esc(tblTitle(tb))}</h2>
+      <p>${esc(tblBlurb(tb))}</p>
       <div class="table-wrap"><table>
-        <thead><tr>${t.columns.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>
-        <tbody>${t.rows.map((row) =>
-          `<tr>${row.map((cell, ci) => `<td>${refCell(cell, ci, t)}</td>`).join('')}</tr>`).join('')}</tbody>
+        <thead><tr>${tblCols(tb).map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+        <tbody>${tb.rows.map((row) =>
+          `<tr>${row.map((cell, ci) => `<td>${refCell(cell, ci, tb)}</td>`).join('')}</tr>`).join('')}</tbody>
       </table></div>
     </section>`).join('');
 
   function viewReference() {
     main.innerHTML = `
       <div class="page-head"><div>
-        <h1>Reference</h1>
-        <p>The tables you keep alt-tabbing to look up.</p>
+        <h1>${esc(t('ref.title', 'Reference'))}</h1>
+        <p>${esc(t('ref.blurb', 'The tables you keep alt-tabbing to look up.'))}</p>
       </div></div>
       ${refToc(REFERENCE, 'reference')}
       ${refBlocks(REFERENCE)}`;
@@ -2532,14 +2656,13 @@
   function viewArmor(id) {
     main.innerHTML = `
       <div class="page-head"><div>
-        <h1>${sym('shield')} Armor</h1>
-        <p>There is no suit of armour in this game, only pieces — and a dwarf is
-        covered exactly where the pieces reach. Click the dwarf to see what protects
-        that part; click a piece to see how far it reaches.</p>
+        <h1>${sym('shield')} ${esc(t('armor.title', 'Armor'))}</h1>
+        <p>${esc(t('armor.blurb',
+          'There is no suit of armour in this game, only pieces — and a dwarf is covered exactly '
+          + 'where the pieces reach. Click the dwarf to see what protects that part; click a piece '
+          + 'to see how far it reaches.'))}</p>
       </div></div>
-      <div id="armor-pick"></div>
-      ${refToc(ARMOR_TABLES, 'armor')}
-      ${refBlocks(ARMOR_TABLES)}`;
+      <div id="armor-pick"></div>`;
 
     const host = document.getElementById('armor-pick');
 
@@ -2550,14 +2673,14 @@
       result: armorResult,
       rowIn: eqSprite,
       facets: [
-        { key: 'covers', label: 'Body part', multi: true, silent: true },
-        { key: 'kind', label: 'Type' },
-        { key: 'material', label: 'Made of', multi: true },
-        { key: 'layer', label: 'Layer' }
+        { key: 'covers', label: t('facet.bodypart', 'Body part'), multi: true, silent: true },
+        { key: 'kind', label: t('facet.type', 'Type') },
+        { key: 'material', label: t('facet.madeof', 'Made of'), multi: true },
+        { key: 'layer', label: t('facet.layer', 'Layer') }
       ],
-      placeholder: 'Filter armour…',
-      listLabel: 'Armour and clothing',
-      empty: 'Nothing covers that part with those filters. Try widening them.',
+      placeholder: t('pick.armor.filter', 'Filter armour…'),
+      listLabel: t('pick.armor.list', 'Armour and clothing'),
+      empty: t('pick.armor.empty', 'Nothing covers that part with those filters. Try widening them.'),
       onPaint: (a, state) => syncBody(host, state.sel, state.pick)
     });
 
@@ -2583,11 +2706,11 @@
 
   function viewAbout() {
     main.innerHTML = `
-      <div class="page-head"><div><h1>About</h1></div></div>
-      <div class="prose">
+      <div class="page-head"><div><h1>${esc(t('about.title', 'About'))}</h1></div></div>
+      <div class="prose">${t('about.body', `
         <p>DF Companion is a static, dependency-free reference for the industry chains in
         <a href="https://www.bay12games.com/dwarves/" target="_blank" rel="noopener">Dwarf Fortress</a>.
-        Every page on this site is generated from fifteen data files, so extending it means
+        Every page on this site is generated from sixteen data files, so extending it means
         editing JavaScript objects rather than HTML. Nothing is loaded from the network. Every
         icon here, down to the back arrow, is inline SVG; the only bitmaps are the game's own
         pixel art — the workshop plates, the equipment sheet the armour list reads its sprites
@@ -2706,9 +2829,9 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         <h2>Adding a reference table</h2>
         <p><code>data/reference.js</code> holds plain <code>columns</code> / <code>rows</code>
         arrays. Add an object, and it appears on the
-        <a href="#/reference">Reference page</a> with its own anchor. The notes under the
-        armour picker are the same shape, in <code>DF_ARMOR_TABLES</code>, and go through
-        the same renderer.</p>
+        <a href="#/reference">Reference page</a> with its own anchor. A picker can carry
+        <code>tables</code> of the same shape — the forge's do — rendered by the same
+        code.</p>
 
         <h2>Adding a piece of armour</h2>
         <p><code>data/armor.js</code> holds the body figure, the material codes and every
@@ -2723,6 +2846,45 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         <code>DF_ARMOR_MATS</code>, which is what decides the workshop and the labour. Add a
         region to <code>DF_BODY</code> and it becomes clickable the moment some piece names it.</p>
 
+        <h2>Adding a language</h2>
+        <p><code>data/i18n.js</code> holds one pack per language. The game's own nomenclature is
+        deliberately <em>not</em> in it: an item stays a Plump helmet, a building a Metalsmith's
+        Forge and a job on its menu Brew Drink, because those are the words on the screen you are
+        alt-tabbing away from, and a translated menu entry would be a worse answer than an
+        untranslated one. What a pack carries is everything this site says <em>about</em> them —
+        headings, labels, legends and every note.</p>
+        <p>A pack has two halves. <code>ui</code> is keyed by a short string and holds the text
+        written into the views; <code>data</code> is keyed by the id a data file already carries
+        and holds the prose that lives beside the facts:</p>
+        <pre><code>window.DF_I18N = {
+  es: {
+    ui: { 'item.madeby': 'Lo produce', 'count.steps': '{n} pasos' },
+    data: {
+      industry:   { food: 'Comida y bebida' },
+      recipeNote: { 'make-ash': 'El origen del jabón, la potasa…' },
+      shopNote:   { 'Smelter': 'De mena a bars, de carbón a coke…' }
+    }
+  }
+};</code></pre>
+        <p>The English text stays written out at the point it is used, as the second argument to
+        <code>t()</code>, so the source still reads as English prose and a key missing from a pack
+        renders in English rather than as a key. <code>{n}</code>-style holes rather than string
+        concatenation, because Spanish does not put the number, the noun and the preposition in
+        the order English does. The groups under <code>data</code> are
+        <code>industry</code>, <code>industryBlurb</code>, <code>recipeNote</code>,
+        <code>itemNote</code>, <code>shopNote</code>, <code>body</code>, <code>bodyNote</code>,
+        <code>armorNote</code>, <code>weaponNote</code>, <code>forgeNote</code>,
+        <code>fibreNote</code>, <code>fibreAlso</code>, <code>goodsNote</code>,
+        <code>flowBlurb</code>, <code>flowPath</code>, <code>flowTitle</code>,
+        <code>tableTitle</code>, <code>tableBlurb</code> and <code>tableCols</code>.</p>
+        <p>Add a pack, add its code to <code>LANGS</code> in <code>assets/js/app.js</code>, and the
+        button in the header cycles to it. The choice is kept in <code>localStorage</code> and
+        defaults to the browser's own language; switching reloads the page, because the search
+        index is built once at boot out of prose that has already been translated. Table
+        <em>rows</em> are never translated — those are the game's words, and
+        <code>tableCols</code> only replaces a header row that matches the original column for
+        column.</p>
+
         <h2>Accuracy</h2>
         <p>Chains and workshops follow current Dwarf Fortress. Exact bar and unit yields have
         shifted between versions, so only the ones that are stable (charcoal, coke) carry
@@ -2736,8 +2898,7 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         which is worth having on the wall next to your monitor. That poster is not
         redistributed here.</p>
         <p>Dwarf Fortress is by Bay 12 Games, published by Kitfox Games. This is an unaffiliated
-        fan project.</p>
-      </div>`;
+        fan project.</p>`)}</div>`;
   }
 
   /* ── search ───────────────────────────────────────────────────── */
@@ -2751,18 +2912,23 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
     const b = BREW_IN.get(name) || BREW_OUT.get(name);
     const m = MILL_IN.get(name) || MILL_OUT.get(name);
     const says = [];
-    if (b) says.push(BREW_IN.has(name) ? `brews into ${b.out}` : `brewed from ${b.in}`);
-    if (m) says.push(MILL_IN.has(name) ? `mills into ${m.out}` : `milled from ${m.in}`);
+    if (b) says.push(BREW_IN.has(name)
+      ? t('find.brewsinto', 'brews into {x}', { x: b.out })
+      : t('find.brewedfrom', 'brewed from {x}', { x: b.in }));
+    if (m) says.push(MILL_IN.has(name)
+      ? t('find.millsinto', 'mills into {x}', { x: m.out })
+      : t('find.milledfrom', 'milled from {x}', { x: m.in }));
     const dy = DYE_BY.get(name);
-    if (dy) says.push(`dyes ${dy.color.toLowerCase()}`);
+    if (dy) says.push(t('find.dyes', 'dyes {x}', { x: dy.color.toLowerCase() }));
     const or = ORE_BY.get(name);
-    if (or) says.push(`smelts into ${or.metal.toLowerCase()}`);
+    if (or) says.push(t('find.smeltsinto', 'smelts into {x}', { x: or.metal.toLowerCase() }));
     const al = ALLOY_BY.get(name.replace(/\s+bars?$/i, ''));
     if (al) says.push(al.parts.map((x) => x.metal.toLowerCase()).join(' + '));
     INDEX.push({
       kind: 'item', label: name,
       sub: says.length ? says.join(' · ')
-                       : `made by ${v.madeBy.length} · used in ${v.usedIn.length}`,
+                       : t('find.madeused', 'made by {made} · used in {used}',
+                           { made: v.madeBy.length, used: v.usedIn.length }),
       hay: [name,
             b ? [b.in, b.out, b.kind, b.type, b.source, 'brew still'].join(' ') : '',
             m ? [m.in, m.out, m.kind, m.source, m.color || '', 'mill quern millstone'].join(' ') : '',
@@ -2790,32 +2956,29 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
     const skills = [...new Set(steps.map((x) => x.skill))].join(' · ');
     INDEX.push({
       kind: 'shop', label: w, sub: skills,
-      hay: [w, skills, (SHOPS[w] || {}).note || ''].join(' '),
+      hay: [w, skills, (SHOPS[w] || {}).note || '',
+            td('shopNote', w, (SHOPS[w] || {}).note || '')].join(' '),
       href: '#/w/' + encodeURIComponent(w)
     });
   });
 
   INDUSTRIES.forEach((i) => INDEX.push({
-    kind: 'industry', label: i.name, sub: i.blurb, hay: i.name + ' ' + i.blurb, href: '#/i/' + i.id
+    kind: 'industry', label: indName(i), sub: indBlurb(i),
+    /* Both languages in the haystack: an English-language name is what a
+       reader who knows the game will type, whichever language the page is in. */
+    hay: [indName(i), indBlurb(i), i.name, i.blurb].join(' '),
+    href: '#/i/' + i.id
   }));
 
-  REFERENCE.forEach((t) => INDEX.push({
-    kind: 'table', label: t.title, sub: t.blurb,
-    hay: [t.title, t.blurb, ...t.rows.flat()].join(' '),
-    href: '#/reference#' + t.id
-  }));
+  const tableEntry = (tb, href) => ({
+    kind: 'table', label: tblTitle(tb), sub: tblBlurb(tb),
+    hay: [tblTitle(tb), tblBlurb(tb), tb.title, tb.blurb, ...tb.rows.flat()].join(' '),
+    href
+  });
 
-  ARMOR_TABLES.forEach((t) => INDEX.push({
-    kind: 'table', label: t.title, sub: t.blurb,
-    hay: [t.title, t.blurb, ...t.rows.flat()].join(' '),
-    href: '#/armor#' + t.id
-  }));
-
-  FORGE_TABLES.forEach((t) => INDEX.push({
-    kind: 'table', label: t.title, sub: t.blurb,
-    hay: [t.title, t.blurb, ...t.rows.flat()].join(' '),
-    href: `#/w/${encodeURIComponent(FORGE_SHOP)}#${t.id}`
-  }));
+  REFERENCE.forEach((tb) => INDEX.push(tableEntry(tb, '#/reference#' + tb.id)));
+  FORGE_TABLES.forEach((tb) =>
+    INDEX.push(tableEntry(tb, `#/w/${encodeURIComponent(FORGE_SHOP)}#${tb.id}`)));
 
   /* A weapon or a goblet is a searchable thing in its own right, the same way a
      piece of armour is — "menacing spike" should land on the forge, not on a
@@ -2840,6 +3003,17 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
   INDEX.forEach((e) => (e.hay = e.hay.toLowerCase()));
 
   const KIND_RANK = { item: 0, armor: 1, forge: 2, industry: 3, shop: 4, table: 5, step: 6 };
+  /* The little grey word on the right of a result says what kind of page it
+     leads to, which is this site's own vocabulary rather than the game's. */
+  const KIND_LABEL = {
+    item:     t('find.kind.item', 'item'),
+    armor:    t('find.kind.armor', 'armor'),
+    forge:    t('find.kind.forge', 'forge'),
+    industry: t('find.kind.industry', 'industry'),
+    shop:     t('find.kind.shop', 'shop'),
+    table:    t('find.kind.table', 'table'),
+    step:     t('find.kind.step', 'step')
+  };
   let cursor = -1, hits = [];
 
   function runSearch(q) {
@@ -2867,8 +3041,9 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
       ? hits.map((h, i) =>
           `<button data-i="${i}"><span>${esc(h.label)}</span>
              <span class="r-sub">${esc(h.sub || '')}</span>
-             <span class="r-kind">${h.kind}</span></button>`).join('')
-      : '<div class="empty">Nothing matches. Try “steel”, “barrel” or “ash”.</div>';
+             <span class="r-kind">${esc(KIND_LABEL[h.kind] || h.kind)}</span></button>`).join('')
+      : `<div class="empty">${esc(t('find.empty',
+          'Nothing matches. Try “steel”, “barrel” or “ash”.'))}</div>`;
   }
 
   function go(i) {
@@ -2911,6 +3086,72 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
       ev.preventDefault(); search.focus();
     }
   });
+
+  /* ── the page's own furniture ─────────────────────────────────── */
+  /* The header and footer are in index.html rather than rendered by a view, so
+     they are painted once at boot instead of on every route. */
+  function paintChrome() {
+    const set = (sel, text) => {
+      const el = document.querySelector(sel);
+      if (el) el.textContent = text;
+    };
+    document.title = t('site.title', 'DF Companion — Dwarf Fortress Industry Workflows');
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute('content', t('site.description',
+      'An interactive map of Dwarf Fortress industry chains: what makes what, at which workshop, '
+      + 'with which skill.'));
+
+    set('.brand-text small', t('site.tagline', 'Industry workflows'));
+    const box = document.getElementById('search');
+    if (box) {
+      box.placeholder = t('site.search', 'Search items, workshops, skills…  (press /)');
+      box.setAttribute('aria-label', t('site.search.label', 'Search'));
+    }
+    set('.skip', t('site.skip', 'Skip to content'));
+    set('[data-nav="industries"]', t('nav.industries', 'Industries'));
+    set('[data-nav="workshops"]',  t('nav.workshops', 'Workshops'));
+    set('[data-nav="armor"]',      t('nav.armor', 'Armor'));
+    set('[data-nav="about"]',      t('nav.about', 'About'));
+
+    const foot = document.getElementById('foot-note');
+    if (foot) foot.innerHTML = t('foot.note',
+      'A fan-made reference for <a href="https://www.bay12games.com/dwarves/" target="_blank" '
+      + 'rel="noopener">Dwarf Fortress</a>. Not affiliated with Bay 12 Games or Kitfox Games. '
+      + 'Verify anything load-bearing against the <a href="https://dwarffortresswiki.org" '
+      + 'target="_blank" rel="noopener">wiki</a>.');
+    const credit = document.getElementById('foot-credit');
+    if (credit) credit.innerHTML = t('foot.credit',
+      'Layout inspired by Max Cantor’s printable cheat sheet at '
+      + '<a href="https://thingsfittogether.com" target="_blank" rel="noopener">thingsfittogether.com</a>.');
+
+    const themeBtn = document.getElementById('theme');
+    if (themeBtn) {
+      themeBtn.title = t('site.theme', 'Toggle light / dark');
+      themeBtn.setAttribute('aria-label', t('site.theme.label', 'Toggle theme'));
+    }
+  }
+
+  /* ── language ─────────────────────────────────────────────────── */
+  /* The button names the language you would get by pressing it, not the one
+     you are in — the same thing a light/dark toggle does, and the only reading
+     that works for somebody who cannot read the current one.
+
+     Switching reloads. Every view rebuilds itself from the data on each route,
+     but the search index does not: it is built once at boot, out of prose that
+     has already been translated. Rebuilding it in place would be a second code
+     path for something the browser does correctly for free. */
+  const langBtn = document.getElementById('lang');
+  if (langBtn) {
+    const next = LANG === 'es' ? 'en' : 'es';
+    langBtn.textContent = next.toUpperCase();
+    langBtn.title = t('site.lang', 'Read this in {lang}', {
+      lang: next === 'es' ? 'español' : 'English' });
+    langBtn.setAttribute('aria-label', langBtn.title);
+    langBtn.addEventListener('click', () => {
+      localStorage.setItem('df-lang', next);
+      location.reload();
+    });
+  }
 
   /* ── theme ────────────────────────────────────────────────────── */
   const root = document.documentElement;
@@ -2955,5 +3196,6 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
   }
 
   window.addEventListener('hashchange', route);
+  paintChrome();
   route();
 })();
