@@ -14,12 +14,12 @@
    is still what draws at chip size, where 96px of pixel art would be mush. A
    building with no plate simply falls back to it everywhere.
 
-   `tier`, `keys`, `size` and `magma` come from the wiki's Workshop page:
+   `tier`, `keys` and `magma` come from the wiki's Workshop page:
    https://dwarffortresswiki.org/index.php/Workshop
    `tier` is how far the building sits from raw material — tier 1 eats what the
    map gives you, tier 2 eats tier 1's output, tier 3 eats tier 2's. `keys` is
-   the build-menu path. `size` is only set where it is not the usual 3×3.
-   `magma` marks the furnaces and forges with a magma twin that burns no fuel.
+   the build-menu path. `magma` marks the furnaces and forges with a magma twin
+   that burns no fuel.
 
    The 1×1 buildings are drawn 32×64 rather than 96×128 and carry `small: true`,
    which is what tells the page to show them at 2x so they stand at the same
@@ -63,7 +63,7 @@ window.DF_WORKSHOPS = {
         <path d="M9.2 13.5h13.6M9.2 18.5h13.6"/><path d="M16 8V4"/>
         <path d="M22.5 19h4v3"/><circle cx="26.5" cy="26" r="1.6" class="ac"/>` },
 
-'Quern or Millstone': { kind: 'workshop', tier: 2, keys: 'b-o-f-q', size: '1×1',
+'Quern or Millstone': { kind: 'workshop', tier: 2, keys: 'b-o-f-q',
   img: 'quern.png', img2: 'millstone.png', small: true, box: '3.6 2.6 24.8 19.8', sw: 1.32,
   note: 'Grinds plants into flour, sugar, dye, paste and paper slurry. A quern is one stone and a pair of hands; a millstone needs power.',
   art: `<ellipse cx="16" cy="12" rx="11" ry="4"/>
@@ -77,7 +77,7 @@ window.DF_WORKSHOPS = {
         <path d="M11 28c-2-1.5-.5-3.5 0-5 1.5 2 2.5 3 0 5z" class="ac"/>
         <path d="M21 28c-2-1.5-.5-3.5 0-5 1.5 2 2.5 3 0 5z" class="ac"/>` },
 
-'Screw Press': { kind: 'workshop', tier: 2, keys: 'b-o-R', size: '1×1',
+'Screw Press': { kind: 'workshop', tier: 2, keys: 'b-o-R',
   img: 'screw_press.png', small: true, box: '4.6 2.6 22.8 26.8', sw: 1.42,
   note: 'Presses paste into oil and slurry into paper. Costs two mechanisms to build — and needs an empty jug to catch the oil.',
   art: `<path d="M6 4h20M6 28h20"/><path d="M8 4v24M24 4v24"/>

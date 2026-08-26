@@ -62,13 +62,10 @@
   const WEAPONS      = window.DF_WEAPONS || [];
   const FORGE_GOODS  = window.DF_FORGE_GOODS || [];
   const FORGE_METALS = window.DF_FORGE_METALS || [];
-  const FORGE_TABLES = window.DF_FORGE_TABLES || [];
   const SMELT_TABLES = window.DF_SMELT_TABLES || [];
   const FLOWS        = window.DF_INDUSTRY_FLOWS || {};
 
   const main   = document.getElementById('main');
-  const search = document.getElementById('search');
-  const results= document.getElementById('results');
 
   /* A `needs` flag is a real input — it just isn't a material that gets consumed
      into the product. Mapping it to an item keeps "what is my Barrel used for?"
@@ -506,7 +503,6 @@
      under its own heading, foreign pieces because dwarves cannot make them, and
      everything without an M in `mats` because this is a forge. */
   const FORGE_SHOP = "Metalsmith's Forge";
-  const SMELT_SHOP = 'Smelter';
 
   /* The wiki's production list, in its own order — which is also the order the
      facet's options come out in, since mountPicker reads a facet's values off
@@ -516,13 +512,6 @@
     'Animal traps', 'Mechanisms'];
 
   const forgeMetal = (name) => FORGE_METALS.find((m) => m.metal === name);
-
-  /* The forge's rows come from three data files, so a note does too — and each
-     file keys its rows differently. Armour is the one with an id of its own,
-     which is what lets the Armor page and this page share a translation. */
-  const forgeNote = (r) => r.form === 'armor'  ? td('armorNote', r.id, r.note)
-                         : r.form === 'weapon' ? td('weaponNote', r.name, r.note)
-                         : td('forgeNote', r.name, r.note);
 
   /* What the list's right-hand column says. In a ninety-row list the one fact
      worth scanning for is what the thing costs — and for the handful that come
@@ -585,7 +574,6 @@
   /* Which metals the forge will accept for this job. Not a nicety — it is the
      single most common reason a job will not run, and listing gold against a
      battle axe would be teaching the wrong thing. */
-  const GATED = ['Weapons', 'Armor', 'Anvils'];
   function forgeMetalsFor(r) {
     if (r.cat === 'Anvils')  return FORGE_METALS.filter((m) => m.anvil);
     if (r.cat === 'Armor')   return FORGE_METALS.filter((m) => m.grade === 'Weapons & armour');
@@ -752,21 +740,6 @@
           cost > 1 ? esc(t(adam ? 'calc.perwafer' : 'calc.perbar', '{v}☼ per ' + unit,
             { v: round2(total / cost) })) : ''}</span></p>`}
 
-      <p class="brew-job">${t('forge.job',
-          'One <strong>{labour}</strong> job at {shop}, which needs an anvil in it',
-          { labour: esc(r.labour),
-            shop: `<a class="chip shop" href="#/w/${encodeURIComponent(FORGE_SHOP)}">`
-                  + `${icon(FORGE_SHOP)}${esc(FORGE_SHOP)}</a>` })}${
-          r.cat === 'Studding'
-            ? t('forge.job.studding', ' — and is the one job here that burns no fuel at all.')
-            : t('forge.job.fuel', ' and a unit of fuel, unless it is the magma version.')}
-        ${GATED.includes(r.cat)
-          ? ' ' + t('forge.gated', 'The metal list above is only what the forge will accept for this{why}', {
-              why: r.cat === 'Anvils' ? t('forge.gated.anvil', ': an anvil has to be fire-safe.')
-              : r.cat === 'Armor' ? t('forge.gated.armor', ': armour must be weapons-grade, and black bronze never is.')
-              : t('forge.gated.weapon', ': weapons must be weapons-grade, and silver only for the melee ones.') })
-          : ''}</p>
-
       ${elsewhere.length ? `<p class="brew-job">${t('forge.elsewhere', 'Also made {where}.', {
           where: elsewhere.map(([at, mats]) =>
             t('forge.elsewhere.one', 'in {mats} at {shop}', {
@@ -778,7 +751,6 @@
         'Also made of {mats} — see the Armor page for which building works which.',
         { mats: r.mats.filter((c) => c !== 'M').map((c) => esc(matName(c).toLowerCase())).join(', ') })}</p>` : ''}
 
-      ${r.note ? `<p class="brew-job">${esc(forgeNote(r))}</p>` : ''}
     </div>`;
   }
 
@@ -1060,7 +1032,6 @@
   }
 
   function oreResult(o, opts) {
-    const step = smeltStep();
     const bar = (m) => {
       const c = metalColor(m);
       return `<a class="chip out" href="#/item/${encodeURIComponent(m + ' bar')}">${
@@ -1084,16 +1055,11 @@
           chance: o.bonus.chance, bars: o.bonus.bars, metal: o.bonus.metal.toLowerCase() }))}</span>` : ''}
         ${needBadge('fuel')}
       </div>
-      <p class="brew-job">${t('ore.job',
-        'One <strong>Smelt Ore</strong> job at the smelter: a {skill} and a unit of fuel — none at '
-        + 'all if the smelter is built over magma.',
-        { skill: esc(step && step.skill ? step.skill : 'Furnace operator') })}</p>
       <p class="brew-where"><span class="col-head">${esc(t('ore.foundin', 'Found in'))}</span> ${esc(o.found)}.</p>
     </div>`;
   }
 
   function alloyResult(a, opts) {
-    const step = alloyStep();
     const part = (x) => {
       const c = metalColor(x.metal);
       return `<a class="chip in" href="#/item/${encodeURIComponent(x.metal + ' bar')}">${
@@ -1119,13 +1085,6 @@
         ${needBadge('fuel')}
         ${a.flux ? needBadge('flux') : ''}
       </div>
-      <p class="brew-job">${t('alloy.job',
-        'One <strong>{alloy}</strong> reaction at the smelter: a {skill}, the bars above and a unit of fuel.',
-        { alloy: esc(a.alloy), skill: esc(step && step.skill ? step.skill : 'Furnace operator') })}${
-        a.flux ? ' ' + t('alloy.flux',
-          'It also eats a flux stone — no flux on the map means no steel, no matter how much iron you dig.') : ''}${
-        a.weapon ? ' ' + t('alloy.weapon', 'Good enough to arm a militia with.')
-                 : ' ' + t('alloy.decor', 'Value, not weapons — it will not hold an edge.')}</p>
     </div>`;
   }
 
@@ -1192,13 +1151,6 @@
         <span class="need">${esc(d.milled ? t('dye.made.quern', 'Milled at a quern')
                                           : t('dye.made.other', 'Other job'))}</span>
       </div>
-      <p class="brew-job">${t('dye.job',
-        "One <strong>Dye</strong> job at the dyer's shop: a {skill}, the dye, and the thread, cloth "
-        + "or leather to colour. Dyeing adds the dye's {value}☼ to the item's value, multiplied by "
-        + "the quality of the work.",
-        { skill: esc(step && step.skill ? step.skill : 'Dyer'), value: d.value })}${
-        d.milled ? ' ' + t('dye.milled', 'This one you can make yourself, by milling {plant} at a quern.',
-          { plant: esc(d.from) }) : ''}</p>
       ${other.length ? `<div class="brew-else">
         <p class="col-head">${esc(t('also.is', '{name} is also', { name: d.dye }))}</p>
         <div class="flow-row">${other.map((r) =>
@@ -1376,7 +1328,7 @@
           ? `<span class="need warnish">${sym('warn')}${esc(t('armor.foreign', 'dwarves cannot make it'))}</span>` : ''}
       </div>
 
-      ${total == null ? `<p class="brew-job">${esc(td('goodsNote', g.name, g.note || ''))}</p>` : `
+      ${total == null ? '' : `
       <p class="col-head calc-head">${esc(t('calc.worth', 'Worth'))}</p>
       ${calcControls()}
       <dl class="calc-out">
@@ -1393,20 +1345,6 @@
             { n: total * 2 }))}</span>` : ''}</p>
       `}
 
-      <p class="brew-job">${t('cloth.job',
-        'One <strong>{job}</strong> job at {shop}, eating one whole unit of cloth whatever the size '
-        + 'of what it makes.', {
-          job: esc(g.shop ? 'Make cloth crafts' : 'Clothier'),
-          shop: `<a class="chip shop" href="#/w/${encodeURIComponent(shop)}">`
-                + `${icon(shop)}${esc(shop)}</a>` })}${
-        g.pair ? ' ' + t('cloth.jobpair',
-          'This one comes out two at a time, so the cloth, the weave and the dye are all paid for '
-          + 'once and counted twice.') : ''}</p>
-
-      ${g.note ? `<p class="brew-job">${esc(td('goodsNote', g.name, g.note))}</p>` : ''}
-      ${g.base ? `<p class="brew-job muted">${esc(t('cloth.nodye',
-        'Dye cannot be applied to finished clothing — the thread or the cloth has to be dyed first, '
-        + 'and dyed things cannot be redyed.'))}</p>` : ''}
     </div>`;
   }
 
@@ -1457,22 +1395,6 @@
           : '—'}</dd></div>
       </dl>
 
-      <p class="brew-job">${source
-        ? t('fibre.source', '<strong>{job}</strong> at {shop} {by}gives the thread.', {
-            job: esc(source.name),
-            shop: `<a class="chip shop" href="#/w/${encodeURIComponent(source.workshop)}">`
-                  + `${icon(source.workshop)}${esc(source.workshop)}</a>`,
-            by: source.skill && source.skill !== '—'
-              ? t('fibre.byskill', 'by a {skill} ', { skill: esc(source.skill.toLowerCase()) }) : '' })
-        : ''}
-        ${f.weave ? t('fibre.weave',
-          'One <strong>Weave Cloth</strong> job at the loom then turns one thread into one cloth, '
-          + 'and the material carries through unchanged. Non-hair thread queues itself for weaving — '
-          + 'turn that off under standing orders if you would rather dye it first.')
-        : ''}</p>
-
-      ${f.note ? `<p class="brew-job">${esc(td('fibreNote', f.in, f.note))}</p>` : ''}
-      ${f.also ? `<p class="brew-job muted">${esc(td('fibreAlso', f.in, f.also))}</p>` : ''}
 
       ${other.length ? `<div class="brew-else">
         <p class="col-head">${esc(t('also.is', '{name} is also', { name: f.in }))}</p>
@@ -1500,11 +1422,6 @@
         <span class="need">${esc(m.source)}</span>
         ${(step && (step.needs || []).includes('bag')) ? needBadge('bag') : ''}
       </div>
-      <p class="brew-job">${t('mill.job',
-        'One <strong>Mill Plants</strong> job at the quern or millstone: a {skill} and an empty bag. '
-        + 'The seeds come back — milling never eats them. A millstone grinds the same thing faster, '
-        + 'but wants power from a windmill or water wheel.',
-        { skill: esc(step && step.skill ? step.skill : 'Miller') })}</p>
       ${other.length ? `<div class="brew-else">
         <p class="col-head">${esc(t('also.is', '{name} is also', { name: m.in }))}</p>
         <div class="flow-row">${other.map((r) =>
@@ -1533,10 +1450,6 @@
         <span class="need">${esc(t('brew.based', '{type}-based', { type: b.type }))}</span>
         <span class="need">${esc(b.source)}</span>
       </div>
-      <p class="brew-job">${t('brew.job',
-        'One <strong>Brew Drink</strong> job at the Still: a {skill} and an empty barrel or rock pot. '
-        + 'The seeds come back — brewing never eats them.',
-        { skill: esc(step && step.skill ? step.skill : 'Brewer') })}</p>
       ${other.length ? `<div class="brew-else">
         <p class="col-head">${esc(t('also.is', '{name} is also', { name: b.in }))}</p>
         <div class="flow-row">${other.map((r) =>
@@ -1810,12 +1723,10 @@
       }) },
 
     /* The forge's rows come from three data files rather than one, and its
-       categories are the wiki's own production list. `tables` is the other thing
-       only this picker and the armour page have: notes that belong under the
-       picker rather than in any row of it. */
+       categories are the wiki's own production list. */
     { step: 'forge', title: t('pick.forge.title', 'What the forge makes'),
       noun: t('pick.forge.noun', 'things a forge makes'),
-      rows: FORGE_ROWS, result: forgeResult, tables: FORGE_TABLES,
+      rows: FORGE_ROWS, result: forgeResult,
       rowIn: forgeCell,
       facets: [{ key: 'cat', label: t('facet.makes', 'Makes') },
                { key: 'labour', label: t('facet.labour', 'Labour') }],
@@ -2652,9 +2563,9 @@
       <div class="page-head"><div>
         <h1>${esc(t('ws.title', 'Workshops'))}</h1>
         <p>${esc(t('ws.blurb',
-          'Every building and place a job can happen, and what comes out of it. Almost all of them '
-          + 'are 3×3. The tier is how far the building sits from raw material: a tier 1 building '
-          + 'eats what the map gives you, tier 2 eats tier 1’s output, tier 3 eats tier 2’s.'))}</p>
+          'Every building and place a job can happen, and what comes out of it. The tier is how '
+          + 'far the building sits from raw material: a tier 1 building eats what the map gives '
+          + 'you, tier 2 eats tier 1’s output, tier 3 eats tier 2’s.'))}</p>
       </div></div>
       <div class="ws-filters frow">
         <span class="flabel">${esc(t('ws.tierlabel', 'Tier'))}</span>
@@ -2720,8 +2631,7 @@
             ${skills.map((sk) => `<span class="need">${esc(sk)}</span>`).join('')}
           </div>
           ${meta.note ? `<p class="item-note">${esc(td('shopNote', name, meta.note))}</p>` : ''}
-          ${meta.keys ? `<p class="ws-build">${t('ws.build', 'Build {keys}', { keys: keycaps(meta.keys) })}
-            <span class="dot">·</span> ${esc(meta.size || '3×3')}${meta.magma
+          ${meta.keys ? `<p class="ws-build">${t('ws.build', 'Build {keys}', { keys: keycaps(meta.keys) })}${meta.magma
               ? ` <span class="dot">·</span> ${esc(t('ws.magma', 'the magma version burns no fuel'))}` : ''}</p>` : ''}
           <p class="muted ws-inds">${t('ws.feeds', 'Feeds {inds}', { inds: inds.map((i) =>
             `<a href="#/i/${i.id}">${sym(i.icon)} ${esc(indName(i))}</a>`).join(', ') })}</p>
@@ -2875,7 +2785,7 @@
   in:  [{ item:'Sun berry' }],
   out: [{ item:'Sunshine' }, { item:'Seeds' }],
   note:'Optional flavour text.' }</code></pre>
-        <p>Item pages, the search index and the industry maps all rebuild themselves from
+        <p>Item pages and the industry maps all rebuild themselves from
         that — an item exists as soon as some recipe mentions it, and a new step joins its
         industry's map wherever what it eats and what it makes put it. Valid <code>needs</code> values are
         <code>fuel</code>, <code>flux</code>, <code>bag</code>, <code>barrel</code>,
@@ -2920,8 +2830,8 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         can be made of metal, and everything else from <code>DF_FORGE_GOODS</code>. A picker
         may also carry <code>tables</code> — reference tables in the
         <code>data/reference.js</code> shape that belong under it rather than in any row of
-        it, rendered by the same code as the Armor page's notes and anchored back to the
-        workshop's own page.</p>
+        it, as the smelter's steel chain does, rendered by the same code as the Armor page's
+        notes and anchored back to the workshop's own page.</p>
         <p>A picker facet can read a list instead of a single value, which is how one ore
         sits under three different rock types and one alloy under each metal it contains.
         The smelter's bars are tinted with the metal's own colour from
@@ -2937,7 +2847,7 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
   color: 'Midnight blue', hex: '#191970', value: 20 }</code></pre>
         <p>Each workshop's page turns its table into a picker. <code>kind</code> and
         <code>source</code> generate the filter dropdowns, so adding a row is the whole job —
-        the filters, the search, the item pages and the site search all pick it up. A plant
+        the filters, the picker's own search and the item pages all pick it up. A plant
         that both brews and mills gets both cards on its item page.</p>
         <p>Milling grinds flour for the food chain and dye for the textiles one, which is
         more than one industry per step. That is what <code>also: ['textiles']</code> on a
@@ -2981,7 +2891,7 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         <p><code>data/reference.js</code> holds plain <code>columns</code> / <code>rows</code>
         arrays. Add an object, and it appears on the
         <a href="#/reference">Reference page</a> with its own anchor. A picker can carry
-        <code>tables</code> of the same shape — the forge's do — rendered by the same
+        <code>tables</code> of the same shape — the smelter's does — rendered by the same
         code.</p>
 
         <h2>Adding a piece of armour</h2>
@@ -3052,196 +2962,6 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         fan project.</p>`)}</div>`;
   }
 
-  /* ── search ───────────────────────────────────────────────────── */
-  /* Each entry carries a `hay` blob so that searching for "barrel" turns up
-     every step that needs one, not just the item called Barrel. */
-  const INDEX = [];
-
-  ITEMS.forEach((v, name) => {
-    /* A brewable plant or its drink says what it pairs with rather than
-       counting steps — every one of them has the same single step. */
-    const b = BREW_IN.get(name) || BREW_OUT.get(name);
-    const m = MILL_IN.get(name) || MILL_OUT.get(name);
-    const says = [];
-    if (b) says.push(BREW_IN.has(name)
-      ? t('find.brewsinto', 'brews into {x}', { x: b.out })
-      : t('find.brewedfrom', 'brewed from {x}', { x: b.in }));
-    if (m) says.push(MILL_IN.has(name)
-      ? t('find.millsinto', 'mills into {x}', { x: m.out })
-      : t('find.milledfrom', 'milled from {x}', { x: m.in }));
-    const dy = DYE_BY.get(name);
-    if (dy) says.push(t('find.dyes', 'dyes {x}', { x: dy.color.toLowerCase() }));
-    const or = ORE_BY.get(name);
-    if (or) says.push(t('find.smeltsinto', 'smelts into {x}', { x: or.metal.toLowerCase() }));
-    const al = ALLOY_BY.get(name.replace(/\s+bars?$/i, ''));
-    if (al) says.push(al.parts.map((x) => x.metal.toLowerCase()).join(' + '));
-    INDEX.push({
-      kind: 'item', label: name,
-      sub: says.length ? says.join(' · ')
-                       : t('find.madeused', 'made by {made} · used in {used}',
-                           { made: v.madeBy.length, used: v.usedIn.length }),
-      hay: [name,
-            b ? [b.in, b.out, b.kind, b.type, b.source, 'brew still'].join(' ') : '',
-            m ? [m.in, m.out, m.kind, m.source, m.color || '', 'mill quern millstone'].join(' ') : '',
-            dy ? [dy.from, dy.color, dy.family, dy.part, 'dye dyer colour color'].join(' ') : '',
-            or ? [or.metal, or.found, 'ore smelt smelter'].join(' ') : '',
-            al ? [...al.parts.map((x) => x.metal), al.use, 'alloy smelt smelter'].join(' ') : ''
-           ].join(' ').trim(),
-      href: '#/item/' + encodeURIComponent(name)
-    });
-  });
-
-  RECIPES.forEach((r) => INDEX.push({
-    kind: 'step', label: r.name, sub: r.workshop,
-    hay: [
-      r.name, r.workshop, r.skill,
-      ...(r.in  || []).map((x) => x.item),
-      ...(r.out || []).map((x) => x.item),
-      ...(r.needs || []).map((n) => (NEED_LABEL[n] || {}).text || n)
-    ].join(' '),
-    href: `#/i/${r.industry}#r-${r.id}`
-  }));
-
-  [...new Set(RECIPES.map((r) => r.workshop))].forEach((w) => {
-    const steps = RECIPES.filter((x) => x.workshop === w);
-    const skills = [...new Set(steps.map((x) => x.skill))].join(' · ');
-    INDEX.push({
-      kind: 'shop', label: w, sub: skills,
-      hay: [w, skills, (SHOPS[w] || {}).note || '',
-            td('shopNote', w, (SHOPS[w] || {}).note || '')].join(' '),
-      href: '#/w/' + encodeURIComponent(w)
-    });
-  });
-
-  INDUSTRIES.forEach((i) => INDEX.push({
-    kind: 'industry', label: indName(i), sub: indBlurb(i),
-    /* Both languages in the haystack: an English-language name is what a
-       reader who knows the game will type, whichever language the page is in. */
-    hay: [indName(i), indBlurb(i), i.name, i.blurb].join(' '),
-    href: '#/i/' + i.id
-  }));
-
-  const tableEntry = (tb, href) => ({
-    /* The columns stand in for the blurb a table without one would have given
-       the search result to say what it holds. */
-    kind: 'table', label: tblTitle(tb), sub: tblBlurb(tb) || tblCols(tb).join(' · '),
-    hay: [tblTitle(tb), tblBlurb(tb), tb.title, tb.blurb, ...tb.rows.flat()].join(' '),
-    href
-  });
-
-  REFERENCE.forEach((tb) => INDEX.push(tableEntry(tb, '#/reference#' + tb.id)));
-  FORGE_TABLES.forEach((tb) =>
-    INDEX.push(tableEntry(tb, `#/w/${encodeURIComponent(FORGE_SHOP)}#${tb.id}`)));
-  SMELT_TABLES.forEach((tb) =>
-    INDEX.push(tableEntry(tb, `#/w/${encodeURIComponent(SMELT_SHOP)}#${tb.id}`)));
-
-  /* A weapon or a goblet is a searchable thing in its own right, the same way a
-     piece of armour is — "menacing spike" should land on the forge, not on a
-     table that happens to mention it. The armour rows are left out here because
-     they are already indexed against the Armor page, which knows more about
-     them than this one does. */
-  FORGE_ROWS.filter((r) => r.form !== 'armor').forEach((r) => INDEX.push({
-    kind: 'forge', label: r.name, sub: `${r.cat} · ${r.out}`,
-    hay: r.hay,
-    href: '#/w/' + encodeURIComponent(FORGE_SHOP)
-  }));
-
-  /* A piece is a searchable thing in its own right — "greaves" should land on
-     the greaves, not on a table that happens to mention them. */
-  ARMOR_ROWS.forEach((p) => INDEX.push({
-    kind: 'armor', label: p.name,
-    sub: p.covers.map(partName).join(' · '),
-    hay: p.hay,
-    href: '#/armor/' + p.id
-  }));
-
-  INDEX.forEach((e) => (e.hay = e.hay.toLowerCase()));
-
-  const KIND_RANK = { item: 0, armor: 1, forge: 2, industry: 3, shop: 4, table: 5, step: 6 };
-  /* The little grey word on the right of a result says what kind of page it
-     leads to, which is this site's own vocabulary rather than the game's. */
-  const KIND_LABEL = {
-    item:     t('find.kind.item', 'item'),
-    armor:    t('find.kind.armor', 'armor'),
-    forge:    t('find.kind.forge', 'forge'),
-    industry: t('find.kind.industry', 'industry'),
-    shop:     t('find.kind.shop', 'shop'),
-    table:    t('find.kind.table', 'table'),
-    step:     t('find.kind.step', 'step')
-  };
-  let cursor = -1, hits = [];
-
-  function runSearch(q) {
-    q = q.trim().toLowerCase();
-    if (!q) { results.hidden = true; return; }
-
-    hits = INDEX
-      .map((e) => {
-        const l = e.label.toLowerCase();
-        let score = -1;
-        if (l === q) score = 0;
-        else if (l.startsWith(q)) score = 1;
-        else if (l.includes(q)) score = 2;
-        else if (e.hay.includes(q)) score = 4;
-        return score < 0 ? null : { ...e, score };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.score - b.score || KIND_RANK[a.kind] - KIND_RANK[b.kind]
-                                         || a.label.length - b.label.length)
-      .slice(0, 14);
-
-    cursor = -1;
-    results.hidden = false;
-    results.innerHTML = hits.length
-      ? hits.map((h, i) =>
-          `<button data-i="${i}"><span>${esc(h.label)}</span>
-             <span class="r-sub">${esc(h.sub || '')}</span>
-             <span class="r-kind">${esc(KIND_LABEL[h.kind] || h.kind)}</span></button>`).join('')
-      : `<div class="empty">${esc(t('find.empty',
-          'Nothing matches. Try “steel”, “barrel” or “ash”.'))}</div>`;
-  }
-
-  function go(i) {
-    const h = hits[i];
-    if (!h) return;
-    results.hidden = true;
-    search.value = '';
-    search.blur();
-    location.hash = h.href;
-  }
-
-  search.addEventListener('input', () => runSearch(search.value));
-  search.addEventListener('focus', () => { if (search.value) runSearch(search.value); });
-
-  search.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape') { results.hidden = true; search.blur(); return; }
-    if (!hits.length || results.hidden) return;
-    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
-      ev.preventDefault();
-      cursor = (cursor + (ev.key === 'ArrowDown' ? 1 : hits.length - 1) + (cursor < 0 && ev.key === 'ArrowUp' ? 1 : 0)) % hits.length;
-      [...results.querySelectorAll('button')].forEach((b, i) =>
-        b.setAttribute('aria-selected', i === cursor));
-    } else if (ev.key === 'Enter') {
-      ev.preventDefault();
-      go(cursor >= 0 ? cursor : 0);
-    }
-  });
-
-  results.addEventListener('click', (ev) => {
-    const b = ev.target.closest('button');
-    if (b) go(Number(b.dataset.i));
-  });
-
-  document.addEventListener('click', (ev) => {
-    if (!ev.target.closest('.search-wrap')) results.hidden = true;
-  });
-
-  document.addEventListener('keydown', (ev) => {
-    if (ev.key === '/' && document.activeElement !== search) {
-      ev.preventDefault(); search.focus();
-    }
-  });
-
   /* ── the page's own furniture ─────────────────────────────────── */
   /* The header and footer are in index.html rather than rendered by a view, so
      they are painted once at boot instead of on every route. */
@@ -3257,11 +2977,6 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
       + 'with which skill.'));
 
     set('.brand-text small', t('site.tagline', 'Industry workflows'));
-    const box = document.getElementById('search');
-    if (box) {
-      box.placeholder = t('site.search', 'Search items, workshops, skills…  (press /)');
-      box.setAttribute('aria-label', t('site.search.label', 'Search'));
-    }
     set('.skip', t('site.skip', 'Skip to content'));
     set('[data-nav="industries"]', t('nav.industries', 'Industries'));
     set('[data-nav="workshops"]',  t('nav.workshops', 'Workshops'));
@@ -3292,9 +3007,8 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
      that works for somebody who cannot read the current one.
 
      Switching reloads. Every view rebuilds itself from the data on each route,
-     but the search index does not: it is built once at boot, out of prose that
-     has already been translated. Rebuilding it in place would be a second code
-     path for something the browser does correctly for free. */
+     so a reload is the shortest path to a page that is wholly in the new
+     language — and it is something the browser does correctly for free. */
   const langBtn = document.getElementById('lang');
   if (langBtn) {
     const next = LANG === 'es' ? 'en' : 'es';

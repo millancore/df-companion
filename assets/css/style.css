@@ -78,35 +78,7 @@ a { color: var(--accent); }
 .brand-text strong { font-size: .95rem; letter-spacing: .01em; }
 .brand-text small { font-size: .7rem; color: var(--ink-3); }
 
-.search-wrap { position: relative; flex: 1; max-width: 460px; margin-inline: auto; }
-#search {
-  width: 100%; padding: .5rem .8rem;
-  font: inherit; font-size: .88rem;
-  background: var(--panel); color: var(--ink);
-  border: 1px solid var(--line-2); border-radius: 0;
-  outline: none; transition: border-color .15s, box-shadow .15s;
-}
-#search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
-#search::placeholder { color: var(--ink-3); }
-
-.results {
-  position: absolute; top: calc(100% + .4rem); left: 0; right: 0;
-  max-height: 60vh; overflow-y: auto;
-  background: var(--panel); border: 1px solid var(--line-2);
-  border-radius: 0; box-shadow: var(--shadow); padding: .3rem;
-}
-.results button {
-  display: flex; width: 100%; gap: .55rem; align-items: baseline;
-  padding: .45rem .6rem; border: 0; border-radius: 0;
-  background: none; color: inherit; font: inherit; font-size: .85rem;
-  text-align: left; cursor: pointer;
-}
-.results button:hover, .results button[aria-selected="true"] { background: var(--panel-2); }
-.results .r-kind { font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); margin-left: auto; flex-shrink: 0; }
-.results .r-sub { color: var(--ink-3); font-size: .78rem; }
-.results .empty { padding: .8rem; color: var(--ink-3); font-size: .85rem; }
-
-.topnav { display: flex; align-items: center; gap: .2rem; flex-shrink: 0; }
+.topnav { display: flex; align-items: center; gap: .2rem; flex-shrink: 0; margin-left: auto; }
 .topnav a {
   padding: .4rem .7rem; border-radius: 0; font-size: .85rem;
   text-decoration: none; color: var(--ink-2);
@@ -549,13 +521,10 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .foot p { margin: .2rem 0; }
 
 @media (max-width: 720px) {
-  /* Brand and nav share the first row, search gets a full-width row of its own —
-     otherwise the input is crushed to a few dozen pixels. */
   .topbar { flex-wrap: wrap; row-gap: .5rem; }
   .brand-text { display: none; }
   .topnav { margin-left: auto; }
   .topnav a { padding: .4rem .5rem; font-size: .82rem; }
-  .search-wrap { order: 3; flex-basis: 100%; max-width: none; margin-inline: 0; }
   .page-head h1, .item-head h1 { font-size: 1.35rem; }
   .ws-head { gap: .8rem; }
   .ws-icon.xxl { width: 44px; height: 44px; }

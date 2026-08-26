@@ -8,7 +8,7 @@
    loom — data/recipes.js carries one generic step and the real list lives here
    for the forge's own page to turn into a picker.
 
-   Three tables:
+   Two tables:
 
    ── DF_FORGE_GOODS ─────────────────────────────────────────────────
    Everything the forge makes that is not a weapon or a piece of armour. Those
@@ -49,11 +49,7 @@
    what the forge will let you make out of it. The second half is the one that
    gets fortresses killed: black bronze is worth more than steel and the forge
    will not put it on a soldier, and silver makes a superb mace and no armour at
-   all.
-
-   ── DF_FORGE_TABLES ────────────────────────────────────────────────
-   The prose that does not fit in a row, in exactly the data/reference.js shape,
-   rendered by the same code as the armour page's notes. */
+   all. */
 
 window.DF_FORGE_GOODS = [
 
@@ -226,123 +222,4 @@ window.DF_FORGE_METALS = [
     note: 'The best blunt-weapon material in the game, and only ever as an artifact — you cannot forge a platinum mace on purpose.' },
   { metal: 'Adamantine',      value: 300, grade: 'Weapons & armour', anvil: true,
     note: 'Costs wafers equal to the item’s material size rather than a third of it, so everything is three times the price. Blades ten times sharper than any other metal, and far too light to bludgeon with.' }
-];
-
-window.DF_FORGE_TABLES = [
-
-{ id: 'forge-labours', title: 'Six labours, one anvil', icon: 'hammer',
-  blurb: 'The forge is one building running six different jobs, and a dwarf with the wrong ' +
-         'labour enabled will stand in it doing nothing. This is which one you need.',
-  columns: ['Labour', 'Makes', 'Skill it trains'],
-  rows: [
-    ['Weaponsmithing', 'Weapons, trap components, bolts, ballista arrowheads', 'Weaponsmith'],
-    ['Armoring', 'Every piece of armour, and both shields', 'Armorsmith'],
-    ['Blacksmithing', 'Anvils, blocks, and all furniture except chains', 'Blacksmith'],
-    ['Metalcrafting', 'Chains, crafts, coins, goblets, flasks, toys, instrument parts, studding', 'Metal crafter'],
-    ['Trapping', 'Animal traps, and nothing else here', 'Trapper'],
-    ['Mechanics', 'Mechanisms, and nothing else here', 'Mechanic']
-  ] },
-
-{ id: 'forge-metals', title: 'What the forge will accept', icon: 'metal',
-  blurb: 'Value is the multiplier on every base value on this page. The grade is what the ' +
-         'forge will let you make: a metal outside the weapons-grade list will not go on a ' +
-         'soldier however much it is worth.',
-  columns: ['Metal', 'Value ×', 'The forge allows'],
-  decorate: { 0: 'metal' },
-  rows: [
-    ['Copper', '2', 'All weapons, armour, ammunition and picks'],
-    ['Bronze', '5', 'All weapons, armour, ammunition and picks'],
-    ['Bismuth bronze', '6', 'All weapons, armour, ammunition and picks'],
-    ['Iron', '10', 'Everything, anvils included'],
-    ['Silver', '10', 'Melee weapons and ammunition — never armour'],
-    ['Steel', '30', 'Everything, anvils included'],
-    ['Adamantine', '300', 'Everything, at three times the bar cost'],
-    ['Black bronze', '11', 'Decoration only. Valuable, and refused for arms'],
-    ['Gold · Platinum · Electrum · the rest', '2–40', 'Decoration, furniture, crafts and coins']
-  ] },
-
-{ id: 'forge-per-bar', title: 'What one bar is worth', icon: 'quality',
-  blurb: 'Base value against bar cost, before material and quality. This is the whole answer ' +
-         'to "I have a bar of gold, what do I do with it" — and to why nobody forges furniture.',
-  columns: ['Make', 'Bars', 'Base value out', 'Per bar'],
-  rows: [
-    ['Coins (×500)', '1', '10', '10'],
-    ['Goblets or flasks (×3)', '1', '30', '30'],
-    ['Instrument, main part', '1', '50', '50'],
-    ['Mechanism', '1', '30', '30'],
-    ['Bolts (×25)', '1', '25', '25'],
-    ['Minecart, wheelbarrow or stepladder', '2', '50', '25'],
-    ['Battle axe', '1', '34', '34'],
-    ['Crafts (×1–3)', '1', '10–30', '10–30'],
-    ['Chain, bucket, animal trap, toy', '1', '10', '10'],
-    ['Statue', '3', '25', '8.3'],
-    ['A bar left as a bar', '1', '5', '5'],
-    ['Most furniture', '3', '10', '3.3']
-  ] },
-
-{ id: 'forge-melting', title: 'Melting it back down', icon: 'flame',
-  blurb: 'Bars back over bars in. Anything above 100% multiplies your metal, which the wiki ' +
-         'files under exploits — and which is how a fortress turns one adamantine vein into ' +
-         'a suit for everybody.',
-  columns: ['Make this', 'Bars', 'Bars back', 'Return'],
-  rows: [
-    ['Giant axe blade · corkscrew · menacing spike', '1', '1.5', '150%'],
-    ['Leggings', '1', '1.5', '150%'],
-    ['Spiked ball · serrated disc', '1', '1.2', '120%'],
-    ['Battle axe · pick · shield', '1', '1.2', '120%'],
-    ['Gauntlets or high boots (a pair)', '1', '1.2', '120%'],
-    ['Coins (a stack of 500)', '1', '1.1', '110%'],
-    ['Chain · bucket · animal trap · instrument', '1', '1', '100%'],
-    ['Most weapons', '1', '0.9', '90%'],
-    ['Breastplate · mail shirt · greaves · minecart', '2–3', '1.8–2.7', '90%'],
-    ['Goblets or flasks (a set of three)', '1', '0.6', '60%'],
-    ['Mechanism · blocks', '1', '0.5', '50%'],
-    ['Anvil and most furniture', '3', '1', '33%'],
-    ['Toy · nest box · jug · pot · hive', '1', '0.2–0.3', '20–30%'],
-    ['Ballista arrowhead', '3', '0.5', '17%']
-  ] },
-
-{ id: 'forge-adamantine', title: 'Adamantine is priced differently', icon: 'spark',
-  blurb: 'Every other metal charges material size ÷ 3, rounded down, minimum one bar. ' +
-         'Adamantine charges the material size itself, in wafers — so the ratios above stop ' +
-         'holding the moment you switch to it.',
-  columns: ['Piece', 'In any metal', 'In adamantine', 'Melts back to'],
-  rows: [
-    ['Battle axe', '1 bar', '4 wafers', '1.2 wafers — a 70% loss'],
-    ['Breastplate', '3 bars', '9 wafers', '2.7 wafers'],
-    ['Mail shirt', '2 bars', '6 wafers', '1.8 wafers'],
-    ['Leggings', '1 bar', '5 wafers', '1.5 wafers'],
-    ['Coins (×500)', '1 bar', '1 wafer', '1.1 wafers — still 110%'],
-    ['Menacing spike', '1 bar', '5 wafers', '1.5 wafers']
-  ] },
-
-{ id: 'forge-value', title: 'How the value is worked out', icon: 'quality',
-  blurb: 'The same formula for every item on this page, and the reason a masterwork stack ' +
-         'of bolts beats a masterwork minecart four to one: the quality bonus is added to ' +
-         'every item in the stack, not once to the job.',
-  columns: ['Term', 'What it is'],
-  rows: [
-    ['Base value', 'The item type’s own number — 34 for a battle axe, 10 for a goblet, 1/50 for a coin'],
-    ['× material', 'The metal’s multiplier: copper 2, iron 10, steel 30, adamantine 300'],
-    ['× quality', '1 · 1.1 · 1.2 · 1.33 · 1.5 · 2 · 20 for artifact'],
-    ['+ bonus', '+0 · +3 · +6 · +10 · +15 · +30 · +300, added after the multiply'],
-    ['× stack', 'Applied per item, so a stack of 25 bolts counts the bonus 25 times'],
-    ['Decorations', 'Studding, gems and images add their own base 10 with their own quality, on top']
-  ] },
-
-{ id: 'forge-traps', title: 'Why the forge is doing nothing', icon: 'warn',
-  blurb: 'Every one of these looks like a bug and is a rule.',
-  columns: ['Symptom', 'Usually means'],
-  rows: [
-    ['The whole workshop is idle', 'No anvil in it, or no fuel. Every job but studding burns one unit of coke or charcoal'],
-    ['The job will not take the metal', 'Not weapons-grade. Only copper, bronze, bismuth bronze, iron, steel, silver (melee only) and adamantine'],
-    ['It refuses black bronze', 'Correct, and it always will — black bronze is worth more than iron and is not an arms metal'],
-    ['A dwarf stands in it doing nothing', 'Six different labours run this building. The one you need may not be enabled on anybody'],
-    ['The build is refused', 'The building material or the anvil is not fire-safe'],
-    ['The anvil is unusable', 'A strange mood made it out of tin. Only a fire-safe anvil will build a forge'],
-    ['No instrument jobs in the menu', 'Your world generated no instruments with a metal part. It varies per world'],
-    ['Fuel is gone overnight', 'The forge eats one per job. Build the magma version and it eats none'],
-    ['Armour will not fit a visitor', 'Armour is sized to its maker’s race. Set the race on the job before it runs']
-  ] }
-
 ];
