@@ -171,6 +171,14 @@ come out identical: fine and trifle pewter are both tin and copper, and so are
 billon and sterling silver. Both panels tint their bars with the metal's own
 colour from `data/metals.js`.
 
+`window.DF_SMELT_TABLES` is the steel chain, in the `data/reference.js` shape
+and hung under the smelter's picker the way the forge's notes are. It is there
+because it runs across both of the smelter's tables and belongs to neither: the
+ores say hematite gives iron, the alloys say steel wants iron and pig iron, and
+only the chain in order says that pig iron is a step rather than a product, that
+no flux stone means no steel, and that a magma smelter covers the heat but never
+the unit of fuel each reaction burns as carbon.
+
 **`data/dyes.js`** — `window.DF_DYES`, every dye in the game, plus the two lookup
 maps the colours need:
 

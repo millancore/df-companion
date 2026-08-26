@@ -63,6 +63,7 @@
   const FORGE_GOODS  = window.DF_FORGE_GOODS || [];
   const FORGE_METALS = window.DF_FORGE_METALS || [];
   const FORGE_TABLES = window.DF_FORGE_TABLES || [];
+  const SMELT_TABLES = window.DF_SMELT_TABLES || [];
   const FLOWS        = window.DF_INDUSTRY_FLOWS || {};
 
   const main   = document.getElementById('main');
@@ -505,6 +506,7 @@
      under its own heading, foreign pieces because dwarves cannot make them, and
      everything without an M in `mats` because this is a forge. */
   const FORGE_SHOP = "Metalsmith's Forge";
+  const SMELT_SHOP = 'Smelter';
 
   /* The wiki's production list, in its own order — which is also the order the
      facet's options come out in, since mountPicker reads a facet's values off
@@ -1832,8 +1834,11 @@
        so the Job select swaps between them and everything else stays put. Both
        steps are named here, which is what keeps either of them from also
        showing up as a plain job card underneath. */
+    /* The steel chain belongs to the building rather than to either of its
+       tables — it runs across both — so it hangs under the picker the way the
+       forge's notes do. */
     { steps: ['smelt-ore', 'make-alloy'],
-      modeLabel: t('facet.job', 'Job'),
+      modeLabel: t('facet.job', 'Job'), tables: SMELT_TABLES,
       modes: [
         { key: 'ore', label: t('pick.ore.mode', 'Smelt ore'),
           title: t('pick.ore.title', 'Ores'), noun: t('pick.ore.noun', 'ores'),
@@ -2719,7 +2724,7 @@
         <p class="col-head" id="pick-head-${i}"><span class="pt">${esc(m.title)}</span>
           <span class="n">${m.rows.length}</span></p>
         <div id="pick-${i}"></div>
-        ${p.tables ? refToc(p.tables, route) + refBlocks(p.tables) : ''}`; }).join('')}
+        ${p.tables ? (p.tables.length > 1 ? refToc(p.tables, route) : '') + refBlocks(p.tables) : ''}`; }).join('')}
       ${jobs.length ? `<p class="col-head">${esc(t('ws.jobs', 'Jobs'))} <span class="n">${jobs.length}</span></p>
                        <div class="rec-grid">${jobs.map((r) => recipeCard(r)).join('')}</div>` : ''}`;
 
@@ -3116,6 +3121,8 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
   REFERENCE.forEach((tb) => INDEX.push(tableEntry(tb, '#/reference#' + tb.id)));
   FORGE_TABLES.forEach((tb) =>
     INDEX.push(tableEntry(tb, `#/w/${encodeURIComponent(FORGE_SHOP)}#${tb.id}`)));
+  SMELT_TABLES.forEach((tb) =>
+    INDEX.push(tableEntry(tb, `#/w/${encodeURIComponent(SMELT_SHOP)}#${tb.id}`)));
 
   /* A weapon or a goblet is a searchable thing in its own right, the same way a
      piece of armour is — "menacing spike" should land on the forge, not on a

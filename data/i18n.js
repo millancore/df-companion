@@ -374,6 +374,7 @@ window.DF_I18N = {
         "feet": "Las boots son el anclaje. Los shoes son demasiado grandes para meterlos dentro de unas boots — o unos u otras."
       },
       "tableTitle": {
+        "steel": "Cómo se hace el steel",
         "ores": "Mena → Metal",
         "fuel": "Combustible y fundente",
         "quality": "Calidad de los objetos",
@@ -403,6 +404,7 @@ window.DF_I18N = {
         "forge-traps": "Por qué la forja no hace nada"
       },
       "tableBlurb": {
+        "steel": "Tres trabajos, todos en este edificio, en este orden. Dos bars de iron vuelven como dos bars de steel, así que un bloque de mena de hierro son cuatro bars — si el mapa te dio fundente. Limestone, dolomite, chalk, calcite y marble son las piedras de fundente, y sin una de ellas bajo tu fortaleza no hay steel por mucho hierro que excaves. El pig iron es el paso intermedio y nada más: no arma a nadie. Cada reacción quema además una unidad de combustible como carbono y otra para calentar el horno, y un smelter de magma solo cubre el calor.",
         "ores": "En qué se funde cada mena. Lo que no está aquí es solo una piedra. Los colores de lingote son tonos metálicos reales, no la paleta del juego.",
         "fuel": "Dos consumibles que condicionan toda la industria del metal.",
         "quality": "Cómo marca el juego el nombre de un objeto, de peor a mejor.",
@@ -432,6 +434,12 @@ window.DF_I18N = {
         "forge-traps": "Cada una de estas parece un fallo y es una regla."
       },
       "tableCols": {
+        "steel": [
+          "Trabajo",
+          "Se come",
+          "Da",
+          "Bars"
+        ],
         "ores": [
           "Mena",
           "Se funde en",

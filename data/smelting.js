@@ -105,8 +105,48 @@ window.DF_ALLOYS = [
     parts: [{ metal: 'Gold', qty: 3 }, { metal: 'Copper', qty: 1 }] },
   { alloy: 'Sterling silver', value:  8, bars: 4,
     parts: [{ metal: 'Silver', qty: 3 }, { metal: 'Copper', qty: 1 }] },
-  { alloy: 'Pig iron',        value: 10, flux: true,
+  { alloy: 'Pig iron',        value: 10, bars: 1, flux: true,
     parts: [{ metal: 'Iron' }] },
-  { alloy: 'Steel',           value: 30, weapon: true, flux: true,
+  { alloy: 'Steel',           value: 30, bars: 2, weapon: true, flux: true,
     parts: [{ metal: 'Iron' }, { metal: 'Pig iron' }] }
+];
+
+/* ── DF_SMELT_TABLES ───────────────────────────────────────────────
+   The prose that does not fit in a row, in exactly the data/reference.js shape
+   and rendered by the same code as the forge's notes and the armour page's.
+
+   Steel is the question this building gets asked most often and the one its two
+   tables answer worst between them: the ores say hematite gives iron, the
+   alloys say steel wants iron and pig iron, and neither says that pig iron is a
+   step rather than a product, that the chain stops dead without a flux stone,
+   or that a magma smelter does not get you out of the fuel. This is the chain
+   in one table, in the order you run it.
+
+   https://dwarffortresswiki.org/index.php/Steel
+
+   The counts are the wiki's. One boulder of iron ore gives four iron bars; the
+   pig iron reaction gives one bar; the steel reaction gives two, which is why
+   two iron bars come back as two bars of steel rather than one. Each reaction
+   burns a unit of fuel as carbon and a second one to heat the furnace — magma
+   covers the heating and never the carbon, and that is the half people are
+   surprised by after digging all the way down to it. */
+
+window.DF_SMELT_TABLES = [
+
+{ id: 'steel', title: 'How steel is made', icon: 'flux',
+  blurb: 'Three jobs, all of them at this building, run in this order. Two iron bars come back ' +
+         'as two bars of steel, so one boulder of iron ore is four bars of it — if the map gave ' +
+         'you flux. Limestone, dolomite, chalk, calcite and marble are the flux stones, and ' +
+         'without one of them under your fortress there is no steel however much iron you dig. ' +
+         'Pig iron is the middle step and nothing else: it arms nobody. Every reaction also ' +
+         'burns a unit of fuel as carbon and another to heat the furnace, and a magma smelter ' +
+         'covers only the heat.',
+  columns: ['Job', 'It eats', 'It gives', 'Bars'],
+  decorate: { 2: 'metal' },
+  rows: [
+    ['Smelt Ore',     'Hematite, magnetite or limonite ×1',   'Iron',     '4'],
+    ['Make pig iron', 'Iron ×1, flux stone ×1',               'Pig iron', '1'],
+    ['Make steel',    'Iron ×1, pig iron ×1, flux stone ×1',  'Steel',    '2']
+  ] }
+
 ];
