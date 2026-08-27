@@ -333,13 +333,57 @@ cloth folds its thread and weave in as decorations and the wiki states it with a
 older quality ladder. Both are the wiki's, and the forge's "How the value is
 worked out" table says which is which.
 
+**`data/carpentry.js`** — `window.DF_CARPENTRY`, the carpenter's workshop's own
+list: the furniture, containers, building parts and tools nothing else in the
+data owns.
+
+```js
+{ name:'Blocks', cat:'Building parts', use:'Constructions', per:4, magma:true,
+  note:'…' }
+```
+
+Every job in that building costs exactly one log and gives one item back, so
+there is no cost field — `per` is written only for blocks, four to the log, and
+assumed to be one everywhere else. That is also why the picker's panel is the
+one with no arithmetic in it: a wooden item's worth runs the same formula as a
+metal one, but the multiplier is the tree's rather than a metal's, and this site
+holds no table of those.
+
+`cat` is what the thing is and `use` is where it ends up; they are the picker's
+two facets. The game publishes no production list for this building the way the
+wiki does for the forge, so both are a reading aid rather than the game's own
+words. `labour` is written only where it is not Carpentry — there is exactly one
+such job, the animal trap, which wants Trapping, and it is the answer to "why is
+nobody working in there". `magma` marks the jobs where wood being wood decides
+something: everything in the building burns, but it only costs you a fortress on
+the pieces that were meant to hold magma back. `same` is the name the same item
+goes by elsewhere in the data, so the cross-link to the forge can find a wooden
+casket under the metal coffin. `woodOnly` is the opposite fact, and it is true of
+exactly one thing: the bed.
+
+A dozen of these items exist in two materials with two different pictures, and
+`window.DF_ITEM_SPRITES` can only hold one of them — it is keyed by item name,
+and a barrel is a barrel wherever it turns up. So the general map keeps the metal
+art, which is what the forge's list and the item pages want, and
+`window.DF_WOOD_SPRITES` in the same file holds the wooden portrait for the one
+page where wood is the point. `sprite()` takes that set as an optional second
+map, consulted first and falling back to the general art, so only the items whose
+wooden version actually looks different need an entry.
+
+Like the forge, the picker assembles its rows from three files. The three wooden
+trap components and the three training weapons stay in `data/weapons.js` with
+their attack tables, and the wooden shield and buckler in `data/armor.js` with
+their block chances — it reads every weapon whose `made` names the carpenter's
+workshop, every wearable whose `mats` include `W`, and everything else from here.
+
 ## One step, many ingredients
 
-Seven workshops run a single job against a long list of things — the Still's
+Eight workshops run a single job against a long list of things — the Still's
 Brew Drink, the quern's Mill Plants, the dyer's shop's Dye, the loom's Weave
 Cloth, the clothier's Sew Clothing, the smelter's Smelt Ore and alloy reactions
-(two tables behind one Job select), and the forge, which is six labours and
-fourteen categories of product on one anvil. Listing those out as one card per
+(two tables behind one Job select), the forge, which is six labours and
+fourteen categories of product on one anvil, and the carpenter's workshop, which
+is 36 things off one log. Listing those out as one card per
 ingredient says the same thing dozens of times and clutters the industry map with
 parallel strands that carry no information, so each is one generic step in
 `data/recipes.js` plus a table in its own data file.
@@ -625,6 +669,7 @@ assets/css/style.css  theme tokens, light + dark
 assets/img/*.png      a pixel-art plate per workshop: 96x128, or 32x64 for a 1x1
 assets/img/plants/    the game's own plant sprites, keyed by name in sprites.js
 assets/img/forge/     the same, for what comes off the forge's anvil
+assets/img/carpenter/ the wooden portraits of the same items, for the carpenter
 assets/js/app.js      hash router, views, the industry map, search, theme toggle
 data/recipes.js       industries, production steps, industry maps
 data/brewing.js       the Still's 77 brewable ingredients
@@ -638,6 +683,7 @@ data/reference.js     reference tables
 data/armor.js         43 wearables, the body figure and the armour notes
 data/weapons.js       31 weapons with their full attack tables
 data/forge.js         44 forge goods, 26 metals and the forge's notes
+data/carpentry.js     the carpenter's 28 wooden goods; 36 rows with the weapons
 data/i18n.js          one language pack per language: UI strings and data prose
 ```
 

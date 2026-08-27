@@ -63,6 +63,8 @@
   const WEAPONS      = window.DF_WEAPONS || [];
   const FORGE_GOODS  = window.DF_FORGE_GOODS || [];
   const FORGE_METALS = window.DF_FORGE_METALS || [];
+  const CARPENTRY    = window.DF_CARPENTRY || [];
+  const WOOD_SPRITES = window.DF_WOOD_SPRITES || {};
   const SMELT_TABLES = window.DF_SMELT_TABLES || [];
   const FLOWS        = window.DF_INDUSTRY_FLOWS || {};
 
@@ -197,12 +199,21 @@
      The set in data/sprites.js is partial by nature — a fortress makes far more
      things than the wiki has sprites for — so a list where most rows carry art
      uses `spriteCell`, which keeps the empty box and with it a single left
-     edge. Anywhere the art is incidental, `sprite` simply draws nothing. */
-  const sprite = (name, cls) => SPRITES[name]
-    ? `<img class="sprite ${cls || ''}" src="assets/img/${SPRITES[name]}"
-         alt="" loading="lazy" decoding="async">`
-    : '';
-  const spriteCell = (name) => sprite(name) || '<span class="sprite blank"></span>';
+     edge. Anywhere the art is incidental, `sprite` simply draws nothing.
+
+     `alt` is a second set consulted first, for a page that means a particular
+     material rather than the item in general: the carpenter's picker passes the
+     wooden portraits, and anything that set has no entry for falls back to the
+     general art rather than to an empty box. */
+  const sprite = (name, cls, alt) => {
+    const file = (alt && alt[name]) || SPRITES[name];
+    return file
+      ? `<img class="sprite ${cls || ''}" src="assets/img/${file}"
+           alt="" loading="lazy" decoding="async">`
+      : '';
+  };
+  const spriteCell = (name, alt) =>
+    sprite(name, '', alt) || '<span class="sprite blank"></span>';
 
   /* The build-menu path, 'b-o-u-l' → four keycaps. Worth showing: it is the one
      fact about a workshop you need while you are actually looking at the game. */
@@ -415,6 +426,10 @@
   const wafersLabel = (n) => t(n === 1 ? 'unit.wafer' : 'unit.wafers',
     n === 1 ? '{n} wafer' : '{n} wafers', { n });
   const unitsLabel  = (n, adam) => (adam ? wafersLabel(n) : barsLabel(n));
+  /* The carpenter's whole cost model, and the reason its list needs no
+     calculator: one log, every job, every time. */
+  const logsLabel   = (n) => t(n === 1 ? 'unit.log' : 'unit.logs',
+    n === 1 ? '{n} log' : '{n} logs', { n });
 
   const ARMOR_ROWS = ARMOR.map((p) => ({
     ...p,
@@ -671,6 +686,23 @@
       + 'momentum outright.'))}</p>`;
   }
 
+  /* Where else the same thing is made, grouped by building rather than by
+     material — wooden and bone bolts are both a craftsdwarf's job, and naming
+     the workshop twice reads as two different answers. Shared by the forge and
+     the carpenter, because "what else makes this" is the same sentence from
+     either end of it. */
+  function madeElsewhere(made, here) {
+    const rows = [...(made || []).filter((m) => m.at !== here)
+      .reduce((acc, m) => acc.set(m.at, (acc.get(m.at) || []).concat(m.mat)), new Map())];
+    if (!rows.length) return '';
+    return `<p class="brew-job">${t('forge.elsewhere', 'Also made {where}.', {
+      where: rows.map(([at, mats]) =>
+        t('forge.elsewhere.one', 'in {mats} at {shop}', {
+          mats: esc(mats.join(t('word.or.sep', ' or ')).toLowerCase()),
+          shop: `<a class="chip shop" href="#/w/${encodeURIComponent(at)}">${icon(at)}${esc(at)}</a>` })
+      ).join(t('word.and.sep', ', and ')) })}</p>`;
+  }
+
   /* One row of the forge's picker: what it costs in bars, what it gives back at
      the smelter, what it does when it lands on somebody, and what a caravan
      would pay for it. */
@@ -703,12 +735,6 @@
 
     const covers = (r.covers || []).map((id) =>
       `<span class="chip flat">${esc(partName(id))}</span>`).join('');
-
-    /* Where else the same thing is made, grouped by building rather than by
-       material — wooden and bone bolts are both a craftsdwarf's job, and naming
-       the workshop twice reads as two different answers. */
-    const elsewhere = [...(r.made || []).filter((m) => m.at !== FORGE_SHOP)
-      .reduce((acc, m) => acc.set(m.at, (acc.get(m.at) || []).concat(m.mat)), new Map())];
 
     return `<div class="brew-out">
       <div class="brew-flow">
@@ -779,17 +805,134 @@
           cost > 1 ? esc(t(adam ? 'calc.perwafer' : 'calc.perbar', '{v}☼ per ' + unit,
             { v: round2(total / cost) })) : ''}</span></p>`}
 
-      ${elsewhere.length ? `<p class="brew-job">${t('forge.elsewhere', 'Also made {where}.', {
-          where: elsewhere.map(([at, mats]) =>
-            t('forge.elsewhere.one', 'in {mats} at {shop}', {
-              mats: esc(mats.join(t('word.or.sep', ' or ')).toLowerCase()),
-              shop: `<a class="chip shop" href="#/w/${encodeURIComponent(at)}">${icon(at)}${esc(at)}</a>` })
-          ).join(t('word.and.sep', ', and ')) })}</p>` : ''}
+      ${madeElsewhere(r.made, FORGE_SHOP)}
 
       ${r.mats && r.mats.length > 1 ? `<p class="brew-job">${t('forge.alsomadeof',
         'Also made of {mats} — see the Armor page for which building works which.',
         { mats: r.mats.filter((c) => c !== 'M').map((c) => esc(matName(c).toLowerCase())).join(', ') })}</p>` : ''}
 
+    </div>`;
+  }
+
+  /* ── the carpenter's workshop ─────────────────────────────────── */
+  /* Thirty-six jobs, one log each, and not a single number to calculate: the
+     forge's picker with the arithmetic taken out and the prose left in. Rows
+     come from three files for the reason the forge's do — the three wooden trap
+     components and the three training weapons are data/weapons.js's, with their
+     full attack tables, and the wooden shield and buckler are data/armor.js's,
+     with their block chances. Copying either into data/carpentry.js would let
+     this page and the Armor page disagree about the same object, so the picker
+     takes every weapon whose `made` list names this building, every wearable
+     whose `mats` include W, and everything else from DF_CARPENTRY. */
+  const CARP_SHOP = "Carpenter's Workshop";
+
+  /* What the thing is, in the order the facet offers it: the furniture a
+     fortress lives in first, then what it stores things in, then what it builds
+     with, then the tools — and the military kit last, because a fortress that
+     is arming itself out of a carpenter's workshop has other problems. */
+  const CARP_CATS = ['Furniture', 'Containers', 'Building parts', 'Tools',
+    'Shields', 'Training weapons', 'Trap components'];
+
+  /* A weapon states its `kind` for the whole game; this is what that kind is
+     called on a page that only lists wooden things. */
+  const CARP_KIND = {
+    'Trap component': { cat: 'Trap components', use: 'Animals & traps' },
+    Training:         { cat: 'Training weapons', use: 'Barracks' }
+  };
+
+  const carpCost = (r) => (r.per
+    ? t('carp.cost.per', '×{n} from {logs}', { n: r.per, logs: logsLabel(1) })
+    : logsLabel(1));
+
+  /* One fixed box holds whichever art a row has — the equipment sheet's cell
+     for a shield, a sprite file for a barrel, nothing at all for a bed — so the
+     names keep a single left edge instead of stepping in and out down the
+     list. */
+  /* The wooden portrait wins wherever there is one — including over the
+     equipment sheet's cell, which draws the metal shield. What is left falls
+     back the way the forge's list does: a sheet cell for a wearable, the
+     general sprite for anything else, and the empty box for the handful with no
+     art at all. */
+  const carpCell = (r) => {
+    const wood = WOOD_SPRITES[r.name] ? sprite(r.name, '', WOOD_SPRITES) : '';
+    return `<span class="fg-cell">${
+      wood || (r.sprite ? eqSprite(r) : sprite(r.same || r.name))}</span>`;
+  };
+
+  const CARP_ROWS = [].concat(
+    /* The forge's table is the only other place that knows a metal version of
+       these exists, so the cross-link is computed from it rather than written
+       down twice. A row whose forge twin is named differently says so in
+       `same`: a wooden casket is a metal coffin. */
+    CARPENTRY.map((g) => ({ ...g, form: 'goods',
+      made: FORGE_GOODS.some((f) => f.name === (g.same || g.name))
+        ? [{ mat: 'Metal', at: FORGE_SHOP }] : [],
+      hay: [g.name, g.same || '', g.cat, g.use, g.labour || '', g.note || ''].join(' ') })),
+
+    WEAPONS.filter((w) => (w.made || []).some((m) => m.at === CARP_SHOP))
+      .map((w) => ({ ...w, ...(CARP_KIND[w.kind] || { cat: 'Tools' }), form: 'weapon',
+        hay: [w.name, 'weapon', w.kind, w.skill, w.note || '',
+              ...(w.attacks || []).flatMap((a) => [a.name, a.type])].join(' ') })),
+
+    ARMOR.filter((p) => p.mats.includes('W'))
+      .map((p) => ({ ...p, cat: 'Shields', use: 'Barracks', form: 'armor',
+        made: p.mats.filter((c) => c !== 'W').map((c) => ({
+          mat: matName(c), at: (ARMOR_MATS[c] || {}).workshop })),
+        hay: [p.name, 'shield armour armor', p.kind, p.note || ''].join(' ') }))
+  ).map((r) => ({
+    ...r, in: r.name, out: carpCost(r), labour: r.labour || 'Carpenter',
+    hay: (r.hay + ' carpenter carpentry wood log').toLowerCase()
+  })).sort((a, b) => CARP_CATS.indexOf(a.cat) - CARP_CATS.indexOf(b.cat));
+
+  /* One row of the carpenter's picker. No calculator: a wooden item's worth is
+     the same formula the forge runs, but the material multiplier is the tree's
+     rather than a metal's, and this site does not hold a table of those — so
+     the panel says what the thing costs, what it is for, and where else it can
+     come from, and leaves the arithmetic to the forge's page where the numbers
+     are known. */
+  function carpResult(r) {
+    const count = r.per || 1;
+    const note = r.form === 'armor' ? td('armorNote', r.id, r.note) : r.note;
+
+    return `<div class="brew-out">
+      <div class="brew-flow">
+        ${chip({ item: 'Log', qty: 1 }, 'in')}
+        <span class="brew-arrow">${ARROW}</span>
+        ${ITEMS.has(r.name) ? chip(r.name, 'out', WOOD_SPRITES)
+          : `<span class="chip out flat">${esc(r.name)}</span>`}
+        ${count > 1 ? `<span class="need">× ${count}</span>` : ''}
+      </div>
+      <div class="brew-meta">
+        <span class="need kind" data-kind="${esc(r.cat)}">${esc(r.cat)}</span>
+        <span class="need">${esc(r.labour)}</span>
+        ${r.use ? `<span class="need">${esc(r.use)}</span>` : ''}
+        ${r.woodOnly ? `<span class="need">${esc(t('carp.woodonly', 'wood only'))}</span>` : ''}
+        ${r.magma ? `<span class="need warnish">${sym('warn')}${esc(t('carp.notmagmasafe',
+            'not magma-safe'))}</span>` : ''}
+      </div>
+
+      ${r.form === 'weapon' ? `
+      <dl class="armor-stats forge-stats">
+        ${r.skill && r.skill !== '—'
+          ? `<div><dt>${esc(t('stat.wieldedwith', 'Wielded with'))}</dt><dd>${esc(r.skill)}</dd></div>` : ''}
+        ${r.hands && r.hands !== '—'
+          ? `<div><dt>${esc(t('stat.hands', 'Hands'))}</dt><dd>${esc(r.hands)}</dd></div>` : ''}
+        ${r.hits ? `<div><dt>${esc(t('stat.hits', 'Hits per trigger'))}</dt><dd>${r.hits}</dd></div>` : ''}
+        ${r.vol ? `<div><dt>${esc(t('stat.volume', 'Volume'))}</dt><dd>${r.vol.toLocaleString('en')} cm³</dd></div>` : ''}
+      </dl>
+      ${r.attacks ? attackTable(r.attacks) : ''}` : ''}
+
+      ${r.form === 'armor' ? `
+      <dl class="armor-stats forge-stats">
+        ${r.block ? `<div><dt>${esc(t('stat.blockchance', 'Block chance'))}</dt><dd>${r.block}%</dd></div>` : ''}
+        ${r.level ? `<div><dt>${esc(t('stat.armourlevel', 'Armour level'))}</dt><dd>${esc(String(r.level))}</dd></div>` : ''}
+      </dl>
+      <p class="brew-job">${t('forge.seeonwarf',
+        '<a class="chip" href="{href}">See {name} on the dwarf</a> for layers, permits and what it leaves bare.',
+        { href: `#/armor/${esc(r.id)}`, name: esc(r.name.toLowerCase()) })}</p>` : ''}
+
+      ${note ? `<p class="brew-job">${esc(note)}</p>` : ''}
+      ${madeElsewhere(r.made, CARP_SHOP)}
     </div>`;
   }
 
@@ -875,12 +1018,21 @@
     link((i) => touch(i).madeBy, RECIPES.find((x) => x.id === 'forge'), r.name);
   });
 
+  /* And the carpenter, whose one step says "Wooden furniture" — without this a
+     bed, a wheelbarrow and a stepladder would be three things the site lists
+     and has no page for. */
+  CARP_ROWS.forEach((r) =>
+    link((i) => touch(i).madeBy, RECIPES.find((x) => x.id === 'carpenter'), r.name));
+
   /* ── components ───────────────────────────────────────────────── */
-  function chip(entry, kind) {
+  /* `alt` is the sprite set to prefer, for a chip drawn on a page that means one
+     material: the carpenter's panel hands it the wooden portraits so the chip
+     over its list does not show the metal version of what it just made. */
+  function chip(entry, kind, alt) {
     const item = typeof entry === 'string' ? { item: entry } : entry;
     const qty = item.qty ? `<span class="qty">×${item.qty}</span>` : '';
     const col = metalColor(item.item);
-    const art = col ? ingot(col) : sprite(item.item);
+    const art = col ? ingot(col) : sprite(item.item, '', alt);
     const mark = col ? 'is-metal' : (art ? 'has-sprite' : '');
     return `<a class="chip ${kind} ${mark}"
       href="#/item/${encodeURIComponent(item.item)}">${art}${esc(item.item)}${qty}</a>`;
@@ -1777,6 +1929,19 @@
         FORGE_CALC[sel.dataset.k] = sel.dataset.k === 'metal' ? sel.value : Number(sel.value);
         api.refresh();
       }) },
+
+    /* The carpenter's rows come from three data files the same way the forge's
+       do, and its panel is the only one with no arithmetic in it at all: every
+       job in the building costs one log. */
+    { step: 'carpenter', title: t('pick.carp.title', 'What the carpenter makes'),
+      noun: t('pick.carp.noun', 'things a carpenter makes'),
+      rows: CARP_ROWS, result: carpResult,
+      rowIn: carpCell,
+      facets: [{ key: 'cat', label: t('facet.makes', 'Makes') },
+               { key: 'use', label: t('facet.whereitgoes', 'Where it goes') }],
+      placeholder: t('pick.carp.filter', 'Filter what the carpenter makes…'),
+      listLabel: t('pick.carp.list', 'Things the carpenter makes'),
+      empty: t('pick.carp.empty', 'The carpenter makes nothing matching those filters.') },
 
     /* The smelter's two jobs, in one panel. They are the same question asked
        twice — what comes out of the furnace, and what does it want going in —
@@ -2821,7 +2986,7 @@
       <div class="prose">${t('about.body', `
         <p>DF Companion is a static, dependency-free reference for the industry chains in
         <a href="https://www.bay12games.com/dwarves/" target="_blank" rel="noopener">Dwarf Fortress</a>.
-        Every page on this site is generated from sixteen data files, so extending it means
+        Every page on this site is generated from seventeen data files, so extending it means
         editing JavaScript objects rather than HTML. Nothing is loaded from the network. Every
         icon here, down to the back arrow, is inline SVG; the only bitmaps are the game's own
         pixel art — the workshop plates, the equipment sheet the armour list reads its sprites
@@ -2856,17 +3021,18 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         <p>A workshop with no entry still works — it falls back to a generic building icon.</p>
 
         <h2>One step, many ingredients</h2>
-        <p>Seven workshops do not get a list of job cards. The Still runs a single job —
+        <p>Eight workshops do not get a list of job cards. The Still runs a single job —
         Brew Drink — against 77 ingredients, the quern runs Mill Plants against 33, the
         dyer's shop runs Dye against 72, the loom weaves 16 kinds of thread, the clothier's
         shop cuts 31 things out of one unit of cloth, the smelter smelts 17 ores and alloys
-        14 recipes, and the forge turns a bar into any one of 69 things. Cards that differ
+        14 recipes, the forge turns a bar into any one of 69 things, and the carpenter turns a log into
+        any one of 36. Cards that differ
         only in which thing went in say the same thing dozens of times, so each is one
         generic step in <code>data/recipes.js</code> plus a table of its own:
         <code>data/brewing.js</code>, <code>data/milling.js</code>,
         <code>data/dyes.js</code>, <code>data/textiles.js</code>,
-        <code>data/smelting.js</code>, <code>data/weapons.js</code> and
-        <code>data/forge.js</code>.</p>
+        <code>data/smelting.js</code>, <code>data/weapons.js</code>,
+        <code>data/forge.js</code> and <code>data/carpentry.js</code>.</p>
         <p>The <code>PICKERS</code> table lists them, keyed by the generic step each one
         replaces. The workshop list reads that same table to put a mark in the corner of
         those cards, so it cannot claim something the page does not do. Only the list is
@@ -2876,7 +3042,17 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         <code>data/armor.js</code>; copying either into <code>data/forge.js</code> would let
         the forge's page and the Armor page disagree about the same object, so instead it
         takes every weapon whose <code>made</code> list names the forge, every wearable that
-        can be made of metal, and everything else from <code>DF_FORGE_GOODS</code>. A picker
+        can be made of metal, and everything else from <code>DF_FORGE_GOODS</code>. The
+        carpenter's does the same with wood: the three training weapons and the three wooden
+        trap components live in <code>data/weapons.js</code> with their attack tables, the
+        wooden shield and buckler in <code>data/armor.js</code> with their block chances, and
+        <code>data/carpentry.js</code> holds only what nothing else owns. Every job in that
+        building costs one log, which is why its panel is the one picker with no arithmetic in
+        it. It is also the one page that draws a second set of sprites: a dozen of these items
+        exist in wood and in metal with two different pictures, and
+        <code>window.DF_ITEM_SPRITES</code> is keyed by item name and can only hold one — so the
+        general map keeps the metal art and <code>window.DF_WOOD_SPRITES</code> holds the wooden
+        portrait, which <code>sprite()</code> takes as an optional set to consult first. A picker
         may also carry <code>tables</code> — reference tables in the
         <code>data/reference.js</code> shape that belong under it rather than in any row of
         it, as the smelter's steel chain does, rendered by the same code as the Armor page's

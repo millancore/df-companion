@@ -40,27 +40,27 @@ window.DF_WORKSHOPS = {
 
 'Smelter': { kind: 'furnace', tier: 2, keys: 'b-o-u-l', img: 'smelter.png', magma: true, box: '3.6 4.6 24.8 23.8', sw: 1.32,
   wiki: ['https://dwarffortresswiki.org/index.php/Smelter'],
-  note: 'Ore into bars, coal into coke, bars into alloys. The single busiest building in a metal fortress.',
+  note: 'Ore into bars, coal into coke, bars into alloys.',
   art: `<path d="M5 27V12h18v15z"/><path d="M23 12V6h4v6"/>
         <path d="M10 27v-7a4 4 0 0 1 8 0v7"/>
         <path d="M14 25c-2.5-2-.5-4.5 0-6 1.5 2.5 4 3 0 6z" class="ac"/>` },
 
 'Wood Furnace': { kind: 'furnace', tier: 1, keys: 'b-o-u-f', img: 'wood_furnace.png', box: '3.6 4.6 24.8 23.8', sw: 1.32,
   wiki: ['https://dwarffortresswiki.org/index.php/Wood_furnace'],
-  note: 'Logs into charcoal or ash. Burns no fuel itself, which makes it the bootstrap for every other furnace.',
+  note: 'Logs into charcoal or ash.',
   art: `<path d="M5 27V12h18v15z"/><path d="M23 12V6h4v6"/>
         <path d="M10 27v-7a4 4 0 0 1 8 0v7"/>
         <circle cx="14" cy="22.5" r="2.6" class="ac"/><circle cx="14" cy="22.5" r="1"/>` },
 
 'Glass Furnace': { kind: 'furnace', tier: 2, keys: 'b-o-u-g', img: 'glass_furnace.png', magma: true, box: '2.6 7.6 28.9 20.8', sw: 1.54,
   wiki: ['https://dwarffortresswiki.org/index.php/Glass_furnace'],
-  note: 'Sand into green glass; add pearlash for clear. On a sandy map this replaces the whole metal industry.',
+  note: 'Sand into green glass; add pearlash for clear.',
   art: `<path d="M4 27V14h14v13z"/><path d="M8 27v-5h6v5"/><path d="M14 14V9h3v5"/>
         <path d="M18.5 20.5 24 16.5"/><circle cx="26.5" cy="14" r="3.6" class="ac"/>` },
 
 'Kiln': { kind: 'furnace', tier: 2, keys: 'b-o-u-k', img: 'klin.png', magma: true, box: '2.6 5.6 26.8 22.8', sw: 1.42,
   wiki: ['https://dwarffortresswiki.org/index.php/Kiln'],
-  note: 'Fires clay into ceramics and glazes what comes out. It also burns potash into pearlash and calcium carbonate into quicklime for two other industries.',
+  note: 'Fires clay into ceramics and glazes what comes out.',
   art: `<path d="M4 27h24"/><path d="M6 27V17a10 10 0 0 1 20 0v10"/>
         <path d="M12 27v-5a4 4 0 0 1 8 0v5"/>
         <path d="M16 25c-2.2-1.8-.4-4 0-5.4 1.4 2.2 3.6 2.7 0 5.4z" class="ac"/>` },
@@ -85,7 +85,7 @@ window.DF_WORKSHOPS = {
 
 'Kitchen': { kind: 'workshop', tier: 2, keys: 'b-o-f-k', img: 'kitchen.png', box: '3.6 9.6 24.8 19.8', sw: 1.32,
   wiki: ['https://dwarffortresswiki.org/index.php/Kitchen'],
-  note: 'Cooks meals and renders fat into tallow. Cooking a seed-bearing plant destroys its seeds — keep it away from your only breeding stock.',
+  note: 'Cooks meals and renders fat into tallow. Cooking a seed-bearing plant destroys its seeds.',
   art: `<path d="M5 11h22"/><path d="M7 11v4a9 8 0 0 0 18 0v-4"/>
         <path d="M16 28c-3-2-1-5 0-7 2 3 4 4 0 7z" class="ac"/>
         <path d="M11 28c-2-1.5-.5-3.5 0-5 1.5 2 2.5 3 0 5z" class="ac"/>
@@ -107,13 +107,13 @@ window.DF_WORKSHOPS = {
 
 "Butcher's Shop": { kind: 'workshop', tier: 1, keys: 'b-o-f-b', img: 'butcher.png', box: '1.6 2.6 28.8 26.8', sw: 1.53,
   wiki: ['https://dwarffortresswiki.org/index.php/Butcher%27s_shop'],
-  note: 'Meat, fat, bone, skull, shell and a raw hide — which starts rotting immediately.',
+  note: 'Meat, fat, bone, skull, shell and a raw hide.',
   art: `<path d="M3 23h26v5H3z"/><path d="M7 4h13v14H7z"/>
         <path d="M20 8h6a2 2 0 0 1 0 4h-6"/><path d="M13 18v5" class="ac"/>` },
 
 "Tanner's Shop": { kind: 'workshop', tier: 2, keys: 'b-o-f-t', img: 'tanner.png', box: '3.6 3.6 24.8 24.8', sw: 1.32,
   wiki: ['https://dwarffortresswiki.org/index.php/Tanner%27s_shop'],
-  note: 'Raw hide into leather. Do it the same day you butcher, or lose the hide.',
+  note: 'Raw hide into leather.',
   art: `<path d="M5 5h22v22H5z"/>
         <path d="M11 9c-3 2-3 6-1 8-2 3 0 6 3 6h4c3 0 5-3 3-6 2-2 2-6-1-8z"/>` },
 
@@ -123,14 +123,14 @@ window.DF_WORKSHOPS = {
    the sides pinch in where the hide is pulled taut. */
 'Leather Works': { kind: 'workshop', tier: 3, keys: 'b-o-l-l', img: 'leather.png', box: '3.6 3.6 24.8 24.8', sw: 1.32,
   wiki: ['https://dwarffortresswiki.org/index.php/Leather_works'],
-  note: 'Armour, backpacks, waterskins and bags — including the bags that flour, dye and sand need.',
+  note: 'Armour, backpacks, waterskins and bags.',
   art: `<path d="M5 5h7l4 3.5 4-3.5h7c-3.5 6-3.5 16 0 22h-7l-4-3-4 3H5c3.5-6 3.5-16 0-22z"/>` },
 
 /* ── Farming, plants & textiles ── */
 
 "Farmer's Workshop": { kind: 'workshop', tier: 1, keys: 'b-o-f-f', img: 'famer.png', box: '8.6 7.6 14.8 21.8', sw: 1.16,
   wiki: ['https://dwarffortresswiki.org/index.php/Farmer%27s_workshop'],
-  note: 'Threshing, shearing, spinning, milking, cheese, papyrus sheets — and gelding, which never appears in its menu. Any non-economic stone or wood builds it, and half the fortress passes through it.',
+  note: 'Threshing, shearing, spinning, milking, cheese, papyrus sheets.',
   art: `<path d="M16 28V10"/>
         <path d="M16 14c-4 0-6-2-6-5 4 0 6 2 6 5z" class="ac"/>
         <path d="M16 14c4 0 6-2 6-5-4 0-6 2-6 5z" class="ac"/>
@@ -139,7 +139,7 @@ window.DF_WORKSHOPS = {
 
 'Loom': { kind: 'workshop', tier: 2, keys: 'b-o-l-o', img: 'loom.png', box: '2.6 3.6 26.8 24.8', sw: 1.42,
   wiki: ['https://dwarffortresswiki.org/index.php/Loom'],
-  note: 'Thread into cloth. Whatever went in comes out: pig tail thread makes pig tail cloth.',
+  note: 'Thread into cloth.',
   art: `<path d="M6 5v22M26 5v22"/><path d="M4 8h24M4 24h24"/>
         <path d="M10 8v16M14 8v16M18 8v16M22 8v16"/>
         <path d="M11 15h10l-1 2.5h-8z" class="ac"/>` },
@@ -182,7 +182,7 @@ window.DF_WORKSHOPS = {
 
 "Metalsmith's Forge": { kind: 'workshop', tier: 3, keys: 'b-o-i', img: 'metalsmith.png', magma: true, box: '1.6 1.6 28.8 26.8', sw: 1.53,
   wiki: ['https://dwarffortresswiki.org/index.php/Metalsmith%27s_forge'],
-  note: 'Bars into everything: weapons, armour, furniture, crafts, coins, mechanisms. Six labours share one anvil, and every job but studding burns a unit of fuel.',
+  note: 'Bars into everything: weapons, armour, furniture, crafts, coins, mechanisms.',
   art: `<path d="M3 11h26l-3 5H6z"/><path d="M13 16l1 6h4l1-6z"/>
         <path d="M8 22h16l2 5H6z"/>
         <circle cx="8" cy="7" r="1.4" class="ac"/><circle cx="13" cy="4" r="1" class="ac"/>` },
@@ -201,7 +201,7 @@ window.DF_WORKSHOPS = {
 
 "Jeweler's Workshop": { kind: 'workshop', tier: 1, keys: 'b-o-j', img: 'jeweler.png', box: '4.6 5.6 22.8 21.8', sw: 1.21,
   wiki: ['https://dwarffortresswiki.org/index.php/Jeweler%27s_workshop'],
-  note: 'Cuts rough gems and encrusts finished goods — the cheapest way to make a fortress obscenely valuable.',
+  note: 'Cuts rough gems and encrusts finished goods.',
   art: `<path d="M11 7h10l5 6-10 13L6 13z"/><path d="M6 13h20"/>
         <path d="M11 7l5 6M21 7l-5 6M16 13v13"/>` },
 
@@ -216,7 +216,7 @@ window.DF_WORKSHOPS = {
 
 "Carpenter's Workshop": { kind: 'workshop', tier: 1, keys: 'b-o-p', img: 'campenter.png', box: '2.6 3.6 26.8 24.8', sw: 1.42,
   wiki: ['https://dwarffortresswiki.org/index.php/Carpenter%27s_workshop'],
-  note: 'Furniture, beds, bins — and the barrels and buckets that every other chain is quietly waiting on.',
+  note: 'Furniture, beds, bins — and the barrels and buckets.',
   art: `<path d="M4 21h24v6H4z"/><path d="M10 21v6M18 21v6"/>
         <path d="M8 5h12v6H8z"/>
         <path d="M8 11l2.4 2.8 2.4-2.8 2.4 2.8 2.4-2.8 2.4 2.8"/>

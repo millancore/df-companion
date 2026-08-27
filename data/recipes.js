@@ -48,9 +48,13 @@ window.DF_RECIPES = [
   needs:['fuel'], in:[{item:'Lignite', qty:1}], out:[{item:'Coke', qty:5}],
   note:'Net gain of +4 after the fuel it burns. Lignite is the poorer cousin of bituminous coal.' },
 
+/* Thirty-six jobs, one log each, one job shape. Same treatment as the Still and
+   the forge: the item list lives in data/carpentry.js — with the wooden weapons
+   and shields left in data/weapons.js and data/armor.js where they belong — and
+   the workshop's own page turns the lot into a picker. */
 { id:'carpenter', name:'Carpentry', industry:'fuel', workshop:"Carpenter's Workshop", skill:'Carpenter',
-  in:[{item:'Log'}], out:[{item:'Wooden furniture'},{item:'Barrel'},{item:'Bin'},{item:'Bucket'},{item:'Wooden cage'}],
-  note:'Barrels and buckets are the quiet bottleneck of half the fortress. Build a lot of them early.' },
+  in:[{item:'Log'}], out:[{item:'Wooden furniture'},{item:'Barrel'},{item:'Bin'},{item:'Bucket'},{item:'Cage'}],
+  note:'One log per job, thirty-six things it can be, and no fuel, no anvil and no second material anywhere in the building — which is why a fortress can run on wood before it can run on anything else. Barrels and buckets are the quiet bottleneck of half of it: build a lot of them early. Pick an item on the workshop page to see what it costs and what it is for.' },
 
 { id:'bowyer', name:'Make wooden bow / crossbow parts', industry:'fuel', workshop:"Bowyer's Workshop", skill:'Bowyer',
   in:[{item:'Log'}], out:[{item:'Wooden bow'},{item:'Wooden crossbow'}] },

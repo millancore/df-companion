@@ -175,6 +175,9 @@ window.DF_ITEM_SPRITES = {
   'Chair':        'forge/Chair_sprite.png',
   'Chest':        'forge/Chest_sprite.png',
   'Coffin':       'forge/Coffin_sprite.png',
+  /* The wooden one is called a casket and the game draws it with the same art —
+     one item type under two names, so both names find the picture. */
+  'Casket':       'forge/Coffin_sprite.png',
   'Crutch':       'forge/Crutch_sprite.png',
   'Door':         'forge/Door_sprite.png',
   'Floodgate':    'forge/Floodgate_sprite.png',
@@ -192,4 +195,62 @@ window.DF_ITEM_SPRITES = {
   'Table':        'forge/Table_sprite.png',
   'Weapon rack':  'forge/Weapon_rack_sprite.png',
   'Wheelbarrow':  'forge/Wheelbarrow_sprite.png'
+};
+
+/* The same items again, in wood.
+
+   A dozen things this game makes exist in two materials with two different
+   pictures, and the map above can only hold one of them — it is keyed by item
+   name, and a barrel is a barrel wherever it turns up. So the general map keeps
+   the metal art, which is what the forge's list and every item page want, and
+   this second map holds the wooden portrait for the one page where wood is the
+   whole point: the carpenter's picker.
+
+   Same contract as above — keyed by the exact item name the data uses, pathed
+   from assets/img/. A name missing here simply falls back to the general map,
+   which is why only the items whose wooden art actually differs are listed. */
+
+window.DF_WOOD_SPRITES = {
+  /* Furniture */
+  'Altar':          'carpenter/Altar_sprite.png',
+  'Armor stand':    'carpenter/Armor_stand_sprite.png',
+  'Bed':            'carpenter/Bed_sprite.png',
+  'Bookcase':       'carpenter/Bookcase_sprite.png',
+  'Chair':          'carpenter/Chair_sprite.png',
+  'Display case':   'carpenter/Display_case_sprite.png',
+  'Pedestal':       'carpenter/Pedestal_sprite.png',
+  'Table':          'carpenter/Table_sprite.png',
+  'Weapon rack':    'carpenter/Weapon_rack_sprite.png',
+
+  /* Containers */
+  'Barrel':         'carpenter/Barrel_sprite.png',
+  'Bin':            'carpenter/Bin_sprite.png',
+  'Bucket':         'carpenter/Bucket_sprite.png',
+  'Cage':           'carpenter/Cage_sprite.png',
+
+  /* Building parts */
+  'Door':           'carpenter/Door_sprite.png',
+  'Floodgate':      'carpenter/Floodgate_sprite.png',
+  'Grate':          'carpenter/Grate_sprite.png',
+  'Hatch cover':    'carpenter/Hatch_sprite.png',
+
+  /* Tools */
+  'Animal trap':    'carpenter/Animal_trap_sprite.png',
+  'Crutch':         'carpenter/Crutch_sprite.png',
+  'Minecart':       'carpenter/Minecart_sprite.png',
+  'Stepladder':     'carpenter/Stepladder_sprite.png',
+  'Wheelbarrow':    'carpenter/Wheelbarrow_sprite.png',
+
+  /* The militia's half of the building. The shield and the buckler are the one
+     place this map overrides a cell of the equipment sheet rather than another
+     sprite file: the sheet draws the metal pair, and a wooden shield blocks
+     exactly as well, which is the whole argument for making them here. */
+  'Shield':         'carpenter/Shield_sprite.png',
+  'Buckler':        'carpenter/Buckler_sprite.png',
+
+  /* The three training weapons have no metal twin at all — nobody forges a
+     wooden sword — so these are the only art they have anywhere. */
+  'Training axe':   'carpenter/Training_axe_sprite.png',
+  'Training spear': 'carpenter/Training_spear_sprite.png',
+  'Training sword': 'carpenter/Training_sword_sprite.png'
 };
