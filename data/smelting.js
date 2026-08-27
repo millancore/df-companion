@@ -112,7 +112,7 @@ window.DF_ALLOYS = [
 ];
 
 /* ── DF_SMELT_TABLES ───────────────────────────────────────────────
-   The prose that does not fit in a row, in exactly the data/reference.js shape
+   The prose that does not fit in a row, in the shape refBlocks() renders
    and rendered by the same code as the forge's notes and the armour page's.
 
    Steel is the question this building gets asked most often and the one its two

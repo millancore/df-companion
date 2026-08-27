@@ -39,7 +39,6 @@
 
   const RECIPES    = window.DF_RECIPES;
   const INDUSTRIES = window.DF_INDUSTRIES;
-  const REFERENCE  = window.DF_REFERENCE;
   const NOTES      = window.DF_ITEM_NOTES || {};
   const SHOPS      = window.DF_WORKSHOPS || {};
   const SHOP_ORDER = window.DF_SHOP_ORDER || [];
@@ -2817,7 +2816,7 @@
     if (!steps.length) return viewWorkshops();
 
     /* A picker may bring reference tables of its own, and they anchor back to
-       this page rather than to the Reference one. */
+       this page — the workshop they belong to. */
     const route = 'w/' + encodeURIComponent(name);
 
     const meta = SHOPS[name] || {};
@@ -2916,16 +2915,6 @@
       </table></div>
     </section>`).join('');
 
-  function viewReference() {
-    main.innerHTML = `
-      <div class="page-head"><div>
-        <h1>${esc(t('ref.title', 'Reference'))}</h1>
-        <p>${esc(t('ref.blurb', 'The tables you keep alt-tabbing to look up.'))}</p>
-      </div></div>
-      ${refToc(REFERENCE, 'reference')}
-      ${refBlocks(REFERENCE)}`;
-  }
-
   /* The armour page: pick a part of the dwarf, see what covers it. The picker
      is the one the Still uses, with the figure in place of a facet's chips and
      the chosen piece's card below it. */
@@ -2980,17 +2969,55 @@
     });
   }
 
-  function viewAbout() {
+  /* Contributing lives on its own page rather than as two more sections of the
+     About page: About describes how the site is put together and is read a
+     screen at a time, while this is a procedure somebody follows with a
+     terminal open, and a procedure wants a URL of its own to send people to. */
+  function viewContribute() {
     main.innerHTML = `
-      <div class="page-head"><div><h1>${esc(t('about.title', 'About'))}</h1></div></div>
-      <div class="prose">${t('about.body', `
-        <p>DF Companion is a static, dependency-free reference for the industry chains in
-        <a href="https://www.bay12games.com/dwarves/" target="_blank" rel="noopener">Dwarf Fortress</a>.
-        Every page on this site is generated from seventeen data files, so extending it means
-        editing JavaScript objects rather than HTML. Nothing is loaded from the network. Every
-        icon here, down to the back arrow, is inline SVG; the only bitmaps are the game's own
-        pixel art — the workshop plates, the equipment sheet the armour list reads its sprites
-        from, and the item sprites <code>data/sprites.js</code> maps by name.</p>
+      <div class="page-head"><div>
+        <h1>${esc(t('contribute.title', 'How to collaborate'))}</h1>
+        <p>${esc(t('contribute.blurb',
+          'The site is a fork away. There is no build step and nothing to install.'))}</p>
+      </div></div>
+      <div class="prose">${t('contribute.body', `
+        <p>The site lives at
+        <a href="https://github.com/millancore/df-companion" target="_blank" rel="noopener">github.com/millancore/df-companion</a>
+        and takes changes the way most GitHub projects do: you work in your own fork and send a
+        pull request back. Nothing needs installing to work on it — there is no build step and no
+        dependencies, so opening <code>index.html</code> from your own disk is the whole
+        development environment.</p>
+        <ol>
+          <li>Press <strong>Fork</strong> on the repository page. That gives you a copy under your
+          own account that you can push to freely.</li>
+          <li>Clone your fork, and add this repository as a second remote so you can pull other
+          people's work in later:
+          <pre><code>git clone git@github.com:YOUR-USER/df-companion.git
+cd df-companion
+git remote add upstream https://github.com/millancore/df-companion.git</code></pre></li>
+          <li>Branch before you edit — one branch per change keeps unrelated edits out of the same
+          pull request:
+          <pre><code>git switch -c add-sunshine-brew</code></pre></li>
+          <li>Make the change and open <code>index.html</code> in a browser to see it. The data
+          files are plain JavaScript objects, and the sections below say which file owns what
+          and the shape of each one.</li>
+          <li>Commit, and push the branch to your fork:
+          <pre><code>git add -A
+git commit -m "Add sunshine to the brewing table"
+git push -u origin add-sunshine-brew</code></pre></li>
+          <li>On GitHub, open a <strong>pull request</strong> from your branch against
+          <code>main</code> here. Say where the numbers came from — a wiki page, a raw file, a
+          screenshot of your own fortress — so it can be checked without repeating your
+          research.</li>
+        </ol>
+        <p>Before starting a second change, put your fork back in step with this one:</p>
+        <pre><code>git switch main
+git pull upstream main
+git push origin main</code></pre>
+        <p>Small corrections are welcome as a pull request with no discussion first. For anything
+        larger — a new industry, a new page, a change to the shape of a data file — open an
+        <a href="https://github.com/millancore/df-companion/issues" target="_blank" rel="noopener">issue</a>
+        first, so the shape can be agreed before you write it.</p>
 
         <h2>Adding a step</h2>
         <p>Open <code>data/recipes.js</code> and add an entry to <code>window.DF_RECIPES</code>:</p>
@@ -3054,7 +3081,7 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         general map keeps the metal art and <code>window.DF_WOOD_SPRITES</code> holds the wooden
         portrait, which <code>sprite()</code> takes as an optional set to consult first. A picker
         may also carry <code>tables</code> — reference tables in the
-        <code>data/reference.js</code> shape that belong under it rather than in any row of
+        <code>DF_SMELT_TABLES</code> shape that belong under it rather than in any row of
         it, as the smelter's steel chain does, rendered by the same code as the Armor page's
         notes and anchored back to the workshop's own page.</p>
         <p>A picker facet can read a list instead of a single value, which is how one ore
@@ -3083,8 +3110,8 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         dyer's shop can be filtered by tone, and <code>window.DF_FAMILY_HEX</code> gives each
         tone one representative colour for its filter chip. All three are reading aids taken
         off the name — the name is the real datum, and a colour missing from a map simply
-        renders without a swatch or a tone. Only four of the game's seventy-two dyes come off a quern; the
-        Reference page's dye table lists them all, built from the same array so the list
+        renders without a swatch or a tone. Only four of the game's seventy-two dyes come off a
+        quern; the dyer's shop lists all seventy-two, built from the same array so the list
         exists in one place.</p>
 
         <h2>Symbols</h2>
@@ -3109,15 +3136,15 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         in a reference whose swatch exists to tell one bar from another.</p>
         <p>An item finds its colour by name, with a trailing <code>bar</code>, <code>wafer</code>,
         <code>strands</code> or <code>ingot</code> stripped — so <code>Steel bar</code> and
-        <code>Adamantine wafers</code> both resolve. Reference tables opt a column in with
+        <code>Adamantine wafers</code> both resolve. A table opts a column in with
         <code>decorate: { 1: 'metal' }</code>.</p>
 
         <h2>Adding a reference table</h2>
-        <p><code>data/reference.js</code> holds plain <code>columns</code> / <code>rows</code>
-        arrays. Add an object, and it appears on the
-        <a href="#/reference">Reference page</a> with its own anchor. A picker can carry
-        <code>tables</code> of the same shape — the smelter's does — rendered by the same
-        code.</p>
+        <p>A reference table is a plain <code>columns</code> / <code>rows</code> array, and it
+        belongs to the workshop it is about. A picker carries them as <code>tables</code> — the
+        smelter's steel chain is <code>DF_SMELT_TABLES</code> in <code>data/smelting.js</code> —
+        and each renders under the picker with its own anchor back to that workshop's page. A
+        column opts into decoration with <code>decorate: { 1: 'metal' }</code>.</p>
 
         <h2>Adding a piece of armour</h2>
         <p><code>data/armor.js</code> holds the body figure, the material codes and every
@@ -3169,6 +3196,32 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         <code>tableCols</code> only replaces a header row that matches the original column for
         column.</p>
 
+        <h2>Reporting a mistake</h2>
+        <p>You do not have to write the fix to be useful. A wrong yield, a missing reagent, a
+        workshop that does not make what this site says it makes — open an
+        <a href="https://github.com/millancore/df-companion/issues/new" target="_blank" rel="noopener">issue</a>
+        and say what the page claims, what the game does, and where you saw it. The link is in the
+        footer of every page.</p>`)}</div>`;
+  }
+
+  function viewAbout() {
+    main.innerHTML = `
+      <div class="page-head"><div><h1>${esc(t('about.title', 'About'))}</h1></div></div>
+      <div class="prose">${t('about.body', `
+        <p>DF Companion is a static, dependency-free reference for the industry chains in
+        <a href="https://www.bay12games.com/dwarves/" target="_blank" rel="noopener">Dwarf Fortress</a>.
+        Every page on this site is generated from seventeen data files, so extending it means
+        editing JavaScript objects rather than HTML. Nothing is loaded from the network. Every
+        icon here, down to the back arrow, is inline SVG; the only bitmaps are the game's own
+        pixel art — the workshop plates, the equipment sheet the armour list reads its sprites
+        from, and the item sprites <code>data/sprites.js</code> maps by name.</p>
+
+        <h2>Contributing</h2>
+        <p><a href="#/contribute">How to collaborate</a> is the rest of this page: how the site
+        is put together, which data file owns what and the shape of each one, the
+        fork-and-pull-request route step by step, and how to report a mistake if you would rather
+        someone else wrote the fix.</p>
+
         <h2>Accuracy</h2>
         <p>Chains and workshops follow current Dwarf Fortress. Exact bar and unit yields have
         shifted between versions, so only the ones that are stable (charcoal, coke) carry
@@ -3181,6 +3234,13 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         <a href="https://thingsfittogether.com" target="_blank" rel="noopener">thingsfittogether.com</a>,
         which is worth having on the wall next to your monitor. That poster is not
         redistributed here.</p>
+        <p>Every sprite here belongs to the game — the workshop plates, the equipment sheet the
+        armour list reads from, and every item portrait are Dwarf Fortress's own art, by Bay 12
+        Games and Kitfox Games. They are shown only as a reference, so that a row on this page
+        looks like the thing you are looking at in the game. No ownership of them is claimed.</p>
+        <p>Thanks to <a href="https://www.youtube.com/@BlindiRL" target="_blank" rel="noopener">Blind</a>
+        on YouTube for the wonderful content — the tutorials and fortress runs that made a good
+        deal of what is mapped here make sense in the first place.</p>
         <p>Dwarf Fortress is by Bay 12 Games, published by Kitfox Games. This is an unaffiliated
         fan project.</p>`)}</div>`;
   }
@@ -3212,6 +3272,12 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
       + 'rel="noopener">Dwarf Fortress</a>. Not affiliated with Bay 12 Games or Kitfox Games. '
       + 'Verify anything load-bearing against the <a href="https://dwarffortresswiki.org" '
       + 'target="_blank" rel="noopener">wiki</a>.');
+    const issue = document.getElementById('foot-issue');
+    if (issue) issue.innerHTML = t('foot.issue',
+      'Spotted something wrong? <a href="https://github.com/millancore/df-companion/issues/new" '
+      + 'target="_blank" rel="noopener">Report an issue</a> or '
+      + '<a href="https://github.com/millancore/df-companion" target="_blank" '
+      + 'rel="noopener">fix it on GitHub</a>.');
     const credit = document.getElementById('foot-credit');
     if (credit) credit.innerHTML = t('foot.credit',
       'Layout inspired by Max Cantor’s printable cheat sheet at '
@@ -3271,8 +3337,8 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
                                           ? viewWorkshop(decodeURIComponent(parts.slice(1).join('/')))
                                           : viewWorkshops();
     else if (parts[0] === 'armor')      viewArmor(parts[1]);
-    else if (parts[0] === 'reference')  viewReference();
     else if (parts[0] === 'about')      viewAbout();
+    else if (parts[0] === 'contribute') viewContribute();
     else                                viewHome();
 
     const NAV = { i: 'industries', item: 'industries', w: 'workshops' };
