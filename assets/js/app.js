@@ -2981,227 +2981,143 @@
           'The site is a fork away. There is no build step and nothing to install.'))}</p>
       </div></div>
       <div class="prose">${t('contribute.body', `
-        <p>The site lives at
-        <a href="https://github.com/millancore/df-companion" target="_blank" rel="noopener">github.com/millancore/df-companion</a>
-        and takes changes the way most GitHub projects do: you work in your own fork and send a
-        pull request back. Nothing needs installing to work on it — there is no build step and no
-        dependencies, so opening <code>index.html</code> from your own disk is the whole
-        development environment.</p>
-        <ol>
-          <li>Press <strong>Fork</strong> on the repository page. That gives you a copy under your
-          own account that you can push to freely.</li>
-          <li>Clone your fork, and add this repository as a second remote so you can pull other
-          people's work in later:
-          <pre><code>git clone git@github.com:YOUR-USER/df-companion.git
+        <h2>Setup</h2>
+        <p>No build step, no dependencies. Fork on GitHub, then:</p>
+        <pre><code>git clone git@github.com:YOUR-USER/df-companion.git
 cd df-companion
-git remote add upstream https://github.com/millancore/df-companion.git</code></pre></li>
-          <li>Branch before you edit — one branch per change keeps unrelated edits out of the same
-          pull request:
-          <pre><code>git switch -c add-sunshine-brew</code></pre></li>
-          <li>Make the change and open <code>index.html</code> in a browser to see it. The data
-          files are plain JavaScript objects, and the sections below say which file owns what
-          and the shape of each one.</li>
-          <li>Commit, and push the branch to your fork:
-          <pre><code>git add -A
-git commit -m "Add sunshine to the brewing table"
-git push -u origin add-sunshine-brew</code></pre></li>
-          <li>On GitHub, open a <strong>pull request</strong> from your branch against
-          <code>main</code> here. Say where the numbers came from — a wiki page, a raw file, a
-          screenshot of your own fortress — so it can be checked without repeating your
-          research.</li>
-        </ol>
-        <p>Before starting a second change, put your fork back in step with this one:</p>
-        <pre><code>git switch main
-git pull upstream main
-git push origin main</code></pre>
-        <p>Small corrections are welcome as a pull request with no discussion first. For anything
-        larger — a new industry, a new page, a change to the shape of a data file — open an
+git remote add upstream https://github.com/millancore/df-companion.git
+git switch -c my-change</code></pre>
+        <p>Open <code>index.html</code> from disk to see changes. Push the branch to your fork and
+        open a pull request against <code>main</code>, citing a source for every number. Resync
+        with <code>git switch main &amp;&amp; git pull upstream main</code>. Open an
         <a href="https://github.com/millancore/df-companion/issues" target="_blank" rel="noopener">issue</a>
-        first, so the shape can be agreed before you write it.</p>
+        first for anything larger than a correction.</p>
+
+        <h2>Data files</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>File</th><th>Globals</th></tr></thead>
+          <tbody>
+            <tr><td><code>recipes.js</code></td><td><code>DF_INDUSTRIES</code>, <code>DF_RECIPES</code>, <code>DF_INDUSTRY_FLOWS</code>, <code>DF_ITEM_NOTES</code></td></tr>
+            <tr><td><code>workshops.js</code></td><td><code>DF_WORKSHOPS</code>, <code>DF_SHOP_ORDER</code></td></tr>
+            <tr><td><code>brewing.js</code></td><td><code>DF_BREWING</code> (77)</td></tr>
+            <tr><td><code>milling.js</code></td><td><code>DF_MILLING</code> (33)</td></tr>
+            <tr><td><code>dyes.js</code></td><td><code>DF_DYES</code> (72), <code>DF_COLOR_HEX</code>, <code>DF_COLOR_FAMILY</code>, <code>DF_FAMILY_HEX</code></td></tr>
+            <tr><td><code>textiles.js</code></td><td><code>DF_FIBRES</code> (16), <code>DF_CLOTH_GOODS</code> (31)</td></tr>
+            <tr><td><code>smelting.js</code></td><td><code>DF_ORES</code> (17), <code>DF_ALLOYS</code> (14), <code>DF_SMELT_TABLES</code></td></tr>
+            <tr><td><code>forge.js</code></td><td><code>DF_FORGE_GOODS</code> (45), <code>DF_FORGE_METALS</code> (26)</td></tr>
+            <tr><td><code>carpentry.js</code></td><td><code>DF_CARPENTRY</code> (28)</td></tr>
+            <tr><td><code>weapons.js</code></td><td><code>DF_WEAPONS</code> (31)</td></tr>
+            <tr><td><code>armor.js</code></td><td><code>DF_ARMOR</code> (43), <code>DF_ARMOR_MATS</code>, <code>DF_BODY</code></td></tr>
+            <tr><td><code>metals.js</code></td><td><code>DF_METAL_COLORS</code></td></tr>
+            <tr><td><code>icons.js</code></td><td><code>DF_ICONS</code></td></tr>
+            <tr><td><code>sprites.js</code></td><td><code>DF_ITEM_SPRITES</code>, <code>DF_WOOD_SPRITES</code></td></tr>
+            <tr><td><code>dwarf.js</code></td><td><code>DF_DWARF_PATH</code></td></tr>
+            <tr><td><code>i18n.js</code></td><td><code>DF_I18N</code></td></tr>
+          </tbody>
+        </table></div>
 
         <h2>Adding a step</h2>
-        <p>Open <code>data/recipes.js</code> and add an entry to <code>window.DF_RECIPES</code>:</p>
-        <pre><code>{ id:'brew-sunshine', name:'Brew sunshine',
+        <pre><code>// data/recipes.js — window.DF_RECIPES
+{ id:'brew-sunshine', name:'Brew sunshine',
   industry:'food', workshop:'Still', skill:'Brewer',
   needs:['barrel'],
+  also:['textiles'],              // optional: extra industries
   in:  [{ item:'Sun berry' }],
   out: [{ item:'Sunshine' }, { item:'Seeds' }] }</code></pre>
-        <p>Item pages and the industry maps all rebuild themselves from
-        that — an item exists as soon as some recipe mentions it, and a new step joins its
-        industry's map wherever what it eats and what it makes put it. Valid <code>needs</code> values are
+        <p>Items and industry maps rebuild from this. Valid <code>needs</code>:
         <code>fuel</code>, <code>flux</code>, <code>bag</code>, <code>barrel</code>,
-        <code>jug</code>, <code>bucket</code>, <code>vial</code> and <code>shop</code>.</p>
+        <code>jug</code>, <code>bucket</code>, <code>vial</code>, <code>shop</code>.</p>
 
-        <h2>Adding a workshop</h2>
-        <p><code>data/workshops.js</code> holds the artwork and blurb for each building.
-        Icons are inline SVG on a 32×32 grid, stroked in <code>currentColor</code>; shapes
-        marked <code>class="ac"</code> take the accent colour. Each entry also carries a
-        <code>box</code> (the art's measured bounding box, so the icon fills its frame) and
-        a <code>sw</code> (stroke width scaled to that frame, so every icon keeps the same
-        line weight). If you redraw one, re-measure it rather than guessing:</p>
-        <pre><code>// in the browser console, on any page of this site
+        <h2>Pickers</h2>
+        <p>Eight workshops run one job against a long list, so a generic step in
+        <code>recipes.js</code> is replaced by a picker. <code>PICKERS</code> in
+        <code>assets/js/app.js</code> is keyed by that step; the workshop list reads it to mark
+        those cards.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th><code>step</code></th><th>Rows</th><th>Count</th></tr></thead>
+          <tbody>
+            <tr><td><code>brew</code></td><td><code>DF_BREWING</code></td><td>77</td></tr>
+            <tr><td><code>mill</code></td><td><code>DF_MILLING</code></td><td>33</td></tr>
+            <tr><td><code>dye-thread</code></td><td><code>DF_DYES</code></td><td>72</td></tr>
+            <tr><td><code>weave</code></td><td><code>DF_FIBRES</code></td><td>16</td></tr>
+            <tr><td><code>clothier</code></td><td><code>DF_CLOTH_GOODS</code></td><td>31</td></tr>
+            <tr><td><code>smelt-ore</code>, <code>make-alloy</code></td><td><code>DF_ORES</code>, <code>DF_ALLOYS</code></td><td>17, 14</td></tr>
+            <tr><td><code>forge</code></td><td>weapons + wearables + <code>DF_FORGE_GOODS</code></td><td>70</td></tr>
+            <tr><td><code>carpenter</code></td><td>weapons + wearables + <code>DF_CARPENTRY</code></td><td>36</td></tr>
+          </tbody>
+        </table></div>
+        <p>Row shape — <code>kind</code> and <code>source</code> generate the facet dropdowns; a
+        facet value may be a list, putting one row under several options:</p>
+        <pre><code>{ in: 'Dimple cup', out: 'Dimple dye', kind: 'Dye', source: 'Subterranean crop',
+  color: 'Midnight blue', hex: '#191970', value: 20 }</code></pre>
+        <p>The forge and carpenter pickers compose rows from several files rather than copying:
+        every weapon whose <code>made</code> names the building, every wearable of that material,
+        then the building's own goods file. <code>DF_WOOD_SPRITES</code> holds the wooden portrait
+        for the 17 items that exist in both wood and metal; <code>sprite()</code> takes it as an
+        optional set to consult before <code>DF_ITEM_SPRITES</code>.</p>
+
+        <h2>Workshop art and symbols</h2>
+        <p><code>DF_WORKSHOPS</code> (artwork, blurb) and <code>DF_ICONS</code> (everything else)
+        share one contract: inline SVG on a 32&times;32 grid, stroked in
+        <code>currentColor</code>, <code>class="ac"</code> for accent-coloured shapes, plus a
+        measured <code>box</code> and a scaled <code>sw</code>. Unknown name → generic icon, or
+        nothing. Re-measure rather than guess:</p>
+        <pre><code>// browser console, any page
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 svg.setAttribute('viewBox', '0 0 32 32');
 document.body.append(svg);
 svg.innerHTML = DF_WORKSHOPS['Still'].art;
 svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
-        <p>A workshop with no entry still works — it falls back to a generic building icon.</p>
-
-        <h2>One step, many ingredients</h2>
-        <p>Eight workshops do not get a list of job cards. The Still runs a single job —
-        Brew Drink — against 77 ingredients, the quern runs Mill Plants against 33, the
-        dyer's shop runs Dye against 72, the loom weaves 16 kinds of thread, the clothier's
-        shop cuts 31 things out of one unit of cloth, the smelter smelts 17 ores and alloys
-        14 recipes, the forge turns a bar into any one of 69 things, and the carpenter turns a log into
-        any one of 36. Cards that differ
-        only in which thing went in say the same thing dozens of times, so each is one
-        generic step in <code>data/recipes.js</code> plus a table of its own:
-        <code>data/brewing.js</code>, <code>data/milling.js</code>,
-        <code>data/dyes.js</code>, <code>data/textiles.js</code>,
-        <code>data/smelting.js</code>, <code>data/weapons.js</code>,
-        <code>data/forge.js</code> and <code>data/carpentry.js</code>.</p>
-        <p>The <code>PICKERS</code> table lists them, keyed by the generic step each one
-        replaces. The workshop list reads that same table to put a mark in the corner of
-        those cards, so it cannot claim something the page does not do. Only the list is
-        marked — on the workshop's own page the picker is right there.</p>
-        <p>The forge's picker is the one that assembles its rows from more than one file. A
-        battle axe belongs to <code>data/weapons.js</code> and a breastplate to
-        <code>data/armor.js</code>; copying either into <code>data/forge.js</code> would let
-        the forge's page and the Armor page disagree about the same object, so instead it
-        takes every weapon whose <code>made</code> list names the forge, every wearable that
-        can be made of metal, and everything else from <code>DF_FORGE_GOODS</code>. The
-        carpenter's does the same with wood: the three training weapons and the three wooden
-        trap components live in <code>data/weapons.js</code> with their attack tables, the
-        wooden shield and buckler in <code>data/armor.js</code> with their block chances, and
-        <code>data/carpentry.js</code> holds only what nothing else owns. Every job in that
-        building costs one log, which is why its panel is the one picker with no arithmetic in
-        it. It is also the one page that draws a second set of sprites: a dozen of these items
-        exist in wood and in metal with two different pictures, and
-        <code>window.DF_ITEM_SPRITES</code> is keyed by item name and can only hold one — so the
-        general map keeps the metal art and <code>window.DF_WOOD_SPRITES</code> holds the wooden
-        portrait, which <code>sprite()</code> takes as an optional set to consult first. A picker
-        may also carry <code>tables</code> — reference tables in the
-        <code>DF_SMELT_TABLES</code> shape that belong under it rather than in any row of
-        it, as the smelter's steel chain does, rendered by the same code as the Armor page's
-        notes and anchored back to the workshop's own page.</p>
-        <p>A picker facet can read a list instead of a single value, which is how one ore
-        sits under three different rock types and one alloy under each metal it contains.
-        The smelter's bars are tinted with the metal's own colour from
-        <code>data/metals.js</code>. Every facet draws as a dropdown: as rows of chips
-        the forge's fifteen categories and seven labours wrapped over three lines, which
-        is a lot of furniture around a control nobody is looking at. A facet whose values
-        carry a mark — the dyer's colour square — shows the mark for the one in force
-        beside the dropdown, since a select cannot draw one inside an option.</p>
-        <pre><code>{ in: 'Sun berry', out: 'Sunshine', kind: 'Other', value: 5,
-  type: 'Plant', source: 'Surface crop' }
-
-{ in: 'Dimple cup', out: 'Dimple dye', kind: 'Dye', source: 'Subterranean crop',
-  color: 'Midnight blue', hex: '#191970', value: 20 }</code></pre>
-        <p>Each workshop's page turns its table into a picker. <code>kind</code> and
-        <code>source</code> generate the filter dropdowns, so adding a row is the whole job —
-        the filters, the picker's own search and the item pages all pick it up. A plant
-        that both brews and mills gets both cards on its item page.</p>
-        <p>Milling grinds flour for the food chain and dye for the textiles one, which is
-        more than one industry per step. That is what <code>also: ['textiles']</code> on a
-        recipe is for.</p>
-        <p>The dye colours come from the wiki, which names a colour but publishes no value
-        for it. <code>window.DF_COLOR_HEX</code> turns a name into an approximate hex for
-        the swatch, <code>window.DF_COLOR_FAMILY</code> groups the names into tones so the
-        dyer's shop can be filtered by tone, and <code>window.DF_FAMILY_HEX</code> gives each
-        tone one representative colour for its filter chip. All three are reading aids taken
-        off the name — the name is the real datum, and a colour missing from a map simply
-        renders without a swatch or a tone. Only four of the game's seventy-two dyes come off a
-        quern; the dyer's shop lists all seventy-two, built from the same array so the list
-        exists in one place.</p>
-
-        <h2>Symbols</h2>
-        <p><code>data/icons.js</code> holds every icon that is not workshop artwork —
-        industries, the <code>needs</code> flags, reference tables, the back link and the
-        theme toggle. It follows the same contract as the workshop art: inline SVG on a
-        32&times;32 grid, stroked in <code>currentColor</code>, with a measured
-        <code>box</code> and a scaled <code>sw</code>. An industry or a table names a key
-        in here rather than carrying a character, so a symbol inherits the colour and size
-        of whatever it sits in — an industry symbol takes that industry's colour, a badge
-        symbol shrinks with the badge — and an unknown name draws nothing rather than a
-        wrong picture.</p>
 
         <h2>Metal colours</h2>
-        <p><code>data/metals.js</code> tints the ingot icon — three stacked bars, the same
-        shapes as the <code>metal</code> symbol but filled rather than stroked — on any bar,
-        wafer or metal name.
-        The colours are real metal tones, one hex per metal. They are not the game's: DF
-        draws every metal from a 16-colour palette, which puts steel, tin, zinc, nickel,
-        billon and pewter all on the same light gray and iron, lead and pig iron all on the
-        same dark gray. That is fine in a game where you read the name, and no help at all
-        in a reference whose swatch exists to tell one bar from another.</p>
-        <p>An item finds its colour by name, with a trailing <code>bar</code>, <code>wafer</code>,
-        <code>strands</code> or <code>ingot</code> stripped — so <code>Steel bar</code> and
-        <code>Adamantine wafers</code> both resolve. A table opts a column in with
-        <code>decorate: { 1: 'metal' }</code>.</p>
+        <p><code>DF_METAL_COLORS</code> is one hex per metal, resolved by name with a trailing
+        <code>bar</code>, <code>wafer</code>, <code>strands</code> or <code>ingot</code> stripped.
+        A table column opts in with <code>decorate: { 1: 'metal' }</code>.</p>
 
-        <h2>Adding a reference table</h2>
-        <p>A reference table is a plain <code>columns</code> / <code>rows</code> array, and it
-        belongs to the workshop it is about. A picker carries them as <code>tables</code> — the
-        smelter's steel chain is <code>DF_SMELT_TABLES</code> in <code>data/smelting.js</code> —
-        and each renders under the picker with its own anchor back to that workshop's page. A
-        column opts into decoration with <code>decorate: { 1: 'metal' }</code>.</p>
+        <h2>Reference tables</h2>
+        <p>A picker carries them as <code>tables</code> — plain <code>columns</code> /
+        <code>rows</code> arrays, as <code>DF_SMELT_TABLES</code> does. Each draws under the picker
+        with an anchor back to the workshop's page.</p>
 
         <h2>Adding a piece of armour</h2>
-        <p><code>data/armor.js</code> holds the body figure, the material codes and every
-        wearable. A piece names the body parts it covers, and those ids are the regions of
-        the figure — so the diagram and the coverage data cannot disagree:</p>
-        <pre><code>{ id:'mail-shirt', name:'Mail shirt', slot:'Upper body', kind:'Armor',
+        <pre><code>// data/armor.js — window.DF_ARMOR
+{ id:'mail-shirt', name:'Mail shirt', slot:'Upper body', kind:'Armor',
   covers:['upper-body','lower-body','neck','upper-arms','upper-legs'],
   mats:['M'], size:6, ls:15, perm:50, layer:'Over', cov:100,
   level:2, elastic:'Chain', melt:1.8 }</code></pre>
-        <p>Metal cost is not stored: it is material size ÷ 3, rounded down, minimum one, and
-        the page computes it. <code>mats</code> are one-letter codes into
-        <code>DF_ARMOR_MATS</code>, which is what decides the workshop and the labour. Add a
-        region to <code>DF_BODY</code> and it becomes clickable the moment some piece names it.</p>
+        <p><code>covers</code> ids are <code>DF_BODY</code> regions — add one and it becomes
+        clickable as soon as a piece names it. <code>mats</code> are one-letter codes into
+        <code>DF_ARMOR_MATS</code> (<code>C L B S M W</code>), which decides workshop and labour.
+        Metal cost is computed, not stored: <code>max(1, floor(size / 3))</code>.</p>
 
         <h2>Adding a language</h2>
-        <p><code>data/i18n.js</code> holds one pack per language. The game's own nomenclature is
-        deliberately <em>not</em> in it: an item stays a Plump helmet, a building a Metalsmith's
-        Forge and a job on its menu Brew Drink, because those are the words on the screen you are
-        alt-tabbing away from, and a translated menu entry would be a worse answer than an
-        untranslated one. What a pack carries is everything this site says <em>about</em> them —
-        headings, labels, legends and every note.</p>
-        <p>A pack has two halves. <code>ui</code> is keyed by a short string and holds the text
-        written into the views; <code>data</code> is keyed by the id a data file already carries
-        and holds the prose that lives beside the facts:</p>
-        <pre><code>window.DF_I18N = {
+        <p>Game nomenclature stays in English — item, building and job names are the words on the
+        screen you are alt-tabbing from. A pack translates everything the site says about them.</p>
+        <pre><code>// data/i18n.js
+window.DF_I18N = {
   es: {
-    ui: { 'item.madeby': 'Lo produce', 'count.steps': '{n} pasos' },
-    data: {
-      industry: { food: 'Comida y bebida' },
-      itemNote: { 'Ash': 'El origen del jabón, la potasa…' },
-      shopNote: { 'Smelter': 'De mena a bars, de carbón a coke…' }
-    }
+    ui:   { 'item.madeby': 'Lo produce', 'count.steps': '{n} pasos' },
+    data: { industry: { food: 'Comida y bebida' },
+            itemNote: { 'Ash': 'El origen del jabón…' } }
   }
 };</code></pre>
-        <p>The English text stays written out at the point it is used, as the second argument to
-        <code>t()</code>, so the source still reads as English prose and a key missing from a pack
-        renders in English rather than as a key. <code>{n}</code>-style holes rather than string
-        concatenation, because Spanish does not put the number, the noun and the preposition in
-        the order English does. The groups under <code>data</code> are
-        <code>industry</code>, <code>industryBlurb</code>, <code>itemNote</code>,
-        <code>shopNote</code>, <code>body</code>, <code>bodyNote</code>, <code>armorNote</code>,
-        <code>flowPath</code>, <code>flowTitle</code>,
-        <code>tableTitle</code>, <code>tableBlurb</code> and <code>tableCols</code>.</p>
-        <p>Add a pack, add its code to <code>LANGS</code> in <code>assets/js/app.js</code>, and the
-        button in the header cycles to it. The choice is kept in <code>localStorage</code> and
-        defaults to the browser's own language; switching reloads the page, which is the shortest
-        path to a page wholly in the new language. Table
-        <em>rows</em> are never translated — those are the game's words, and
-        <code>tableCols</code> only replaces a header row that matches the original column for
-        column.</p>
+        <p><code>ui</code> is keyed by short string, <code>data</code> by the id a data file
+        already carries. <code>data</code> groups: <code>industry</code>,
+        <code>industryBlurb</code>, <code>itemNote</code>, <code>shopNote</code>,
+        <code>body</code>, <code>bodyNote</code>, <code>armorNote</code>, <code>flowPath</code>,
+        <code>flowTitle</code>, <code>tableTitle</code>, <code>tableBlurb</code>,
+        <code>tableCols</code>. English lives at the call site as the second argument to
+        <code>t()</code>, so a missing key renders English. Use <code>{n}</code> holes, not
+        concatenation. Add the code to <code>LANGS</code> in <code>assets/js/app.js</code>; the
+        choice is kept in <code>localStorage</code>. Table rows are never translated, and
+        <code>tableCols</code> only replaces a header row matching column for column.</p>
 
         <h2>Reporting a mistake</h2>
-        <p>You do not have to write the fix to be useful. A wrong yield, a missing reagent, a
-        workshop that does not make what this site says it makes — open an
+        <p>No patch needed — open an
         <a href="https://github.com/millancore/df-companion/issues/new" target="_blank" rel="noopener">issue</a>
-        and say what the page claims, what the game does, and where you saw it. The link is in the
-        footer of every page.</p>`)}</div>`;
+        saying what the page claims, what the game does, and where you saw it. The link is in
+        every page's footer.</p>
+`)}</div>`;
   }
 
   function viewAbout() {
@@ -3210,7 +3126,7 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
       <div class="prose">${t('about.body', `
         <p>DF Companion is a static, dependency-free reference for the industry chains in
         <a href="https://www.bay12games.com/dwarves/" target="_blank" rel="noopener">Dwarf Fortress</a>.
-        Every page on this site is generated from seventeen data files, so extending it means
+        Every page on this site is generated from sixteen data files, so extending it means
         editing JavaScript objects rather than HTML. Nothing is loaded from the network. Every
         icon here, down to the back arrow, is inline SVG; the only bitmaps are the game's own
         pixel art — the workshop plates, the equipment sheet the armour list reads its sprites
