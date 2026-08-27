@@ -9,7 +9,8 @@ window.DF_INDUSTRIES = [
   { id: 'fuel',     name: 'Fuel & Wood',        icon: 'fuel', color: '#b0804f', blurb: 'Logs, charcoal and coke: what every non-magma furnace burns.' },
   { id: 'soap',     name: 'Ash, Lye & Soap',    icon: 'soap', color: '#79b6cf', blurb: 'Burn wood to ash, leach ash to lye, boil lye with fat to get clean.' },
   { id: 'animal',   name: 'Animals & Leather',  icon: 'animal', color: '#cf7a55', blurb: 'Butchery, tanning, milk, wool, bone and shell.' },
-  { id: 'stone',    name: 'Stone, Gems & Clay', icon: 'stone', color: '#a294cc', blurb: 'Mining output, mechanisms, cut gems and ceramics.' },
+  { id: 'stone',    name: 'Stone & Gems',       icon: 'stone', color: '#a294cc', blurb: 'Mining output, blocks, mechanisms and cut gems.' },
+  { id: 'ceramics', name: 'Ceramics',           icon: 'ceramics', color: '#b6674f', blurb: 'Clay off the floor of a soil layer, fired at a kiln, and the glaze that makes it hold water.' },
   { id: 'glass',    name: 'Glass',             icon: 'glass', color: '#5fae9e', blurb: 'Sand into green glass. Pearlash makes it clear, rock crystal makes it crystal.' },
   { id: 'paper',    name: 'Paper & Books',      icon: 'paper', color: '#c4b183', blurb: 'Three routes to a sheet — plant fibre, papyrus, parchment — then quires, scrolls and the written word.' }
 ];
@@ -211,7 +212,7 @@ window.DF_RECIPES = [
   in:[{item:'Lye'},{item:'Tallow'},{item:'Rock nut oil'}], out:[{item:'Soap'}],
   note:'Lye plus any fat — tallow or plant oil. Soap in the hospital dramatically cuts infection deaths.' },
 
-{ id:'make-pearlash', name:'Make pearlash', industry:'glass', also:['stone'], workshop:'Kiln', skill:'Potash maker',
+{ id:'make-pearlash', name:'Make pearlash', industry:'glass', workshop:'Kiln', skill:'Potash maker',
   needs:['fuel'], in:[{item:'Potash', qty:1}], out:[{item:'Pearlash'}],
   note:'Pearlash exists almost entirely to turn green glass into clear glass. It is fired at a kiln from the potash the ash chain makes.' },
 
@@ -299,9 +300,32 @@ window.DF_RECIPES = [
   out:[{item:'Glass furniture'},{item:'Glass blocks'},{item:'Glass trap components'},{item:'Rough glass gems'}],
   note:'Glass does nearly everything stone does — furniture, blocks, trap components, cut gems. It will not make a quern, a millstone, a slab or a stone short sword.' },
 
-{ id:'clay', name:'Gather clay & fire ceramics', industry:'stone', workshop:'Kiln', skill:'Potter',
-  needs:['fuel'], in:[{item:'Clay'}], out:[{item:'Earthenware'},{item:'Stoneware'},{item:'Porcelain'}],
-  note:'Clay soil is renewable like sand. Porcelain additionally needs kaolinite.' },
+/* ── CERAMICS ────────────────────────────────────────────────── */
+/* Three wares out of one building, and which one you get is settled before the
+   kiln is ever lit: ordinary clay soil fires to earthenware, the rarer fire
+   clay to stoneware, and mined kaolinite to porcelain. The glaze is the only
+   decision left afterwards. */
+
+{ id:'collect-clay', name:'Collect clay', industry:'ceramics', workshop:'Clay soil', skill:'—',
+  in:[{item:'Clay soil'}], out:[{item:'Clay'},{item:'Fire clay'}],
+  note:'Ordered at the kiln but done out in the fortress by any hauler — no labour, no skill and no fuel. The dwarf walks to the nearest clay floor tile and back, so put the kiln near one. The tile is never used up: clay is renewable the way sand is.' },
+
+{ id:'fire-earthenware', name:'Make earthenware goods', industry:'ceramics', workshop:'Kiln', skill:'Potter',
+  needs:['fuel'], in:[{item:'Clay'}], out:[{item:'Earthenware'}],
+  note:'Any generic clay soil — clay, silty clay, sandy clay or clay loam, all of which fire to the same ware. Worth 3, and porous: an earthenware jug or pot holds nothing at all until a glazer has been at it.' },
+
+{ id:'fire-stoneware', name:'Make stoneware goods', industry:'ceramics', workshop:'Kiln', skill:'Potter',
+  needs:['fuel'], in:[{item:'Fire clay'}], out:[{item:'Stoneware'}],
+  note:'Fire clay is a soil type of its own and a fairly rare one. Same job, same kiln, same fuel — worth 4 rather than 3 if the embark happens to have it.' },
+
+{ id:'fire-porcelain', name:'Make porcelain goods', industry:'ceramics', workshop:'Kiln', skill:'Potter',
+  needs:['fuel'], in:[{item:'Kaolinite'}], out:[{item:'Porcelain'}],
+  note:'Worth 10 — the same as iron, silver and crystal glass, off a job that needs no smelter and no ore. Kaolinite is mined rather than gathered, so this is the one ware a fortress can run out of.' },
+
+{ id:'glaze', name:'Glaze a ceramic', industry:'ceramics', workshop:'Kiln', skill:'Glazer',
+  needs:['fuel'], in:[{item:'Earthenware'},{item:'Stoneware'},{item:'Porcelain'},{item:'Ash'},{item:'Cassiterite'}],
+  out:[{item:'Glazed ceramics'}],
+  note:'One ceramic plus one glaze material: ash for 50☼, a cassiterite boulder for a tin glaze worth 100☼, both multiplied by the glazer’s quality. It also seals the pot, which is what makes earthenware fit to store booze. Stone containers, statues and crafts can be glazed too.' },
 
 /* ── PAPER & BOOKS ───────────────────────────────────────────── */
 /* Three routes to a sheet, and they share nothing but the sheet: plant fibre
@@ -321,7 +345,7 @@ window.DF_RECIPES = [
   in:[{item:'Papyrus'}], out:[{item:'Paper sheet'}],
   note:'The short route: no quern, no press, no bucket. One job at a building you already have — if the map grows papyrus sedge.' },
 
-{ id:'quicklime', name:'Burn stone to quicklime', industry:'paper', also:['stone'], workshop:'Kiln', skill:'Furnace operator',
+{ id:'quicklime', name:'Burn stone to quicklime', industry:'paper', workshop:'Kiln', skill:'Furnace operator',
   needs:['fuel','bag'], in:[{item:'Calcium carbonate stone'}], out:[{item:'Quicklime'}],
   note:'Calcite, chalk, limestone or marble. All four are also flux, and steel is usually the better use of them.' },
 
@@ -361,6 +385,11 @@ window.DF_RECIPES = [
    out from what each job eats and makes, so the map cannot drift away from the
    steps above it the way a hand-drawn diagram would.
 
+   `wiki` is where the industry is written up on the official wiki, printed as
+   the bare URL under the heading. This site says what makes what; anything it
+   does not cover — exact yields, version differences, every edge case — lives
+   there, so the page points at the source instead of paraphrasing it.
+
    `steps` may borrow a job from another industry, and most of them have to. An
    ash chain that stopped at the ashery's own jobs would begin and end in
    mid-air; a forge with no mine above it starts with ore nobody dug. A borrowed
@@ -386,7 +415,8 @@ window.DF_RECIPES = [
 window.DF_INDUSTRY_FLOWS = {
 
   fuel: {
-    blurb: 'Everything else on this site burns something this industry makes. One tree, and then a choice about what to do with the log.',
+    wiki: ['https://dwarffortresswiki.org/index.php/Wood_industry',
+           'https://dwarffortresswiki.org/index.php/Fuel_industry'],
     steps: ['fell-tree', 'make-charcoal', 'make-ash', 'coke-bituminous', 'coke-lignite',
             'carpenter', 'bowyer'],
     paths: [
@@ -412,7 +442,7 @@ window.DF_INDUSTRY_FLOWS = {
   },
 
   farming: {
-    blurb: 'Seeds in, plants out, and the seeds come back — the only chain on the site that closes a loop. Fertiliser is the one branch off it.',
+    wiki: ['https://dwarffortresswiki.org/index.php/Farming'],
     steps: ['gather-plants', 'farm-plot', 'seeds-recovery', 'make-ash', 'make-potash-ash', 'fertilise'],
     paths: [
       { id: 'all', label: 'Everything',
@@ -436,7 +466,8 @@ window.DF_INDUSTRY_FLOWS = {
   },
 
   food: {
-    blurb: 'Everything a dwarf eats or drinks passes through one of these four buildings. Pick what you want to end up holding and the map numbers the jobs that get you there.',
+    wiki: ['https://dwarffortresswiki.org/index.php/Food',
+           'https://dwarffortresswiki.org/index.php/Alcohol'],
     steps: ['butcher', 'brew', 'mill', 'mill-paste', 'process-leaves', 'process-syrup',
             'process-salve', 'clean-fish', 'render-fat', 'press-oil', 'cook-meals'],
     /* The quern's output is written generically because one job grinds
@@ -466,7 +497,7 @@ window.DF_INDUSTRY_FLOWS = {
   },
 
   textiles: {
-    blurb: 'Every route in this industry meets at one node, and that node is the loom. Pick the fibre you actually have and the map numbers the jobs from it to a finished garment.',
+    wiki: ['https://dwarffortresswiki.org/index.php/Textile_industry'],
     steps: ['mill', 'process-thread', 'shear', 'spin', 'collect-webs', 'extract-strands',
             'weave', 'dye-thread', 'clothier', 'cloth-crafts', 'embroider'],
     /* The loom takes "Thread" whatever made it, so every job that makes one
@@ -515,7 +546,7 @@ window.DF_INDUSTRY_FLOWS = {
   },
 
   metal: {
-    blurb: 'Everything on this map happens at a smelter or a forge, and every job at both burns a unit of fuel unless the building stands over magma. Pick an end product and the map numbers the jobs that get you there.',
+    wiki: ['https://dwarffortresswiki.org/index.php/Metal_industry'],
     steps: ['mine', 'smelt-ore', 'make-alloy', 'extract-strands', 'adamantine-wafer', 'forge'],
     /* The forge names the seven bars it will take; the smelter makes "Metal
        bars" and the alloy job "Alloy bars". Folding the named bars back into
@@ -549,7 +580,9 @@ window.DF_INDUSTRY_FLOWS = {
   },
 
   soap: {
-    blurb: 'One job makes ash and everything below it is a choice about what to do with it. Pick an end product and the map numbers the jobs that get you there.',
+    wiki: ['https://dwarffortresswiki.org/index.php/Soap',
+           'https://dwarffortresswiki.org/index.php/Ash',
+           'https://dwarffortresswiki.org/index.php/Lye'],
     steps: ['make-ash', 'make-lye', 'make-potash-ash', 'make-potash-lye',
             'make-soap', 'make-pearlash', 'fertilise'],
     paths: [
@@ -571,7 +604,7 @@ window.DF_INDUSTRY_FLOWS = {
   },
 
   animal: {
-    blurb: 'One animal, six things off it, and four buildings that each take one of them somewhere different. Nothing here is optional if you want leather.',
+    wiki: ['https://dwarffortresswiki.org/index.php/Meat_industry'],
     steps: ['butcher', 'milk', 'tan', 'cheese', 'geld', 'bonecarve', 'leatherworks', 'parchment'],
     paths: [
       { id: 'all', label: 'Everything',
@@ -604,12 +637,12 @@ window.DF_INDUSTRY_FLOWS = {
   },
 
   stone: {
-    blurb: 'What the miners bring up, and the five buildings that turn it into something. Stone is the one material a fortress never runs out of.',
-    steps: ['mine', 'mason', 'stonecraft', 'mechanisms', 'cut-gem', 'encrust',
-            'clay', 'quicklime', 'make-pearlash'],
+    wiki: ['https://dwarffortresswiki.org/index.php/Stone',
+           'https://dwarffortresswiki.org/index.php/Gem_industry'],
+    steps: ['mine', 'mason', 'stonecraft', 'mechanisms', 'cut-gem', 'encrust'],
     paths: [
       { id: 'all', label: 'Everything',
-        blurb: 'Mining feeds four workshops and two furnaces. The kiln jobs are the only ones here that burn fuel, and the gems are the only ones that need something the map has to have put there.' },
+        blurb: 'One dwarf with a pick feeds four workshops. Nothing on this map burns fuel and nothing waits on a container, which is why stone is what a young fortress builds out of — the gems are the only part of it that needs something the map had to have put there.' },
 
       { id: 'blocks', label: 'Stone goods', tag: 'Furniture',
         steps: ['mine', 'mason'],
@@ -622,15 +655,38 @@ window.DF_INDUSTRY_FLOWS = {
       { id: 'gems', label: 'Gems',
         steps: ['mine', 'cut-gem', 'encrust'],
         blurb: 'Rough gems come out of the walls wherever the map put them. Cutting multiplies what they are worth; encrusting moves that value onto something a noble will look at.' },
+    ]
+  },
 
-      { id: 'ceramics', label: 'Ceramics',
-        steps: ['clay', 'quicklime'],
-        blurb: 'Clay is dug out of a soil layer and fired at a kiln, which costs a unit of fuel. The same kiln burns calcium carbonate into quicklime — the first step of the parchment chain, and its only other use.' }
+  ceramics: {
+    wiki: ['https://dwarffortresswiki.org/index.php/Ceramic_industry',
+           'https://dwarffortresswiki.org/index.php/Clay',
+           'https://dwarffortresswiki.org/index.php/Glazing'],
+    steps: ['collect-clay', 'fire-earthenware', 'fire-stoneware', 'fire-porcelain', 'glaze'],
+    paths: [
+      { id: 'all', label: 'Everything',
+        blurb: 'One building does all five jobs. The three firings are the same job over three different raw materials, so the whole industry is really one question — which clay does the map have — and one afterthought, which is whether to glaze what comes out.' },
+
+      { id: 'earthenware', label: 'Earthenware', tag: 'Renewable',
+        steps: ['collect-clay', 'fire-earthenware'],
+        blurb: 'The route almost every fortress takes. Clay soil is renewable and the gathering job needs no skill and no fuel, so the only cost is the unit of fuel the firing burns — and none at all at a magma kiln. Worth 3 a unit, which is the same as most stone.' },
+
+      { id: 'stoneware', label: 'Stoneware',
+        steps: ['collect-clay', 'fire-stoneware'],
+        blurb: 'Identical work for a third more value, and entirely out of your hands: fire clay is its own soil type and a rare one. Check the embark, take it if it is there, and do not plan a fortress around it.' },
+
+      { id: 'porcelain', label: 'Porcelain', tag: 'Worth 10',
+        steps: ['fire-porcelain'],
+        blurb: 'Kaolinite comes out of the wall rather than off the floor, so this is the one ware that runs out. Worth 10 — iron, silver and crystal glass — from a job with no smelter, no ore and no flux anywhere behind it, which makes a kaolinite layer one of the better things an embark can be hiding.' },
+
+      { id: 'glaze', label: 'Glazing', tag: 'Watertight',
+        steps: ['collect-clay', 'fire-earthenware', 'glaze'],
+        blurb: 'A second firing over a finished ceramic. Ash adds 50☼ and a cassiterite boulder adds 100☼, both multiplied by the glazer — but the reason to run it is that unglazed earthenware is porous, so until a glazer has been at them your jugs and large pots will not hold a drop.' }
     ]
   },
 
   glass: {
-    blurb: 'On a sandy map with magma under it, this replaces the whole metal industry — no mine, no ore, no flux. Pick what you want out of the furnace and the map numbers the jobs that get you there.',
+    wiki: ['https://dwarffortresswiki.org/index.php/Glass_industry'],
     steps: ['collect-sand', 'make-pearlash', 'green-glass', 'clear-glass',
             'crystal-glass', 'glass-goods'],
     paths: [
@@ -656,7 +712,7 @@ window.DF_INDUSTRY_FLOWS = {
   },
 
   paper: {
-    blurb: 'The deepest chain on the site, and the one where the order is least obvious: two of the jobs feed the last step sideways rather than in line. Pick a sheet route or a finished book and the map numbers what to queue.',
+    wiki: ['https://dwarffortresswiki.org/index.php/Paper_industry'],
     steps: ['make-slurry', 'press-paper', 'papyrus-sheet', 'quicklime', 'milk-of-lime',
             'parchment', 'binding', 'quire', 'scroll', 'write', 'codex'],
     /* Slurry lists four cloth plants and threshing lists the crop generically,
@@ -745,6 +801,15 @@ window.DF_ITEM_NOTES = {
   'Mechanism': 'Made from any stone. Needed for levers, traps, bridges, and to build a screw press.',
   'Rock pot': 'A stone substitute for a wooden barrel. Holds drinks, syrup and other liquids.',
   'Jug': 'Carved from stone at the craftsdwarf’s workshop. The screw press will not make oil without one.',
+  'Clay soil': 'Clay, silty clay, sandy clay, clay loam or fire clay — a floor tile in a soil layer, not a boulder. Gathering never uses the tile up, so a fortress standing on clay has an endless supply of it.',
+  'Clay': 'One gathered unit, and the input to one firing. Generic clay fires to earthenware; it is the fire clay variety that fires to stoneware.',
+  'Fire clay': 'A soil type of its own and an uncommon one. It fires to stoneware — the same job and the same fuel as earthenware, for a third more value.',
+  'Kaolinite': 'A stone, mined out of the wall rather than gathered off the floor, and the only thing porcelain can be made from. Finite, unlike the clays: when the layer is gone the porcelain stops.',
+  'Earthenware': 'Worth 3, and porous. Jugs and large pots fired from it hold nothing until a glazer has sealed them — which is the one thing every fortress actually needs a glazer for.',
+  'Stoneware': 'Worth 4 and watertight as fired. The only thing standing between you and it is whether the embark has fire clay.',
+  'Porcelain': 'Worth 10 — iron, silver and crystal glass — out of a kiln with no ore, no flux and no smelter behind it. Fire-safe but not magma-safe.',
+  'Glazed ceramics': 'Ash glaze adds 50☼, tin glaze from cassiterite adds 100☼, both multiplied by the glazer’s quality. The value is the smaller half of it: glazing is what makes an earthenware container hold liquid.',
+  'Cassiterite': 'Tin ore at a smelter, tin glaze at a kiln. The kiln takes the boulder whole — no smelting first.',
   'Papyrus': 'Papyrus sedge, a surface plant. The only material that becomes a sheet in one job, with no quern, press or bucket in the way.',
   'Calcium carbonate stone': 'Calcite, chalk, limestone or marble. Every one of them is also flux — and steel is almost always the better thing to do with them.',
   'Quicklime': 'Burnt calcium carbonate, one bag per unit. It leads to parchment and to nothing else.',

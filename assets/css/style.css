@@ -222,6 +222,39 @@ td .ingot { margin-right: .4rem; vertical-align: -.28em; }  /* chips use flex ga
 
 .group-note { margin: -.4rem 0 1rem; font-size: .84rem; color: var(--ink-3); max-width: 62ch; }
 
+/* The industry map opens with a link out to the wiki page it summarises,
+   printed as the URL itself so it can be read off the screen and typed
+   somewhere else. The URLs are long, so they wrap as a column on narrow
+   screens rather than being truncated. */
+.wiki-note {
+  margin: -.4rem 0 1.6rem; display: flex; flex-wrap: wrap;
+  align-items: baseline; gap: .35rem .7rem;
+}
+/* The label is what tells a reader the row of URLs under it is the game's own
+   documentation rather than a citation this site is hedging with, so it is set
+   at full ink and bold — the same size as the other small-caps labels on the
+   page, carrying more weight than any of them. */
+.wiki-label {
+  font-size: .64rem; text-transform: uppercase; letter-spacing: .1em;
+  font-weight: 700; color: var(--ink); font-family: var(--mono);
+}
+/* On a building's page the note sits between the blurb and the build keys, so
+   it needs its own space on both sides rather than borrowing any back. */
+.ws-head .wiki-note { margin: .5rem 0 1.05rem; }
+.wiki-list { list-style: none; margin: 0; padding: 0; }
+.wiki-list li + li { margin-top: .15rem; }
+.wiki-link {
+  font-family: var(--mono); font-size: .76rem; color: var(--accent);
+  text-decoration: none; border-bottom: 1px solid transparent;
+  overflow-wrap: anywhere;
+}
+/* The host and the /index.php/ are the same on every one of these, so they
+   carry no information at all past the first line — dropped to the muted ink
+   they read as the address they are, and the article name reads as the link. */
+.wiki-stem  { color: var(--ink-3); }
+.wiki-topic { color: var(--accent); font-weight: 600; }
+.wiki-link:hover { border-bottom-color: var(--accent); }
+
 /* The tier filter reuses the pickers' chips, but it stands on the page rather
    than inside a panel, so it brings its own spacing instead of `.brew-filters`. */
 .ws-filters { margin: -.6rem 0 1.4rem; }

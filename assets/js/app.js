@@ -130,6 +130,35 @@
   const icon = (name, cls) => draw(SHOPS[name] || { art: GENERIC }, 'ws-icon ' + (cls || ''));
   const sym  = (name, cls) => (ICONS[name] ? draw(ICONS[name], 'sym ' + (cls || '')) : '');
 
+  /* The wiki is the source this whole site is a shortcut to, so a link out to
+     it is printed as its own URL rather than hidden behind a word — a page read
+     on a phone is often copied to a desktop by hand. Every one of these URLs
+     carries the same host and /index.php/ in front, which says nothing past the
+     first line, so the boilerplate drops back a shade and the article name is
+     left standing as the part you are actually scanning for. */
+  const wikiLink = (u) => {
+    const cut = u.lastIndexOf('/') + 1;
+    /* Shown decoded: half these articles are named after a dwarf who owns the
+       building, and `Butcher%27s_shop` is not a thing anyone can read. The href
+       keeps the encoding it was written with; what is printed is still the same
+       address, and still one a reader can type. */
+    const show = (part) => { try { return decodeURIComponent(part); } catch (e) { return part; } };
+    return `<a class="wiki-link" href="${esc(u)}" target="_blank" rel="noopener"
+      ><span class="wiki-stem">${esc(show(u.slice(0, cut)))}</span
+      ><span class="wiki-topic">${esc(show(u.slice(cut)))}</span></a>`;
+  };
+
+  /* One URL sits on the label's own line; several stack under it, because a row
+     of three of these wraps into an unreadable block. */
+  const wikiNote = (list) => {
+    const wiki = list || [];
+    return !wiki.length ? '' : `<div class="wiki-note">
+      <span class="wiki-label">${esc(t('map.wiki', 'Official wiki'))}</span>
+      ${wiki.length === 1 ? wikiLink(wiki[0])
+        : `<ul class="wiki-list">${wiki.map((u) => `<li>${wikiLink(u)}</li>`).join('')}</ul>`}
+      </div>`;
+  };
+
   /* The pixel-art plate from assets/img. It only stands in for the SVG on the
      two places that give a building real estate — its card on the grid and its
      own page. At chip size 96×128 of pixel art is mush, and the places and
@@ -2250,7 +2279,7 @@
     const pathText = (p, field, en) => (en ? td('flowPath', pathKey(p, field), en) : en);
 
     body.innerHTML = `
-      <p class="group-note">${esc(td('flowBlurb', ind.id, cfg.blurb))}</p>
+      ${wikiNote(cfg.wiki)}
       <div class="ind-filters">
         <div class="frow" data-facet="path">
           <span class="flabel">${esc(t('map.show', 'Show'))}</span>
@@ -2627,6 +2656,7 @@
             ${skills.map((sk) => `<span class="need">${esc(sk)}</span>`).join('')}
           </div>
           ${meta.note ? `<p class="item-note">${esc(td('shopNote', name, meta.note))}</p>` : ''}
+          ${wikiNote(meta.wiki)}
           ${meta.keys ? `<p class="ws-build">${t('ws.build', 'Build {keys}', { keys: keycaps(meta.keys) })}${meta.magma
               ? ` <span class="dot">·</span> ${esc(t('ws.magma', 'the magma version burns no fuel'))}` : ''}</p>` : ''}
           <p class="muted ws-inds">${t('ws.feeds', 'Feeds {inds}', { inds: inds.map((i) =>
@@ -2929,7 +2959,7 @@ svg.getBBox();   // pad by 1.4, then sw = 1.7 * max(w, h) / 32</code></pre>
         the order English does. The groups under <code>data</code> are
         <code>industry</code>, <code>industryBlurb</code>, <code>itemNote</code>,
         <code>shopNote</code>, <code>body</code>, <code>bodyNote</code>, <code>armorNote</code>,
-        <code>flowBlurb</code>, <code>flowPath</code>, <code>flowTitle</code>,
+        <code>flowPath</code>, <code>flowTitle</code>,
         <code>tableTitle</code>, <code>tableBlurb</code> and <code>tableCols</code>.</p>
         <p>Add a pack, add its code to <code>LANGS</code> in <code>assets/js/app.js</code>, and the
         button in the header cycles to it. The choice is kept in <code>localStorage</code> and

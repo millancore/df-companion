@@ -61,6 +61,12 @@ window.DF_ICONS = {
         <path d="M4 14h24"/>
         <path d="M10 6 8 14l8 13 8-13-2-8"/>` },
 
+'ceramics': { box: '5.6 3.6 20.8 25.4', sw: 1.35,
+  art: `<path d="M10 5h12"/>
+        <path d="M11.5 5 10.5 10.5"/><path d="M20.5 5 21.5 10.5"/>
+        <ellipse cx="16" cy="19" rx="9" ry="8.6"/>
+        <path d="M8 15.5h16"/>` },
+
 'paper':    { box: '7.6 2.6 18.8 26.8', sw: 1.42,
   art: `<path d="M9 4h10l6 6v18H9z"/>
         <path d="M19 4v6h6"/>
