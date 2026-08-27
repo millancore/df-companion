@@ -108,6 +108,26 @@ main { max-width: 1240px; margin: 0 auto; padding: clamp(1.2rem, 4vw, 2.5rem) cl
 .page-head { display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
 .page-head h1 { margin: 0 0 .25rem; font-size: clamp(1.4rem, 3.5vw, 2rem); letter-spacing: -.02em; }
 .page-head p { margin: 0; color: var(--ink-2); max-width: 62ch; }
+/* The bug on a page title: the far right of the heading block, level with the
+   title itself. Boxed and at full strength rather than a faint glyph — a reader
+   who has just found a mistake is looking for somewhere to say so, and half the
+   value of putting it on the page is that they can find it without hunting. It
+   still reads as a control rather than as part of the title, because the frame
+   is the one the topbar's own buttons use. */
+.hero, .page-head, .item-head, .ws-head { position: relative; }
+.page-issue {
+  position: absolute; top: 0; right: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border: 1px solid var(--line-2); background: var(--panel);
+  color: var(--ink-2); text-decoration: none;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.page-issue:hover {
+  color: var(--accent-ink); border-color: var(--accent); background: var(--accent);
+}
+.page-issue .sym { width: 20px; height: 20px; }
+
 .back { display: inline-flex; align-items: center; gap: .3rem; font-size: .82rem; text-decoration: none; margin-bottom: .8rem; color: var(--ink-3); }
 .back:hover { color: var(--accent); }
 
@@ -375,9 +395,8 @@ td:first-child { font-weight: 600; white-space: nowrap; }
    between the cards instead of running underneath them. */
 .f-way { width: 0; align-self: stretch; flex: none; }
 
-/* No arrowheads: the map runs down the page, so every wire on it means "next"
-   already, and a tip on each one only crowded the top edge of the card it
-   landed on. The one wire that does not mean next draws dashed instead.
+/* No arrowheads: the map runs down the page and every wire on it means "next",
+   so a tip on each one only crowded the top edge of the card it landed on.
 
    Every wire is straight legs and square corners, so the joins are rounded:
    the corner itself is eased in the path, and this catches the few that are
@@ -389,9 +408,6 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 }
 .fm-wire.hot { stroke: var(--c, var(--accent)); stroke-width: 2.4; }
 .fm-wire.lit { stroke: var(--accent); stroke-width: 2.4; }
-/* A chain that closes on itself — seeds back out of the crop they grew — draws
-   dashed, because it is the one wire on the map that does not mean "next". */
-.fm-wire.back { stroke-dasharray: 5 4; }
 .fmap.picked .fm-wire:not(.hot):not(.lit) { opacity: .22; }
 
 /* Items are the spine: what the fortress is holding between one job and the
@@ -454,7 +470,11 @@ td:first-child { font-weight: 600; white-space: nowrap; }
   color: var(--ink); text-decoration: none;
 }
 .fjob-shop:hover { color: var(--accent); }
-.fjob-art { display: flex; justify-content: center; color: var(--ink-2); margin-bottom: .6rem; }
+.fjob-art {
+  display: flex; justify-content: center; margin-bottom: .6rem;
+  color: var(--ink-2); text-decoration: none;
+}
+.fjob-art:hover { color: var(--accent); }
 .f-job:hover .fjob-art, .f-group:hover .fjob-art { color: var(--accent); }
 .fjob-txt { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .f-job h3 { margin: 0 0 .55rem; font-size: .92rem; }

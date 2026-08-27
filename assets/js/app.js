@@ -1057,8 +1057,8 @@
       <div class="flow">
         ${ins ? `<div class="flow-row"><span class="flow-label">${esc(t('flow.in', 'in'))}</span>${ins}</div>` : ''}
         ${where}
-        <div class="arrow">${ARROW}</div>
-        ${outs ? `<div class="flow-row"><span class="flow-label">${esc(t('flow.out', 'out'))}</span>${outs}</div>` : ''}
+        ${outs ? `<div class="arrow">${ARROW}</div>
+        <div class="flow-row"><span class="flow-label">${esc(t('flow.out', 'out'))}</span>${outs}</div>` : ''}
       </div>
       ${needs ? `<div class="needs">${needs}</div>` : ''}
     </article>`;
@@ -2093,7 +2093,7 @@
 
   function flowModel(cfg) {
     const nodes = new Map();
-    const edges = [];
+    let edges = [];
 
     /* `joins` folds one item name into another for the length of this map.
        The recipes are written at the altitude each industry needs and the two
@@ -2119,7 +2119,35 @@
       (r.out || []).forEach((x) => edges.push({ from: k, to: addItem(x.item), job: k }));
     });
 
-    return collapseEnds(nodes, dedupe(edges), steps);
+    edges = dedupe(edges);
+    flowBreakCycles(nodes, edges);
+    return collapseEnds(nodes, splitReturns(nodes, edges), steps);
+  }
+
+  /* A chain that closes — the Still hands back the seed the crop grew from —
+     used to be drawn as a wire looping up the margin. It read as a machine
+     rather than as a fortress: what a brewer actually leaves you with is a
+     barrel and a pile of seeds, both of them on the floor next to him, and a
+     line running four rows back up the page to the farm plot says that far less
+     plainly than the word "Seeds" sitting under the Still does.
+
+     So a closing edge is cut and its far end redrawn as its own node under the
+     job that makes it. The two nodes share a name and a link, which is what
+     connects them for the reader; the map stays a chain that runs one way down
+     the page. */
+  function splitReturns(nodes, edges) {
+    return edges.map((e) => {
+      if (!e.cycle) return e;
+      /* Cut on whichever side is the item: a job's own copy of what it hands
+         back, sitting under it; or, for a chain that closes the other way
+         round, a copy of what the job wants sitting above it, which is a
+         dashed box like any other material this map does not make. */
+      const end = e.from[0] === 'j' ? 'to' : 'from';
+      const src = nodes.get(e[end]);
+      const k = 'r:' + (end === 'to' ? e.from : e.to) + ':' + src.name;
+      if (!nodes.has(k)) nodes.set(k, { key: k, kind: 'item', name: src.name, layer: 0 });
+      return { ...e, [end]: k, cycle: false };
+    });
   }
 
   /* Two inputs that join to the same node — the forge's iron and copper bars —
@@ -2160,16 +2188,14 @@
     return { nodes, edges: dedupe(edges) };
   }
 
-  /* Some chains genuinely close. A crop grows from seeds and hands the seeds
-     back; the wire that closes that loop cannot point downwards, and a layering
-     pass that tries to honour it drags the whole industry out of order — the
-     farm plot ends up below the job that recovers what it planted.
+  /* Some chains genuinely close. A crop grows from seeds and the Still hands
+     the seeds back; a layering pass that tries to honour that wire drags the
+     whole industry out of order — the farm plot ends up below the brewer.
 
-     So the loop is cut first. A depth-first walk from the jobs in the order the
-     flow lists them marks any edge that reaches a node already on the stack:
-     that is the one edge of the cycle a reader is least surprised to see drawn
-     as a return, because everything before it read forwards. Layering ignores
-     the marked edges entirely and the map draws them as loops. */
+     A depth-first walk from the jobs in the order the flow lists them marks any
+     edge that reaches a node already on the stack. That is the one edge of the
+     cycle a reader is least surprised to see cut, because everything before it
+     read forwards, and `splitReturns` is what cuts it. */
   function flowBreakCycles(nodes, edges) {
     const out = new Map();
     edges.forEach((e) => (out.get(e.from) || out.set(e.from, []).get(e.from)).push(e));
@@ -2188,23 +2214,57 @@
   }
 
   /* Longest-path layering, relaxed rather than sorted — cheap, and it cannot
-     hang now that the loops are cut. */
+     hang: every closing edge was cut before it got here. */
   function flowLayer(nodes, edges) {
     const inc = new Map(), out = new Map();
     const push = (m, k, v) => { (m.get(k) || m.set(k, []).get(k)).push(v); };
     edges.filter((e) => !e.cycle)
       .forEach((e) => { push(inc, e.to, e.from); push(out, e.from, e.to); });
 
-    for (let pass = 0; pass < 24; pass++) {
-      let moved = false;
-      nodes.forEach((n) => {
-        (inc.get(n.key) || []).forEach((f) => {
-          const src = nodes.get(f);
-          if (src && src.layer < 40 && src.layer + 1 > n.layer) { n.layer = src.layer + 1; moved = true; }
+    const relax = () => {
+      for (let pass = 0; pass < 24; pass++) {
+        let moved = false;
+        nodes.forEach((n) => {
+          (inc.get(n.key) || []).forEach((f) => {
+            const src = nodes.get(f);
+            if (src && src.layer < 40 && src.layer + 1 > n.layer) { n.layer = src.layer + 1; moved = true; }
+          });
         });
-      });
-      if (!moved) break;
-    }
+        if (!moved) break;
+      }
+    };
+    relax();
+
+    /* A job held up by nothing but materials from off the map is not fixed at
+       any particular depth: fertilising a plot waits on a bag of potash and on
+       nothing this map makes, so the layering has no reason to put it anywhere
+       in particular and puts it at the top. Where its own building appears
+       again further down, that is where it belongs — a plot is either plain or
+       fertilised, and drawing the Farm Plot twice makes two buildings out of
+       one. So it drops to the shallowest row its workshop already stands on,
+       and the two jobs end up on one card, the way three threshing jobs do. */
+    const jobs = [...nodes.values()].filter((n) => n.kind === 'job');
+    /* Free on both sides, or it is not free at all: everything it wants comes
+       from off the map, and nothing on the map is waiting on what it makes.
+       Anything else has a place in the chain and has to keep it — the job that
+       extracts adamantine strands also runs on one thing nobody here mined, but
+       a loom four rows down is waiting on it. */
+    const loose = (n) => {
+      const ins = inc.get(n.key) || [];
+      return ins.length > 0 && ins.every((k) => !inc.has(k))
+        && (out.get(n.key) || []).every((k) => !(out.get(k) || []).length);
+    };
+    jobs.filter(loose).forEach((n) => {
+      const sibs = jobs.filter((x) => x !== n && x.r.workshop === n.r.workshop);
+      /* Already sharing a card with its own building is the whole point, so a
+         job standing beside a sibling stays where it is rather than going off
+         to find a deeper one — gelding belongs next to milking, not next to
+         the cheese two rows down. */
+      if (sibs.some((x) => x.layer === n.layer)) return;
+      const below = sibs.filter((x) => x.layer > n.layer);
+      if (below.length) n.layer = Math.min(...below.map((x) => x.layer));
+    });
+    relax();   /* whatever the moved job makes moves down with it */
 
     /* Something nothing on this map makes — a log, a tub of tallow — is what
        you bring to the chain, not a stage of it. Left up at the top it would
@@ -2231,12 +2291,6 @@
     let n = 0;
     return edges.map((e) => {
       const a = nodes.get(e.from), b = nodes.get(e.to);
-      /* Some chains genuinely close: a crop grows from seeds and hands the
-         seeds back, ash becomes lye becomes potash. There is no row order that
-         makes that wire point downwards, so it is marked and drawn as what it
-         is — a return, routed out to the side rather than pretending to be one
-         more step forward. */
-      const back = e.cycle || b.layer <= a.layer;
       const chain = [a.key];
       for (let L = a.layer + 1; L < b.layer; L++) {
         const k = 'w:' + (n++);
@@ -2244,13 +2298,13 @@
         chain.push(k);
       }
       chain.push(b.key);
-      return { ...e, chain, back };
+      return { ...e, chain };
     });
   }
 
   /* Order each row by where its neighbours sit in the rows above and below, so
      the branches stay on their own side and the wires mostly stop crossing. */
-  function flowOrder(nodes, wires) {
+  function flowOrder(nodes, wires, head) {
     const rows = [];
     nodes.forEach((n) => (rows[n.layer] = rows[n.layer] || []).push(n));
     rows.forEach((row) => row.forEach((n, i) => (n.pos = i)));
@@ -2278,8 +2332,61 @@
         row.forEach((n, i) => (n.pos = i));
       });
     }
+    /* Clustered first, because a row whose buildings are still scattered gives
+       the crossing pass the wrong row to optimise — farming's three threshing
+       jobs sat either side of the fertiliser branch, and closing them up
+       afterwards moved everything the pass had just settled. Clustered again
+       after, because an adjacent swap can still walk a job back out of its
+       group; the second pass is cheap and only ever moves it home. */
+    flowCluster(rows);
     flowUncross(rows, wires, nodes);
+    flowCluster(rows);
+    flowAnchor(rows, nodes, head);
     return rows;
+  }
+
+  /* A mirrored map crosses exactly as many wires as the map it mirrors, so
+     nothing above this has any reason to prefer one over the other and which
+     one comes out is down to where the sweep happened to settle. The reader
+     does have a preference: the numbers run in reading order, so the branch the
+     flow leads with should be the branch on the left. Farming otherwise opens
+     on "make ash" — the first rung of a side chain borrowed from the soap
+     industry — because the fertiliser branch drifted to the near side. */
+  function flowAnchor(rows, nodes, head) {
+    const n = nodes.get(head);
+    if (!n || !rows[n.layer] || rows[n.layer].length < 2) return;
+    if (n.pos * 2 <= rows[n.layer].length - 1) return;
+    rows.forEach((row) => { row.reverse(); row.forEach((x, i) => (x.pos = i)); });
+  }
+
+  /* Barycentres order a row by its wires, which is right for everything except
+     the one thing a reader sees before any wire: three jobs at the same
+     workshop want to be one card with three lines on it, and they can only be
+     drawn that way if they end up standing next to each other. Nothing in the
+     wires pulls them together — a farmer's workshop threshing for the loom, for
+     the kitchen and for the quarry bushes has its three jobs going three
+     different places — so the row is closed up afterwards: the first job of a
+     building keeps the place the wires gave it, and the rest of that building
+     come and stand beside it. */
+  function flowCluster(rows) {
+    rows.forEach((row) => {
+      const at = new Map();
+      for (let i = 0; i < row.length; i++) {
+        const n = row[i];
+        if (n.kind !== 'job') continue;
+        const w = n.r.workshop;
+        if (!at.has(w)) { at.set(w, i); continue; }
+        const to = at.get(w) + 1;
+        if (to === i) { at.set(w, i); continue; }
+        row.splice(i, 1);
+        row.splice(to, 0, n);
+        at.set(w, to);
+        /* Everything between the group and where this job stood shifted right
+           by one, so the other buildings' anchors move with it. */
+        at.forEach((v, k) => { if (k !== w && v >= to && v < i) at.set(k, v + 1); });
+      }
+      row.forEach((n, i) => (n.pos = i));
+    });
   }
 
   /* Barycentres get the rows roughly right and then stop, because an average is
@@ -2289,7 +2396,7 @@
      try each neighbouring pair in a row and keep the swap if fewer wires cross. */
   function flowUncross(rows, wires, nodes) {
     const gaps = [];
-    wires.filter((w) => !w.back).forEach((w) => w.chain.forEach((k, i) => {
+    wires.forEach((w) => w.chain.forEach((k, i) => {
       if (!i) return;
       const a = nodes.get(w.chain[i - 1]), b = nodes.get(k);
       (gaps[a.layer] = gaps[a.layer] || []).push([a, b]);
@@ -2325,10 +2432,18 @@
 
   function viewFlow(body, cfg, ind, opening) {
     const { nodes, edges } = flowModel(cfg);
-    flowBreakCycles(nodes, edges);
     flowLayer(nodes, edges);
     const wires = flowWires(nodes, edges);
-    const rows  = flowOrder(nodes, wires);
+    /* Anchored on the first step the industry actually owns, not simply the
+       first one listed: a map whose step list opens with a borrowed job — the
+       wood furnace at the head of farming's fertiliser branch — would otherwise
+       pin a side chain to the left and start the numbering in another
+       industry. */
+    const ownStep = cfg.steps.find((id) => {
+      const r = recipeById(id);
+      return r && (r.industry === ind.id || (r.also || []).includes(ind.id));
+    }) || cfg.steps[0];
+    const rows  = flowOrder(nodes, wires, 'j:' + ownStep);
 
     /* An item with nothing making it is an input to the whole map; one with
        nothing eating it is where a branch stops. Both are worth marking — they
@@ -2384,10 +2499,20 @@
     /* The building is named above its own picture, so the plate reads as a
        labelled thing rather than as decoration over the job title — and the eye
        can run down the map picking out buildings without stopping to work out
-       which pixel-art hut is which. */
-    const shopHead = (w) => `<a class="fjob-shop" href="#/w/${encodeURIComponent(w)}"
-        >${esc(w)}</a>
-      <div class="fjob-art">${plate(w, 'xl')}</div>`;
+       which pixel-art hut is which.
+
+       Both halves link, because the picture is the half the eye lands on: a
+       reader who has already found the smelter by its shape should not have to
+       go back up to the word above it to open it. The plate carries the title
+       rather than repeating the name as text, so a screen reader hears the
+       building named once, by the heading. */
+    const shopHead = (w) => {
+      const href = `#/w/${encodeURIComponent(w)}`;
+      return `<a class="fjob-shop" href="${href}">${esc(w)}</a>
+        <a class="fjob-art" href="${href}" aria-hidden="true" tabindex="-1"
+           title="${esc(t('map.openshop', 'Open the {name} page', { name: w }))}"
+          >${plate(w, 'xl')}</a>`;
+    };
 
     const jobNode = (n) =>
       `<article class="fnode f-job">${shopHead(n.r.workshop)}${jobBody(n)}</article>`;
@@ -2489,7 +2614,7 @@
 
     const wireEls = wires.map((w) => {
       const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      p.setAttribute('class', 'fm-wire' + (w.back ? ' back' : ''));
+      p.setAttribute('class', 'fm-wire');
       svg.appendChild(p);
       return { w, el: p };
     });
@@ -2633,30 +2758,8 @@
         return ortho(corners);
       };
 
-      /* A return wire leaves and re-enters at the side rather than the top and
-         bottom, and swings out past everything on the map to do it. The rows
-         are centred, so the margin beside them is the one lane on the page with
-         nothing in it — which is what keeps a wire that travels the height of
-         the industry from crossing every card on the way. */
-      let far = 0;
-      els.forEach((el) => { far = Math.max(far, el.getBoundingClientRect().right - box.left); });
-      far = Math.min(box.width - 4, far + 26);
-
-      const loop = (a, b) => {
-        const ea = els.get(a), eb = els.get(b);
-        if (!ea || !eb) return '';
-        const ra = outer(ea).getBoundingClientRect();
-        const rb = outer(eb).getBoundingClientRect();
-        if (!ra.height || !rb.height) return '';
-        const x1 = ra.right - box.left, y1 = ra.top - box.top + ra.height / 2;
-        const x2 = rb.right - box.left, y2 = rb.top - box.top + rb.height / 2;
-        const out = Math.max(far, x1 + 26, x2 + 26);
-        return ortho([{ x: x1, y: y1 }, { x: out, y: y1 },
-                      { x: out, y: y2 }, { x: x2, y: y2 }]);
-      };
-
       wireEls.forEach(({ w, el }) => {
-        const d = w.back ? loop(w.chain[0], w.chain[1]) : route(w.chain);
+        const d = route(w.chain);
         if (d) el.setAttribute('d', d); else el.removeAttribute('d');
       });
     }
@@ -3271,12 +3374,6 @@ window.DF_I18N = {
       + 'rel="noopener">Dwarf Fortress</a>. Not affiliated with Bay 12 Games or Kitfox Games. '
       + 'Verify anything load-bearing against the <a href="https://dwarffortresswiki.org" '
       + 'target="_blank" rel="noopener">wiki</a>.');
-    const issue = document.getElementById('foot-issue');
-    if (issue) issue.innerHTML = t('foot.issue',
-      'Spotted something wrong? <a href="https://github.com/millancore/df-companion/issues/new" '
-      + 'target="_blank" rel="noopener">Report an issue</a> or '
-      + '<a href="https://github.com/millancore/df-companion" target="_blank" '
-      + 'rel="noopener">fix it on GitHub</a>.');
     const credit = document.getElementById('foot-credit');
     if (credit) credit.innerHTML = t('foot.credit',
       'Layout inspired by Max Cantor’s printable cheat sheet at '
@@ -3323,6 +3420,47 @@ window.DF_I18N = {
 
   document.getElementById('theme').innerHTML = sym('theme');
 
+  /* ── report a mistake ─────────────────────────────────────────── */
+  /* A footer line said "spotted something wrong?" at the bottom of every page,
+     which is neither where the reader is looking when they spot it nor a place
+     that knows what they were looking at. An issue reading "something on the
+     site is wrong" costs somebody an afternoon working out where.
+
+     So the bug sits on the page's own title, and it takes the page with it:
+     GitHub's new-issue form is pre-filled with the heading and the URL, and
+     prompts for the two things the report actually needs — what this page
+     claims and what the game does. Injected after every render rather than
+     written into eleven views, so a page added later gets one for free. */
+  const ISSUE_NEW = 'https://github.com/millancore/df-companion/issues/new';
+  function markIssue() {
+    const h1 = main.querySelector('h1');
+    if (!h1 || h1.querySelector('.page-issue')) return;
+    const name = h1.textContent.trim();
+    const body = t('issue.body',
+        '**Page:** {name}\n**URL:** {url}\n\n'
+      + '**What the page says:**\n\n'
+      + '**What the game does:**\n\n'
+      + '**Where you saw it (screen, wiki page, version):**\n',
+      { name, url: location.href });
+
+    const a = document.createElement('a');
+    a.className = 'page-issue';
+    a.href = `${ISSUE_NEW}?title=${encodeURIComponent(name)}&body=${encodeURIComponent(body)}`;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.title = t('foot.issue.title',
+      'Something wrong on this page? Open an issue on GitHub — it will already know '
+      + 'which page you were on.');
+    a.setAttribute('aria-label', t('foot.issue', 'Report an issue with this page'));
+    a.innerHTML = sym('bug');
+    /* Pinned to the head block rather than dropped inside the heading: the
+       headings are variously block, flex, and a shrink-wrapped column inside a
+       flex row, and a float would land at whichever right edge that happened to
+       give it. The head block is the one box on every page whose right edge is
+       the page's. */
+    (h1.closest('.hero, .page-head, .item-head, .ws-head') || h1).appendChild(a);
+  }
+
   /* ── router ───────────────────────────────────────────────────── */
   function route() {
     const raw = location.hash.replace(/^#\/?/, '');
@@ -3339,6 +3477,8 @@ window.DF_I18N = {
     else if (parts[0] === 'about')      viewAbout();
     else if (parts[0] === 'contribute') viewContribute();
     else                                viewHome();
+
+    markIssue();
 
     const NAV = { i: 'industries', item: 'industries', w: 'workshops' };
     const key = !parts.length ? 'industries' : (NAV[parts[0]] || parts[0]);

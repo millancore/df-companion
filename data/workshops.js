@@ -266,9 +266,6 @@ window.DF_WORKSHOPS = {
         <circle cx="10" cy="14" r="1.2" class="ac"/><circle cx="16" cy="11" r="1.2" class="ac"/>
         <circle cx="22" cy="14" r="1.2" class="ac"/>` },
 
-'Any of the below': { kind: 'place', box: '4.6 3.6 22.8 24.8', sw: 1.32,
-  note: 'Not a building — several different jobs all have this effect.',
-  art: `<path d="M16 5v13"/><path d="M11 13l5 5 5-5" class="ac"/><path d="M6 22v5h20v-5"/>` }
 
 };
 

@@ -51,9 +51,16 @@ window.DF_RECIPES = [
 /* Thirty-six jobs, one log each, one job shape. Same treatment as the Still and
    the forge: the item list lives in data/carpentry.js — with the wooden weapons
    and shields left in data/weapons.js and data/armor.js where they belong — and
-   the workshop's own page turns the lot into a picker. */
+   the workshop's own page turns the lot into a picker.
+
+   One output, and a generic one. Naming four of the thirty-six here put a card
+   on the fuel map reading "wooden furniture · barrel · bin · bucket · cage",
+   which is a list too short to be the answer and too long to be a label —
+   picking four favourites out of thirty-six and implying the other thirty-two
+   are something else. Every one of them still reaches its own item page:
+   data/carpentry.js is what fills in "made by" there, not this line. */
 { id:'carpenter', name:'Carpentry', industry:'fuel', workshop:"Carpenter's Workshop", skill:'Carpenter',
-  in:[{item:'Log'}], out:[{item:'Wooden furniture'},{item:'Barrel'},{item:'Bin'},{item:'Bucket'},{item:'Cage'}],
+  in:[{item:'Log'}], out:[{item:'Wooden furniture'}],
   note:'One log per job, thirty-six things it can be, and no fuel, no anvil and no second material anywhere in the building — which is why a fortress can run on wood before it can run on anything else. Barrels and buckets are the quiet bottleneck of half of it: build a lot of them early. Pick an item on the workshop page to see what it costs and what it is for.' },
 
 { id:'bowyer', name:'Make wooden bow / crossbow parts', industry:'fuel', workshop:"Bowyer's Workshop", skill:'Bowyer',
@@ -61,20 +68,30 @@ window.DF_RECIPES = [
 
 /* ── FARMING ─────────────────────────────────────────────────── */
 { id:'farm-plot', name:'Grow a crop', industry:'farming', workshop:'Farm Plot', skill:'Grower',
-  in:[{item:'Seeds'}], out:[{item:'Plump helmet'},{item:'Cave wheat'},{item:'Pig tail'},{item:'Sweet pod'},{item:'Dimple cup'},{item:'Quarry bush'}],
-  note:'Underground plots need a muddy floor (soil layers already qualify, so no irrigation is needed there). Soil layers cannot be smoothed or engraved.' },
+  in:[{item:'Seeds'}], out:[{item:'Harvested plant'}],
+  note:'One job whatever the seed is — the plot is told which crop to plant each season and the grower does the rest. Underground plots need a muddy floor, and a soil layer already counts, so digging into one needs no irrigation. Plots can sit above ground too: any soil tile on the surface will take one, and that is the only place the surface crops will grow. Every crop has its own seasons, so a plot set to one thing all year is idle for part of it.' },
 
+/* Seeds first, and not only because that is what gathering is for: the flow map
+   cuts the seed loop at whichever edge its walk reaches last, and the walk
+   starts here. Leading with the seeds sends it down the growing side first, so
+   the return it draws is the one that reads as a return — recovered seeds going
+   back to the plot, rather than the plot's own harvest drawn as an afterthought. */
 { id:'gather-plants', name:'Gather plants above ground', industry:'farming', workshop:'Out in the world', skill:'Plant gatherer',
-  in:[{item:'Wild plant'}], out:[{item:'Above-ground plant'},{item:'Seeds'}],
-  note:'Free food and free seed stock, at the cost of sending a dwarf outside where the goblins live.' },
+  in:[{item:'Wild plant'}], out:[{item:'Seeds'},{item:'Harvested plant'}],
+  note:'Free food and free seed stock, at the cost of sending a dwarf outside where the goblins live. It is also how you get seeds for a crop you have none of, short of a caravan.' },
 
+/* Not a step on the way to a crop but the other thing the same building does:
+   a plot is either plain or fertilised, and the growing job either side of that
+   choice is identical. So it produces nothing you can hold — the potash goes
+   onto the plot — and it stands beside "grow a crop" on the plot's own card
+   rather than above it in the chain. */
 { id:'fertilise', name:'Fertilise field', industry:'farming', workshop:'Farm Plot', skill:'Grower',
-  in:[{item:'Potash', qty:1}], out:[{item:'Fertilised field'}],
-  note:'Raises yields. Entirely optional — plump helmets grow perfectly well in plain mud.' },
+  in:[{item:'Potash', qty:1}],
+  note:'The plot has two settings and this is the second one: spread potash on it and every harvest taken off it afterwards comes up in a bigger stack. Nothing comes out of the job — what it improves is the ground. Entirely optional, so it is for surface crops and for fields you are pushing rather than for the plump helmets that grow perfectly well in plain mud. One potash covers a plot for a season.' },
 
-{ id:'seeds-recovery', name:'Recover seeds', industry:'farming', workshop:'Any of the below', skill:'—',
-  in:[{item:'Plump helmet'}], out:[{item:'Seeds'}],
-  note:'Eating raw, brewing, milling and processing all return the seeds. COOKING DOES NOT — a plant cooked into a meal takes its seeds with it. Never let a cook near your only sweet pod.' },
+{ id:'cook-plant', name:'Cook a plant', industry:'food', workshop:'Kitchen', skill:'Cook',
+  in:[{item:'Harvested plant'}], out:[{item:'Prepared meal'}],
+  note:'The same Prepare Meals job as below, seen from the plant’s side, and the one thing you can do with a plant that does not hand the seed back — a plant cooked into a meal takes its seeds with it, permanently. Turn plant cooking off in the labour menu until the seed stock is deep, and never let a cook near the last of anything.' },
 
 /* ── FOOD & DRINK: brewing ───────────────────────────────────── */
 /* The Still runs one job against 77 different plants, so this is one step, not
@@ -447,25 +464,54 @@ window.DF_INDUSTRY_FLOWS = {
 
   farming: {
     wiki: ['https://dwarffortresswiki.org/index.php/Farming'],
-    steps: ['gather-plants', 'farm-plot', 'seeds-recovery', 'make-ash', 'make-potash-ash', 'fertilise'],
+    /* The ash and the ashery are not here. Fertilising is one job standing
+       beside the plot, and hanging the two jobs that make its potash above it
+       pushed "grow a crop" four rows down the page behind a branch that is
+       entirely optional — which is the opposite of what the map is for. The
+       potash arrives as a dashed box instead, the way every other borrowed
+       material does, and the chain that makes it is one click away on its own
+       map. */
+    steps: ['gather-plants', 'farm-plot', 'fertilise',
+            'brew', 'mill', 'process-thread', 'process-syrup', 'process-leaves',
+            'cook-plant'],
+    /* The four buildings that hand a seed back are written at the altitude
+       their own industry needs — the Still eats a "Brewable plant", the loom's
+       thresher a "Fibre crop" — and every one of those is the same thing seen
+       from here: what came off the plot. Joining them is what turns a row of
+       orphans into one node with five buildings under it, which is the shape of
+       the industry: one harvest, five things to do with it, four of which give
+       you the seed back and one of which does not. */
+    joins: {
+      'Brewable plant': 'Harvested plant', 'Millable plant': 'Harvested plant',
+      'Fibre crop': 'Harvested plant', 'Sweet pod': 'Harvested plant',
+      'Quarry bush': 'Harvested plant'
+    },
+    /* Without this the ash half of the map is a second industry drawn beside
+       the first and never touching it: potash is not an ingredient of a crop,
+       so no recipe can state the wire, and the two chains end up parallel
+       columns that share a page and nothing else. Fertiliser goes onto the plot
+       the crop is already growing in, which is a return, not a step — drawn
+       dashed and back up to the plot, the same as the seeds. */
     paths: [
       { id: 'all', label: 'Everything',
-        blurb: 'The dashed wire is the point of the whole industry: brewing, milling, threshing and eating raw all hand the seeds back, so a plot that started with five seeds keeps running forever. Cooking is the exception, and it is a permanent one.' },
+        titles: { 'cook-plant': 'Cook it instead' },
+        blurb: 'One building at the top with two settings, and five things to do with what comes off it. Look at what the bottom row is holding: brewing, milling and threshing all leave you with the seed as well as the thing you wanted, and so does a dwarf eating the plant raw off the pile. That is the point of the whole industry — a plot that started with five seeds keeps running forever. The kitchen is the one building here that leaves you nothing to replant, and what it takes is permanent.' },
 
       { id: 'grow', label: 'Grow a crop', tag: 'Start here',
         steps: ['gather-plants', 'farm-plot'],
-        blurb: 'Seeds come off a caravan, out of a gatherer’s bag, or back from anything that processes a plant. After that a plot on muddy ground runs on its own.',
-        notes: {
-          'farm-plot': 'Underground plots need a muddy floor, and a soil layer already counts — dig into one and no irrigation is needed. Plump helmets grow in all four seasons and can be eaten raw, which makes them the crop to start with.'
-        } },
+        blurb: 'The whole of farming, if you never do anything else. Seeds come off a caravan, out of a gatherer’s bag, or back from anything below that processes a plant; after that a plot runs on its own, fertilised or not. Underground it wants a muddy floor and a soil layer already counts, so a plot dug into one needs no irrigation. On the surface it needs no mud at all, and it is the only place the above-ground crops will grow.' },
 
-      { id: 'seeds', label: 'Keep your seeds', tag: 'The loop',
-        steps: ['farm-plot', 'seeds-recovery'],
-        blurb: 'Eating raw, brewing, milling and threshing all return the seed. Cooking does not — a plant cooked into a meal takes its seeds with it, permanently. Never let a cook near the last of anything.' },
+      { id: 'eat', label: 'Feed the fortress', tag: 'Booze & food',
+        steps: ['farm-plot', 'brew', 'mill', 'cook-plant'],
+        blurb: 'The shortest line on the site does not appear on it at all: plant a plump helmet, let a hungry dwarf eat it off the pile, and nobody starves — no building, no job, and the seed still comes back. Booze matters as much — dwarves work slower and get miserable without it, and one plant plus one Still is the whole recipe. The quern is the third route: cave wheat grinds to flour and sweet pods to sugar, both of them kitchen ingredients. Cook only once there is a surplus, and only what you have seeds to spare for — the kitchen is the one building here that does not hand the seed back.' },
 
-      { id: 'fertiliser', label: 'Fertiliser',
-        steps: ['make-ash', 'make-potash-ash', 'fertilise'],
-        blurb: 'Two jobs away from a log. Fertilising raises yields and is entirely optional, so it is for surface crops and for fields you are pushing rather than for the plump helmets that grow fine in plain mud.' }
+      { id: 'thresh', label: 'Thresh a crop', tag: "Farmer's workshop",
+        steps: ['farm-plot', 'process-thread', 'process-syrup', 'process-leaves'],
+        blurb: 'One building, three jobs, three different industries downstream: pig tails become the thread the loom wants, sweet pods become syrup, and quarry bushes become the only thing they are good for. Each wants its own empty container, and the first two hand the seed back.' },
+
+      { id: 'fertiliser', label: 'Fertiliser', tag: 'Optional',
+        steps: ['farm-plot', 'fertilise'],
+        blurb: 'The plot has two settings and this is the second one — the same building, the same grower, one job earlier. Spread potash and every harvest off that plot afterwards comes up in a bigger stack; skip it and plump helmets still grow perfectly well in plain mud. Use it on surface crops and on fields you are pushing. The potash is two jobs and a log away, over on the ash map.' }
     ]
   },
 
@@ -787,6 +833,7 @@ window.DF_ITEM_NOTES = {
   'Clothing': 'Wears out one level every ten years while worn. Dwarves replace their own if replacements exist; if they do not, XXtatteredXX clothes and bare feet stack unhappy thoughts until the fortress tantrums.',
   'Robe': 'The most valuable cloth garment in the game at a base 33, and it costs exactly one unit of cloth — the same as a thong at 5.',
   'Cloth crafts': 'Cloth at the craftsdwarf’s workshop. A trade good, and usually a waste of the cloth.',
+  'Harvested plant': 'Eaten raw straight off the pile it needs no building and no job at all, and the seed still comes back — which is what lets a fortress live on its first five plump helmet seeds while everything else is still being dug. Only some plants take that: plump helmets do, cave wheat and pig tails do not. Otherwise it is whatever came off the plot or out of the gatherer’s bag — plump helmet, cave wheat, pig tail, sweet pod, dimple cup, quarry bush underground, and the surface crops above. Which one it is decides where it goes next, but not what the farm plot did to get it: one job, one skill, one plot told what to plant.',
   'Fibre crop': 'Pig tail, rope reed, hemp, flax, cotton, kenaf, jute or ramie. One job threshes all eight, and the thread is worth the same whichever it was.',
   'Shearable animal': 'Sheep, llamas and alpacas — once every 300 days each. Trolls are woolly too, but only goblins can shear them.',
   'Fuel': 'Any unit of charcoal or coke. Magma-powered furnaces (smelter, forge, glass furnace, kiln) need no fuel at all, which is why fortresses chase magma.',
