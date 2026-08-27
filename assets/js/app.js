@@ -2513,16 +2513,18 @@
         return g ? g.querySelector('.f-shopcard') : el;
       };
 
-      /* A card is entered at the top and left at the bottom; a waypoint is only
-         a place the wire passes through, so it is entered and left at its
-         middle.
+      /* A card is entered at the top and left at the bottom. A waypoint is a
+         lane through a row rather than a point in it, so a wire enters it at
+         the top of that row and leaves at the bottom — which means every
+         sideways move a wire makes happens in the gap between two rows, where
+         there is nothing for it to run under.
 
          Jobs listed inside a shared card all stand at the same width, so they
          cannot each be entered above their own text. Instead they fan across
          the card's edge in the order they are listed — which is what keeps
          "sand" and "sand and pearlash" telling apart at a glass furnace that
          draws its plate once. */
-      const port = (key, side) => {
+      const port = (key) => {
         const el = els.get(key);
         if (!el) return null;
         const r = el.getBoundingClientRect();
@@ -2533,14 +2535,102 @@
            above straight to the step below, which is the line anyway. A
            waypoint has no width but does have height, so it keeps its lane. */
         if (!r.width && !r.height) return null;
-        if (nodes.get(key).kind === 'way') {
-          return { x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2 };
-        }
-        const b = outer(el).getBoundingClientRect();
+        const b = nodes.get(key).kind === 'way' ? r : outer(el).getBoundingClientRect();
         return {
           x: b.left - box.left + b.width / 2,
-          y: b.top - box.top + (side === 'out' ? b.height : 0)
+          top: b.top - box.top,
+          bot: b.top - box.top + b.height
         };
+      };
+
+      /* One path out of a list of corners, all of them square. Curves were the
+         obvious thing to draw and the wrong one: a wire whose ends are nearly
+         level but far apart has almost no room to turn in, so the control
+         points fold it back on itself and the map grows S-bends that mean
+         nothing. Straight legs cannot do that — where a wire changes lane it
+         says so once, at a right angle, and the rest of it points down the page.
+
+         The corners are eased by a quarter turn small enough to read as a
+         corner rather than as a curve, and shrunk further when the legs meeting
+         there are shorter than that. Points on one line are dropped first, so a
+         wire that never changes lane comes out as a single straight line. */
+      const CORNER = 10;
+      const span = (a, b) => Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
+      const toward = (from, to, r) => {
+        const len = span(from, to);
+        return len ? { x: from.x + (to.x - from.x) / len * r, y: from.y + (to.y - from.y) / len * r }
+                   : { x: from.x, y: from.y };
+      };
+
+      const ortho = (raw) => {
+        const p = [];
+        raw.forEach((q) => {
+          const last = p[p.length - 1];
+          if (last && span(last, q) < 0.5) return;
+          const prev = p[p.length - 2];
+          const flat = (a, b, c) => (Math.abs(a.x - b.x) < 0.5 && Math.abs(b.x - c.x) < 0.5)
+                                 || (Math.abs(a.y - b.y) < 0.5 && Math.abs(b.y - c.y) < 0.5);
+          if (prev && flat(prev, last, q)) p.pop();
+          p.push(q);
+        });
+        if (p.length < 2) return '';
+        let d = `M${p[0].x},${p[0].y}`;
+        for (let i = 1; i < p.length - 1; i++) {
+          const a = p[i - 1], c = p[i], b = p[i + 1];
+          const r = Math.min(CORNER, span(a, c) / 2, span(c, b) / 2);
+          const s = toward(c, a, r), e = toward(c, b, r);
+          d += ` L${s.x},${s.y} Q${c.x},${c.y} ${e.x},${e.y}`;
+        }
+        const last = p[p.length - 1];
+        return d + ` L${last.x},${last.y}`;
+      };
+
+      /* A row that does not fit the page wraps, so "the next row down" is not
+         always the next thing under a card — a wrapped card can be sitting in
+         what would otherwise be clear air. Every box on the map is measured
+         once so a wire about to move sideways can be told what is in the way. */
+      const solids = [...host.querySelectorAll('.fmap-row > *:not(.f-way)')]
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          return { l: r.left - box.left, r: r.right - box.left,
+                   t: r.top - box.top,  b: r.top - box.top + r.height };
+        }).filter((r) => r.b > r.t);
+
+      /* Down out of the box, across, down into the next one. The crossing goes
+         halfway down whatever clear air is left above the box being entered, so
+         two wires arriving at the same row turn at the same height and read as
+         a pair of rails rather than a tangle — and a card that has wrapped into
+         the gap pushes the turn below itself instead of being drawn over. */
+      const CLEAR = 4;
+      const jogY = (from, to, x1, x2) => {
+        const l = Math.min(x1, x2) - CLEAR, r = Math.max(x1, x2) + CLEAR;
+        let floor = from;
+        solids.forEach((s) => {
+          if (s.r <= l || s.l >= r) return;
+          if (s.b <= from || s.b >= to) return;
+          floor = Math.max(floor, s.b + CLEAR);
+        });
+        /* Rows never overlap, but a card fading out mid-draw can leave the two
+           edges level for a frame; clamping keeps the jog from being drawn
+           above the box it just left. */
+        return Math.min(Math.max(from, (floor + to) / 2), to);
+      };
+
+      const route = (chain) => {
+        const pts = chain.map(port).filter(Boolean);
+        if (pts.length < 2) return '';
+        const corners = [{ x: pts[0].x, y: pts[0].bot }];
+        for (let i = 1; i < pts.length; i++) {
+          const p = pts[i];
+          const last = corners[corners.length - 1];
+          if (Math.abs(p.x - last.x) > 0.5) {
+            const y = jogY(last.y, p.top, last.x, p.x);
+            corners.push({ x: last.x, y }, { x: p.x, y });
+          }
+          corners.push({ x: p.x, y: p.top });
+          if (i < pts.length - 1) corners.push({ x: p.x, y: p.bot });
+        }
+        return ortho(corners);
       };
 
       /* A return wire leaves and re-enters at the side rather than the top and
@@ -2553,28 +2643,21 @@
       far = Math.min(box.width - 4, far + 26);
 
       const loop = (a, b) => {
-        const ra = outer(els.get(a)).getBoundingClientRect();
-        const rb = outer(els.get(b)).getBoundingClientRect();
+        const ea = els.get(a), eb = els.get(b);
+        if (!ea || !eb) return '';
+        const ra = outer(ea).getBoundingClientRect();
+        const rb = outer(eb).getBoundingClientRect();
+        if (!ra.height || !rb.height) return '';
         const x1 = ra.right - box.left, y1 = ra.top - box.top + ra.height / 2;
         const x2 = rb.right - box.left, y2 = rb.top - box.top + rb.height / 2;
         const out = Math.max(far, x1 + 26, x2 + 26);
-        return `M${x1},${y1} C${out},${y1} ${out},${y2} ${x2},${y2}`;
+        return ortho([{ x: x1, y: y1 }, { x: out, y: y1 },
+                      { x: out, y: y2 }, { x: x2, y: y2 }]);
       };
 
       wireEls.forEach(({ w, el }) => {
-        if (w.back) {
-          if (!els.get(w.chain[0]) || !els.get(w.chain[1])) return el.removeAttribute('d');
-          return el.setAttribute('d', loop(w.chain[0], w.chain[1]));
-        }
-        const pts = w.chain.map((k, j) =>
-          port(k, j === 0 ? 'out' : 'in')).filter(Boolean);
-        if (pts.length < 2) return el.removeAttribute('d');
-        el.setAttribute('d', pts.map((p, j) => {
-          if (!j) return `M${p.x},${p.y}`;
-          const q = pts[j - 1];
-          const k = Math.max(12, (p.y - q.y) * 0.42);
-          return `C${q.x},${q.y + k} ${p.x},${p.y - k} ${p.x},${p.y}`;
-        }).join(' '));
+        const d = w.back ? loop(w.chain[0], w.chain[1]) : route(w.chain);
+        if (d) el.setAttribute('d', d); else el.removeAttribute('d');
       });
     }
 

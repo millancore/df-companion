@@ -377,8 +377,16 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 
 /* No arrowheads: the map runs down the page, so every wire on it means "next"
    already, and a tip on each one only crowded the top edge of the card it
-   landed on. The one wire that does not mean next draws dashed instead. */
-.fm-wire { fill: none; stroke: var(--line-2); stroke-width: 1.6; transition: stroke .12s, opacity .12s; }
+   landed on. The one wire that does not mean next draws dashed instead.
+
+   Every wire is straight legs and square corners, so the joins are rounded:
+   the corner itself is eased in the path, and this catches the few that are
+   too short to ease. */
+.fm-wire {
+  fill: none; stroke: var(--line-2); stroke-width: 1.6;
+  stroke-linejoin: round; stroke-linecap: round;
+  transition: stroke .12s, opacity .12s;
+}
 .fm-wire.hot { stroke: var(--c, var(--accent)); stroke-width: 2.4; }
 .fm-wire.lit { stroke: var(--accent); stroke-width: 2.4; }
 /* A chain that closes on itself — seeds back out of the crop they grew — draws
