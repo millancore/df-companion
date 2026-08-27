@@ -42,6 +42,7 @@
   const REFERENCE  = window.DF_REFERENCE;
   const NOTES      = window.DF_ITEM_NOTES || {};
   const SHOPS      = window.DF_WORKSHOPS || {};
+  const SHOP_ORDER = window.DF_SHOP_ORDER || [];
   const METALS     = window.DF_METAL_COLORS || {};
   const ICONS      = window.DF_ICONS || {};
   const SPRITES    = window.DF_ITEM_SPRITES || {};
@@ -248,6 +249,18 @@
     place:    t('kind.place', 'Place')
   };
   const shopKind = (name) => (SHOPS[name] || {}).kind || 'workshop';
+
+  /* The workshop grid splits the same way the build menu does, and the menu
+     path already says which shelf a building sits on: b-o-l is cloth and
+     leather, b-o-f is farming, b-o-u is the furnaces, and everything else
+     under b-o is a plain workshop. Reading the group off `keys` means a new
+     building lands in the right section from its menu path alone. Places and
+     zones have no path and fall back to their kind. */
+  const MENU_GROUP = { l: 'cloth', f: 'farm', u: 'furnace' };
+  const shopGroup = (name) => {
+    const shelf = ((SHOPS[name] || {}).keys || '').split('-')[2];
+    return MENU_GROUP[shelf] || shopKind(name);
+  };
 
   const industry = (id) => INDUSTRIES.find((i) => i.id === id);
   const recipesOf = (id) => RECIPES.filter((r) =>
@@ -2550,10 +2563,14 @@
   }
 
   function viewWorkshops() {
-    const order = ['workshop', 'furnace', 'place'];
+    const order = ['workshop', 'cloth', 'farm', 'furnace', 'place'];
     const heading = {
       workshop: [t('ws.group.workshop', 'Workshops'),
                  t('ws.group.workshop.note', 'Built from the workshop menu. No fuel, just a dwarf and the right skill.')],
+      cloth:    [t('ws.group.cloth', 'Clothing and leather'),
+                 t('ws.group.cloth.note', 'The b-o-l shelf: thread into cloth, hide into leather, and the dyes that colour both.')],
+      farm:     [t('ws.group.farm', 'Farming'),
+                 t('ws.group.farm.note', 'The b-o-f shelf: everything the fortress eats and drinks, and what the butcher leaves behind.')],
       furnace:  [t('ws.group.furnace', 'Furnaces'),
                  t('ws.group.furnace.note', 'Each job burns a unit of fuel — charcoal or coke — unless the furnace is built over magma.')],
       place:    [t('ws.group.place', 'Places & zones'),
@@ -2562,7 +2579,14 @@
 
     const groups = new Map(order.map((k) => [k, []]));
     [...new Set(RECIPES.map((r) => r.workshop))].forEach((w) =>
-      groups.get(shopKind(w)).push(w));
+      groups.get(shopGroup(w)).push(w));
+
+    /* Inside a group the cards run in the build menu's own order, so someone
+       reading with the wiki open finds them where they expect. A building the
+       list does not name sorts last and keeps its data order. */
+    const rank = (w) => { const i = SHOP_ORDER.indexOf(w);
+                          return i < 0 ? SHOP_ORDER.length : i; };
+    groups.forEach((list) => list.sort((a, b) => rank(a) - rank(b)));
 
     const card = (w) => {
       const steps = RECIPES.filter((r) => r.workshop === w);

@@ -271,3 +271,25 @@ window.DF_WORKSHOPS = {
   art: `<path d="M16 5v13"/><path d="M11 13l5 5 5-5" class="ac"/><path d="M6 22v5h20v-5"/>` }
 
 };
+
+/* The order the buildings sit in on the wiki's Workshop page, which is the
+   build menu's own order: the b-o workshops first, then the clothing and
+   leather ones, then farming, then the b-o-u furnaces. The grid groups by
+   `kind`, so this list only decides the order inside a group — anything not
+   named here keeps its data order and follows the named ones. Two entries on
+   the wiki have no card here yet (siege workshop, vermin catcher's shop) and
+   are left out rather than listed against nothing. */
+
+window.DF_SHOP_ORDER = [
+  /* Workshops */
+  'Ashery', "Bowyer's Workshop", "Carpenter's Workshop", "Craftsdwarf's Workshop",
+  "Jeweler's Workshop", "Mason's Workshop", "Mechanic's Workshop",
+  "Metalsmith's Forge", 'Screw Press', "Soap Maker's Workshop",
+  /* Clothing and leather */
+  "Clothier's Shop", "Dyer's Shop", 'Leather Works', 'Loom',
+  /* Farming */
+  'Farm Plot', "Butcher's Shop", "Farmer's Workshop", 'Fishery', 'Kitchen',
+  'Quern or Millstone', 'Still', "Tanner's Shop",
+  /* Furnaces */
+  'Glass Furnace', 'Kiln', 'Smelter', 'Wood Furnace'
+];
